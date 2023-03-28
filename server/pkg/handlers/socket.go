@@ -14,20 +14,19 @@ var upgrader = websocket.FastHTTPUpgrader{
 
 func handleConnection(h handler, ctx *fasthttp.RequestCtx, c *websocket.Conn) {
 	for {
-		_, p, err := c.ReadMessage()
-		if err != nil {
+		if _, p, err := c.ReadMessage(); err != nil {
 			log.Println("ws reader error:", err)
 			return
+		} else {
+			log.Println("Message recieved:", string(p))
 		}
-		log.Println("Message recieved:", string(p))
 	}
 }
 
 func (h handler) WebSocketEndpoint(ctx *fasthttp.RequestCtx) {
-	err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {
+	if err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {
 		handleConnection(h, ctx, c)
-	})
-	if err != nil {
+	}); err != nil {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 	}
 }
