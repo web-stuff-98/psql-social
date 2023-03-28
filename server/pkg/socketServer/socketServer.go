@@ -451,6 +451,9 @@ func leaveSubByWs(ss *SocketServer) {
 		if _, ok := ss.Subscriptions.data[data.SubName]; ok {
 			ss.Subscriptions.mutex.Lock()
 			delete(ss.Subscriptions.data[data.SubName], data.Conn)
+			if len(ss.Subscriptions.data[data.SubName]) == 0 {
+				delete(ss.Subscriptions.data, data.SubName)
+			}
 			ss.Subscriptions.mutex.Unlock()
 		}
 		ss.Subscriptions.mutex.RUnlock()
@@ -491,6 +494,9 @@ func leaveSubByID(ss *SocketServer) {
 		if _, ok := ss.Subscriptions.data[data.SubName]; ok {
 			ss.Subscriptions.mutex.Lock()
 			delete(ss.Subscriptions.data[data.SubName], conn)
+			if len(ss.Subscriptions.data[data.SubName]) == 0 {
+				delete(ss.Subscriptions.data, data.SubName)
+			}
 			ss.Subscriptions.mutex.Unlock()
 		}
 		ss.Subscriptions.mutex.RUnlock()
