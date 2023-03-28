@@ -1,4 +1,4 @@
-package socketserver
+package socketServer
 
 import (
 	"log"
@@ -198,6 +198,7 @@ func Init() *SocketServer {
 		},
 	}
 	go runServer(ss)
+	log.Println("Socket server initialized")
 	return ss
 }
 

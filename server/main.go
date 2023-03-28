@@ -8,6 +8,8 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/db"
 	"github.com/web-stuff-98/psql-social/pkg/handlers"
+	rdb "github.com/web-stuff-98/psql-social/pkg/redis"
+	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
 func main() {
@@ -17,13 +19,14 @@ func main() {
 	}
 
 	db := db.Init()
-	h := handlers.New(db)
+	r := rdb.Init()
+	ss := socketServer.Init()
+
+	h := handlers.New(db, r, ss)
 
 	log.Printf("API opening on port %v", os.Getenv("PORT"))
 	log.Fatalln(fasthttp.ListenAndServe(":"+os.Getenv("PORT"), func(ctx *fasthttp.RequestCtx) {
 		switch string(ctx.Path()) {
-		case "/api/ping":
-			h.Ping(ctx)
 		case "/api/acc/login":
 			h.Login(ctx)
 		case "/api/acc/register":

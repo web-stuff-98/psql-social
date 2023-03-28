@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
 	"github.com/valyala/fasthttp"
+	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
 	"golang.org/x/crypto/bcrypt"
@@ -33,8 +34,8 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	var hash, username, role string
-	if err := h.DB.QueryRow(rctx, "SELECT password,username,role FROM users WHERE LOWER(username) = LOWER($1)", body.Username).Scan(&hash, &username, &role); err != nil {
+	var id, hash, username, role string
+	if err := h.DB.QueryRow(rctx, "SELECT id,password,username,role FROM users WHERE LOWER(username) = LOWER($1)", body.Username).Scan(&id, &hash, &username, &role); err != nil {
 		if err == pgx.ErrNoRows {
 			ctx.Error("Account not found", fasthttp.StatusNotFound)
 		} else {
@@ -52,15 +53,20 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if outData, err := json.Marshal(responses.User{
-		Username: username,
-		Role:     role,
-	}); err != nil {
+	if token, err := authHelpers.GenerateTokenAndSession(h.RedisClient, rctx, id); err != nil {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 	} else {
-		ctx.Response.Header.Add("Content-Type", "application/json")
-		ctx.Write(outData)
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		if outData, err := json.Marshal(responses.UserWithToken{
+			Username: username,
+			Role:     role,
+			Token:    token,
+		}); err != nil {
+			ctx.Error("Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ctx.Response.Header.Add("Content-Type", "application/json")
+			ctx.Write(outData)
+			ctx.SetStatusCode(fasthttp.StatusOK)
+		}
 	}
 }
 
@@ -94,24 +100,30 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	var id string
 	if hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 14); err != nil {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
-		if _, err := h.DB.Exec(rctx, "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER');", body.Username, string(hash)); err != nil {
+		if err := h.DB.QueryRow(rctx, "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id;", body.Username, string(hash)).Scan(&id); err != nil {
 			ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
 	}
 
-	if outData, err := json.Marshal(responses.User{
-		Username: body.Username,
-		Role:     "USER",
-	}); err != nil {
+	if token, err := authHelpers.GenerateTokenAndSession(h.RedisClient, rctx, id); err != nil {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 	} else {
-		ctx.Response.Header.Add("Content-Type", "application/json")
-		ctx.Write(outData)
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		if outData, err := json.Marshal(responses.UserWithToken{
+			Username: body.Username,
+			Role:     "USER",
+			Token:    token,
+		}); err != nil {
+			ctx.Error("Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ctx.Response.Header.Add("Content-Type", "application/json")
+			ctx.Write(outData)
+			ctx.SetStatusCode(fasthttp.StatusOK)
+		}
 	}
 }
