@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/fasthttp/router"
 	"github.com/joho/godotenv"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/db"
@@ -19,20 +20,17 @@ func main() {
 	}
 
 	db := db.Init()
-	r := rdb.Init()
+	rdb := rdb.Init()
 	ss := socketServer.Init()
 
-	h := handlers.New(db, r, ss)
+	h := handlers.New(db, rdb, ss)
+
+	r := router.New()
+	r.POST("/api/acc/login", h.Login)
+	r.POST("/api/acc/register", h.Register)
+	r.POST("/api/acc/refresh", h.Refresh)
+	r.GET("/api/ws", h.WebSocketEndpoint)
 
 	log.Printf("API opening on port %v", os.Getenv("PORT"))
-	log.Fatalln(fasthttp.ListenAndServe(":"+os.Getenv("PORT"), func(ctx *fasthttp.RequestCtx) {
-		switch string(ctx.Path()) {
-		case "/api/acc/login":
-			h.Login(ctx)
-		case "/api/acc/register":
-			h.Register(ctx)
-		default:
-			ctx.Error("Not found", fasthttp.StatusNotFound)
-		}
-	}))
+	log.Fatalln(fasthttp.ListenAndServe(":"+os.Getenv("PORT"), r.Handler))
 }

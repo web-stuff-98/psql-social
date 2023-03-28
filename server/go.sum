@@ -9,6 +9,8 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumC
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
+github.com/fasthttp/router v1.4.18 h1:elMnlFq527oZd8MHsuUpO6uLDup1exv8rXPfIjClDHk=
+github.com/fasthttp/router v1.4.18/go.mod h1:ZmC20Mn0VgCBbUWFDmnYzFbQYRfdGeKgpkBy0+JioKA=
 github.com/fasthttp/websocket v1.5.2 h1:KdCb0EpLpdJpfE3IPA5YLK/aYBO3dhZcvwxz6tXe2LQ=
 github.com/fasthttp/websocket v1.5.2/go.mod h1:S0KC1VBlx1SaXGXq7yi1wKz4jMub58qEnHQG9oHuqBw=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=

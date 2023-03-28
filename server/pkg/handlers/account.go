@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -15,11 +16,6 @@ import (
 )
 
 func (h handler) Login(ctx *fasthttp.RequestCtx) {
-	if string(ctx.Method()) != fasthttp.MethodPost {
-		ctx.Error("Method not allowed", fasthttp.StatusMethodNotAllowed)
-		return
-	}
-
 	v := validator.New()
 	body := &validation.LoginRegister{}
 	if err := json.Unmarshal(ctx.Request.Body(), &body); err != nil {
@@ -35,7 +31,7 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 	defer cancel()
 
 	var id, hash, username, role string
-	if err := h.DB.QueryRow(rctx, "SELECT id,password,username,role FROM users WHERE LOWER(username) = LOWER($1)", body.Username).Scan(&id, &hash, &username, &role); err != nil {
+	if err := h.DB.QueryRow(rctx, "SELECT id,password,username,role FROM users WHERE LOWER(username) = LOWER($1)", strings.TrimSpace(body.Username)).Scan(&id, &hash, &username, &role); err != nil {
 		if err == pgx.ErrNoRows {
 			ctx.Error("Account not found", fasthttp.StatusNotFound)
 		} else {
@@ -71,11 +67,6 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) Register(ctx *fasthttp.RequestCtx) {
-	if string(ctx.Method()) != fasthttp.MethodPost {
-		ctx.Error("Method not allowed", fasthttp.StatusMethodNotAllowed)
-		return
-	}
-
 	v := validator.New()
 	body := &validation.LoginRegister{}
 	if err := json.Unmarshal(ctx.Request.Body(), &body); err != nil {
@@ -91,7 +82,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	defer cancel()
 
 	exists := false
-	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))", body.Username).Scan(&exists); err != nil {
+	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))", strings.TrimSpace(body.Username)).Scan(&exists); err != nil {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -115,7 +106,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 	} else {
 		if outData, err := json.Marshal(responses.UserWithToken{
-			Username: body.Username,
+			Username: strings.TrimSpace(body.Username),
 			Role:     "USER",
 			Token:    token,
 		}); err != nil {
@@ -125,5 +116,24 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 			ctx.Write(outData)
 			ctx.SetStatusCode(fasthttp.StatusOK)
 		}
+	}
+}
+
+func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
+	oldToken := strings.ReplaceAll(string(ctx.Request.Header.Peek("Authorization")), "Bearer ", "")
+	if oldToken == "" {
+		ctx.Error("No token provided", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	if token, err := authHelpers.RefreshToken(h.RedisClient, rctx, h.DB, oldToken); err != nil {
+		ctx.Error("Unauthorized. Your session most likely expired.", fasthttp.StatusUnauthorized)
+	} else {
+		ctx.Response.Header.Add("Content-Type", "text/plain")
+		ctx.Write([]byte(token))
+		ctx.SetStatusCode(fasthttp.StatusOK)
 	}
 }
