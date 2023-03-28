@@ -12,13 +12,20 @@ This works differently to my last 2 projects, mainly because users can
 establish a socket connection without being logged in. Also using
 unidirectional channels for performance.
 
-There are 2 maps for connections. Means more code but also no
-need to go through every connection using range.
+There are 2 maps for connections. Means more code but also less need to
+range through connections maps.
+
+I have made channels so that the same functionality as in socket.ios
+"broadcast", "to" and "emit" can be achieved
 */
 
 type SocketServer struct {
 	ConnectionsByWs ConnectionsByWs
 	ConnectionsByID ConnectionsByID
+
+	// used to avoid ranging through maps. Keeps names of every subscription
+	// a connection is registered to.
+	ConnectionSubscriptions ConnectionSubscriptions
 
 	RegisterConn   <-chan ConnnectionData
 	UnregisterConn <-chan *websocket.Conn
@@ -35,19 +42,19 @@ type SocketServer struct {
 
 	SendDataToSub  <-chan SubscriptionMessageData
 	SendDataToSubs <-chan SubscriptionsMessageData
-	// Send data to subscription, exclude connections
+	// Send data to subscription, exclude connection(s)
 	SendDataToSubExcludeByWss <-chan SubscriptionMessageDataExcludeByWss
-	// Send data to subscription, exclude connections by user ids
+	// Send data to subscription, exclude connection(s) by matching user ids
 	SendDataToSubExcludeByIDs <-chan SubscriptionMessageDataExcludeByIDs
-	// Send date to multiple subscriptions, exclude connections
+	// Send data to multiple subscriptions, exclude connection(s)
 	SendDataToSubsExcludeByWss <-chan SubscriptionsMessageDataExcludeByWss
-	// Send date to multiple subscriptions, exclude connections by user ids
+	// Send data to multiple subscriptions, exclude connection(s) by matching user ids
 	SendDataToSubsExcludeByIDs <-chan SubscriptionMessageDataExcludeByIDs
 
 	Subscriptions Subscriptions
 }
 
-/* ------ MUTEX PROTECTED ------ */
+/* ------ INTERNAL MUTEX PROTECTED MAPS ------ */
 
 type ConnectionsByWs struct {
 	data  map[*websocket.Conn]string
@@ -59,12 +66,17 @@ type ConnectionsByID struct {
 	mutex sync.RWMutex
 }
 
+type ConnectionSubscriptions struct {
+	data  map[*websocket.Conn]map[string]struct{}
+	mutex sync.Mutex
+}
+
 type Subscriptions struct {
 	data  map[string]map[*websocket.Conn]struct{}
 	mutex sync.RWMutex
 }
 
-/* ------ GENERAL STRUCTS ------ */
+/* ------ GENERAL STRUCTS USED INTERNALLY AND EXTERNALLY ------ */
 
 type ConnnectionData struct {
 	Uid  string
@@ -126,6 +138,10 @@ func Init() *SocketServer {
 			data: make(map[string]*websocket.Conn),
 		},
 
+		ConnectionSubscriptions: ConnectionSubscriptions{
+			data: make(map[*websocket.Conn]map[string]struct{}),
+		},
+
 		RegisterConn:   make(<-chan ConnnectionData),
 		UnregisterConn: make(<-chan *websocket.Conn),
 
@@ -165,9 +181,9 @@ func runServer(ss *SocketServer) {
 	// Join connection subscription by matching user id
 	go joinSubsByID(ss)
 	// Disconnect connection from subscription by matching websocket
-	go leaveSubsByWs(ss)
+	go leaveSubByWs(ss)
 	// Disconnect connection from subscription by matching user id
-	go leaveSubsByID(ss)
+	go leaveSubByID(ss)
 }
 
 func connection(ss *SocketServer) {
@@ -195,6 +211,10 @@ func connection(ss *SocketServer) {
 			ss.ConnectionsByID.mutex.Unlock()
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
+
+		ss.ConnectionSubscriptions.mutex.Lock()
+		ss.ConnectionSubscriptions.data[data.Conn] = make(map[string]struct{})
+		ss.ConnectionSubscriptions.mutex.Unlock()
 	}
 }
 
@@ -220,6 +240,10 @@ func disconnect(ss *SocketServer) {
 			ss.ConnectionsByID.mutex.Lock()
 			delete(ss.ConnectionsByID.data, uid)
 			ss.ConnectionsByID.mutex.Unlock()
+
+			ss.ConnectionSubscriptions.mutex.Lock()
+			delete(ss.ConnectionSubscriptions.data, conn)
+			ss.ConnectionSubscriptions.mutex.Unlock()
 		}
 		delete(ss.ConnectionsByWs.data, conn)
 		ss.ConnectionsByWs.mutex.Unlock()
@@ -358,6 +382,10 @@ func joinSubsByWs(ss *SocketServer) {
 			ss.Subscriptions.data[data.SubName] = conns
 		}
 		ss.Subscriptions.mutex.Unlock()
+
+		ss.ConnectionSubscriptions.mutex.Lock()
+		ss.ConnectionSubscriptions.data[data.Conn][data.SubName] = struct{}{}
+		ss.ConnectionSubscriptions.mutex.Unlock()
 	}
 }
 
@@ -389,6 +417,10 @@ func joinSubsByID(ss *SocketServer) {
 				conns[conn] = struct{}{}
 				ss.Subscriptions.data[data.SubName] = conns
 			}
+
+			ss.ConnectionSubscriptions.mutex.Lock()
+			ss.ConnectionSubscriptions.data[conn][data.SubName] = struct{}{}
+			ss.ConnectionSubscriptions.mutex.Unlock()
 		} else {
 			log.Println("Could not register user ID to subscription - connection information not found in memory")
 		}
@@ -397,7 +429,7 @@ func joinSubsByID(ss *SocketServer) {
 	}
 }
 
-func leaveSubsByWs(ss *SocketServer) {
+func leaveSubByWs(ss *SocketServer) {
 	var failCount uint8
 	for {
 		defer func() {
@@ -406,11 +438,11 @@ func leaveSubsByWs(ss *SocketServer) {
 				failCount++
 				log.Println("Recovered from panic in ws leave subscription by ws conn loop:", r)
 				if failCount < 10 {
-					go leaveSubsByWs(ss)
+					go leaveSubByWs(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
-				go leaveSubsByWs(ss)
+				go leaveSubByWs(ss)
 			}
 		}()
 
@@ -422,10 +454,14 @@ func leaveSubsByWs(ss *SocketServer) {
 			ss.Subscriptions.mutex.Unlock()
 		}
 		ss.Subscriptions.mutex.RUnlock()
+
+		ss.ConnectionSubscriptions.mutex.Lock()
+		delete(ss.ConnectionSubscriptions.data[data.Conn], data.SubName)
+		ss.ConnectionSubscriptions.mutex.Unlock()
 	}
 }
 
-func leaveSubsByID(ss *SocketServer) {
+func leaveSubByID(ss *SocketServer) {
 	var failCount uint8
 	for {
 		defer func() {
@@ -434,11 +470,11 @@ func leaveSubsByID(ss *SocketServer) {
 				failCount++
 				log.Println("Recovered from panic in ws leave subscription by uid loop:", r)
 				if failCount < 10 {
-					go leaveSubsByWs(ss)
+					go leaveSubByWs(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
-				go leaveSubsByID(ss)
+				go leaveSubByID(ss)
 			}
 		}()
 
@@ -458,5 +494,9 @@ func leaveSubsByID(ss *SocketServer) {
 			ss.Subscriptions.mutex.Unlock()
 		}
 		ss.Subscriptions.mutex.RUnlock()
+
+		ss.ConnectionSubscriptions.mutex.Lock()
+		delete(ss.ConnectionSubscriptions.data[conn], data.SubName)
+		ss.ConnectionSubscriptions.mutex.Unlock()
 	}
 }
