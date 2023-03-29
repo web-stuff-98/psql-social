@@ -9,8 +9,10 @@ import {
 } from "../../validators/validators";
 import { ref } from "vue";
 import ResMsg from "../shared/ResMsg.vue";
+import useSocketStore from "../../store/SocketStore";
 
 const authStore = useAuthStore();
+const socketStore = useSocketStore();
 
 const resMsg = ref<IResMsg>({});
 
@@ -18,6 +20,7 @@ async function handleSubmit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
     await authStore.login(values.username, values.password);
+    await socketStore.connectSocket();
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };

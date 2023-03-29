@@ -17,23 +17,20 @@ const useSocketStore = defineStore("socket", {
         );
       else console.warn("Socket unavailable");
     },
-    async connectSocket(token: string) {
+    async connectSocket() {
       return new Promise<WebSocket>((resolve, reject) => {
         const socket = new WebSocket(
           process.env.NODE_ENV === "development" ||
-          window.location.origin === "https://localhost:8080/"
-            ? `ws://localhost:8080/api/ws?token=${token}`
-            : `wss://psql-social.herokuapp.com/api/ws?token=${token}`
+          window.location.origin === "http://localhost:8080/"
+            ? `ws://localhost:8080/api/ws`
+            : `wss://psql-social.herokuapp.com/api/ws`
         );
         socket.onopen = () => {
+          this.$state.socket = socket;
           resolve(socket);
         };
-        socket.onerror = (e) => {
-          reject(e);
-        };
-        socket.onclose = () => {
-          this.socket = undefined;
-        };
+        socket.onerror = (e) => reject(e);
+        socket.onclose = () => (this.socket = undefined);
       });
     },
   },

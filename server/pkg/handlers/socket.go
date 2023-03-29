@@ -13,6 +13,9 @@ import (
 var upgrader = websocket.FastHTTPUpgrader{
 	ReadBufferSize:  2048,
 	WriteBufferSize: 2048,
+	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {
+		return true
+	},
 }
 
 /*
@@ -65,6 +68,7 @@ func (h handler) WebSocketEndpoint(ctx *fasthttp.RequestCtx) {
 		if err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {
 			handleConnection(h, ctx, c)
 		}); err != nil {
+			log.Println(err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		}
 	}
