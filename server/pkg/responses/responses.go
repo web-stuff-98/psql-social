@@ -15,7 +15,8 @@ type Room struct {
 }
 
 type RoomMessage struct {
-	ID       string `json:"ID"`
-	Content  string `json:"content"`
-	AuthorID string `json:"author_id"`
+	ID        string `json:"ID"`
+	Content   string `json:"content"`
+	AuthorID  string `json:"author_id"`
+	CreatedAt string `json:"created_at"`
 }

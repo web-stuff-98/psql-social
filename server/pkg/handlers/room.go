@@ -239,21 +239,19 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	rows, err := h.DB.Query(rctx, "SELECT id,content,author_id FROM room_messages WHERE room_channel_id = $1 ORDER BY created_at DESC LIMIT 50;", room_channel_id)
+	rows, err := h.DB.Query(rctx, "SELECT id,content,author_id,created_at FROM room_messages WHERE room_channel_id = $1 ORDER BY created_at DESC LIMIT 50;", room_channel_id)
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	messages := make([]responses.RoomMessage, 0)
+	messages := []responses.RoomMessage{}
 
 	for rows.Next() {
-		var id string
-		var content string
-		var author_id string
+		var id, content, author_id, created_at string
 
-		err = rows.Scan(&id, &content, &author_id)
+		err = rows.Scan(&id, &content, &author_id, &created_at)
 
 		if err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
