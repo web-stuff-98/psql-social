@@ -53,6 +53,7 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 	} else {
 		if outData, err := json.Marshal(responses.UserWithToken{
+			ID:       id,
 			Username: username,
 			Role:     role,
 			Token:    token,
@@ -106,6 +107,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 	} else {
 		if outData, err := json.Marshal(responses.UserWithToken{
+			ID:       id,
 			Username: strings.TrimSpace(body.Username),
 			Role:     "USER",
 			Token:    token,
@@ -134,6 +136,25 @@ func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
 	} else {
 		ctx.Response.Header.Add("Content-Type", "text/plain")
 		ctx.Write([]byte(token))
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
+}
+
+func (h handler) Logout(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	token := strings.ReplaceAll(string(ctx.Request.Header.Peek("Authorization")), "Bearer ", "")
+	if token == "" {
+		ctx.Error("No token provided", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	if _, sid, err := authHelpers.GetUidAndSidFromToken(h.RedisClient, rctx, h.DB, token); err != nil {
+		ctx.Error("Invalid session ID", fasthttp.StatusForbidden)
+		return
+	} else {
+		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	}
 }

@@ -15,8 +15,9 @@
     "oh-vue-icons": "1.0.0-rc3",
     "pinia": "^2.0.33",
     "simple-peer": "^9.11.1",
+    "vee-validate": "4",
     "vue": "^3.2.45",
-    "vue-router": "^4.1.6"
+    "vue-router": "4"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.2.2",

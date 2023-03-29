@@ -42,15 +42,25 @@
   --border-radius-sm: 4px;
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
+
+  /* Border colour */
+  --border-pale: rgb(122, 122, 122);
+  --border-medium: rgb(46, 46, 46);
+  --border-heavy: rgb(16, 16, 16);
 }
 
 button {
   background: var(--button);
   transition: background-color 100ms ease;
-  border: 2px solid var(--base-colour-contrast);
+  border: 1px solid var(--border-medium);
+  cursor: pointer;
 }
 button:hover {
   background: var(--button-hover);
+}
+
+body {
+  margin: 0;
 }
 
 input,
@@ -58,7 +68,7 @@ textarea,
 button,
 option,
 select {
-  border: 2px solid var(--base-colour-contrast);
+  border: 1px solid var(--border-medium);
   border-radius: var(--border-radius-sm);
   padding: var(--gap-md) var(--gap-sm);
 }
@@ -67,16 +77,22 @@ input,
 textarea,
 option,
 select {
-  border: 2px solid var(--base-colour-contrast);
+  border: 1px solid var(--border-medium);
   background: none;
 }
 
-input,
-textarea,
-option,
+input:hover,
+textarea:hover,
+option:hover,
 select:hover {
-  border: 2px solid var(--base-colour-contrast);
   background: var(--hover);
+}
+
+input:focus,
+textarea:focus,
+option:focus,
+select:focus {
+  background: var(--focus);
 }
 
 h1,
@@ -96,4 +112,51 @@ a {
 * {
   line-height: 1;
   box-sizing: border-box;
+}
+
+.modal-container {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+}
+.modal-container .modal {
+  border: 1px solid var(--border-medium);
+  padding: var(--gap-md);
+  border-radius: var(--border-radius-md);
+  box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.166), 0px 4px 8px rgba(0, 0, 0, 0.166);
+  background: var(--base-colour);
+  position: relative;
+}
+
+.modal-close-button {
+  background: red;
+  cursor: pointer;
+  border: 2px solid var(--border-heavy);
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  padding: 0;
+  margin: 0;
+  width: 1rem;
+  height: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  filter: opacity(0.5);
+  transition: filter 100ms ease;
+}
+.modal-close-button:hover {
+  filter: opacity(1);
+  background: red;
+}
+.modal-close-button svg {
+  width: 12px;
+  height: 12px;
 }

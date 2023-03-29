@@ -73,3 +73,7 @@ func RefreshToken(redisClient *redis.Client, ctx context.Context, db *pgx.Conn, 
 		}
 	}
 }
+
+func DeleteSession(redisClient *redis.Client, ctx context.Context, sid string) {
+	redisClient.Del(ctx, sid)
+}

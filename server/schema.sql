@@ -6,7 +6,7 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(72) NOT NULL,
-    /* "ADMIN" | "OWNER" | "USER" */
+    /* "ADMIN" | "USER" */
     role VARCHAR(5) NOT NULL,
     friends UUID[] DEFAULT '{}'::UUID[],
     blocked UUID[] DEFAULT '{}'::UUID[]
@@ -25,8 +25,8 @@ CREATE TABLE room_channels (
 
 CREATE TABLE posts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
+    title VARCHAR(64) NOT NULL,
+    content VARCHAR(5000) NOT NULL,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     room_channel_id UUID REFERENCES room_channels(id) ON DELETE CASCADE
 );

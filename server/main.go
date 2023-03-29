@@ -27,6 +27,7 @@ func main() {
 
 	r := router.New()
 	r.POST("/api/acc/login", h.Login)
+	r.POST("/api/acc/logout", h.Logout)
 	r.POST("/api/acc/register", h.Register)
 	r.POST("/api/acc/refresh", h.Refresh)
 	r.GET("/api/ws", h.WebSocketEndpoint)
