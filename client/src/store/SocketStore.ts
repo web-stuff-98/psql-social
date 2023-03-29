@@ -1,7 +1,4 @@
 import { defineStore } from "pinia";
-import useAuthStore from "./AuthStore";
-
-const authStore = useAuthStore();
 
 type SocketStoreState = {
   socket?: WebSocket;
@@ -20,13 +17,13 @@ const useSocketStore = defineStore("socket", {
         );
       else console.warn("Socket unavailable");
     },
-    async connectSocket() {
+    async connectSocket(token: string) {
       return new Promise<WebSocket>((resolve, reject) => {
         const socket = new WebSocket(
           process.env.NODE_ENV === "development" ||
           window.location.origin === "https://localhost:8080/"
-            ? `ws://localhost:8080/api/ws?token=${authStore.token}`
-            : `wss://psql-social.herokuapp.com/api/ws?token=${authStore.token}`
+            ? `ws://localhost:8080/api/ws?token=${token}`
+            : `wss://psql-social.herokuapp.com/api/ws?token=${token}`
         );
         socket.onopen = () => {
           resolve(socket);

@@ -1,17 +1,32 @@
 <script lang="ts" setup>
 import { ref } from "vue";
+import useAuthStore from "./store/AuthStore";
 import Modal from "./components/modal/Modal.vue";
 import Login from "./components/modal/Login.vue";
+import Register from "./components/modal/Register.vue";
+import Welcome from "./components/modal/Welcome.vue";
+import ModalCloseButton from "./components/shared/ModalCloseButton.vue";
+
+const authStore = useAuthStore();
 
 const noUserModalSection = ref<"WELCOME" | "LOGIN" | "REGISTER">("WELCOME");
 </script>
 
 <template>
   <div class="container">
-    <h1>Container</h1>
     <router-view :key="$route.fullPath" />
-    <Modal>
-      <Login />
+    <Modal v-if="!authStore.user">
+      <ModalCloseButton
+        v-if="noUserModalSection !== 'WELCOME'"
+        @click="() => (noUserModalSection = 'WELCOME')"
+      />
+      <Login v-if="noUserModalSection === 'LOGIN'" />
+      <Register v-if="noUserModalSection === 'REGISTER'" />
+      <Welcome
+        :onLoginClicked="() => (noUserModalSection = 'LOGIN')"
+        :onRegisterClicked="() => (noUserModalSection = 'REGISTER')"
+        v-if="noUserModalSection === 'WELCOME'"
+      />
     </Modal>
   </div>
 </template>
