@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import EAsideSection from "../../../enums/EAsideSection";
 import { ref } from "vue";
+import Profile from "./sections/Profile.vue";
 
 const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
 </script>
@@ -16,6 +17,10 @@ const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
         {{ section }}
       </button>
     </div>
+    <Profile
+      :closeClicked="() => (currentSection = EAsideSection.FRIENDS)"
+      v-if="currentSection === EAsideSection.PROFILE"
+    />
   </aside>
 </template>
 

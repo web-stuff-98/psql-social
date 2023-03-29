@@ -1,14 +1,14 @@
 /* All types for socket messages that go out */
 
 /* Watch messages (subscribe to updates for entity) */
-type Watchable = "USER" | "ROOM";
+type Watchable = "USER" | "ROOM" | "BIO";
 export type StartWatching = {
   event_type: "START_WATCHING";
-  data: { entity: Watchable };
+  data: { entity: Watchable; id: string };
 };
 export type StopWatching = {
   event_type: "STOP_WATCHING";
-  data: { entity: Watchable };
+  data: { entity: Watchable; id: string };
 };
 
 /* Direct messages */
