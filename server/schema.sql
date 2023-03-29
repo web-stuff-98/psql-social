@@ -10,11 +10,28 @@ CREATE TABLE users (
     blocked UUID [] DEFAULT '{}' :: UUID []
 );
 
+CREATE TABLE room_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    content TEXT NOT NULL,
+    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    room_channel_id UUID REFERENCES room_channels(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE direct_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    content VARCHAR(200) NOT NULL,
+    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    recipient_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE rooms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(24) NOT NULL,
     private BOOLEAN NOT NULL,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE
+    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE bans (
@@ -33,20 +50,6 @@ CREATE TABLE room_channels (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(24) NOT NULL,
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE
-);
-
-CREATE TABLE room_messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    content TEXT NOT NULL,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    room_channel_id UUID REFERENCES room_channels(id) ON DELETE CASCADE
-);
-
-CREATE TABLE direct_messages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    content VARCHAR(200) NOT NULL,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    recipient_id UUID REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE direct_message_attachment_chunks (

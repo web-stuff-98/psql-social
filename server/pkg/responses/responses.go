@@ -13,3 +13,9 @@ type Room struct {
 	AuthorID string `json:"author_id"`
 	Private  bool   `json:"private"`
 }
+
+type RoomMessage struct {
+	ID       string `json:"ID"`
+	Content  string `json:"content"`
+	AuthorID string `json:"author_id"`
+}
