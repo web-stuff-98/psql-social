@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import useIntervals from "./composables/useIntervals";
 import useAuthStore from "./store/AuthStore";
 import Modal from "./components/modal/Modal.vue";
@@ -17,12 +17,16 @@ const intervalsResMsg = ref<IResMsg>();
 useIntervals({ resMsg: intervalsResMsg });
 
 const noUserModalSection = ref<"WELCOME" | "LOGIN" | "REGISTER">("WELCOME");
+
+watch(authStore, (_, newVal) => {
+  if (!newVal.user) noUserModalSection.value = "WELCOME";
+});
 </script>
 
 <template>
   <div class="container">
     <Layout />
-    <!-- Intervals response message modal (eg, when refreshing token faile) -->
+    <!-- Intervals response message modal (eg, when refreshing token failed) -->
     <Modal v-if="intervalsResMsg?.msg">
       <ModalCloseButton @click="() => (intervalsResMsg = {})" />
       <ResMsg :resMsg="intervalsResMsg" />

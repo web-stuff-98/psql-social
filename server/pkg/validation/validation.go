@@ -9,3 +9,7 @@ type CreateUpdateRoom struct {
 	Name    string `json:"name" validate:"required,gte=24,lte=2"`
 	Private bool   `json:"private"`
 }
+
+type GetUserByName struct {
+	Username string `json:"username" validate:"required,gte=2,lte=16"`
+}

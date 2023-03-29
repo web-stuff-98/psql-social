@@ -1,16 +1,23 @@
 DROP SCHEMA public CASCADE;
+
 CREATE SCHEMA public;
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    username VARCHAR(50) UNIQUE NOT NULL,
+    username VARCHAR(16) UNIQUE NOT NULL,
     password VARCHAR(72) NOT NULL,
     /* "ADMIN" | "USER" */
     role VARCHAR(5) NOT NULL,
     friends UUID [] DEFAULT '{}' :: UUID [],
     blocked UUID [] DEFAULT '{}' :: UUID []
+);
+
+CREATE TABLE bios (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    content VARCHAR(300) NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE room_messages (
