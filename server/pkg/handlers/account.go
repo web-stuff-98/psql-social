@@ -49,14 +49,14 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if token, err := authHelpers.GenerateTokenAndSession(h.RedisClient, rctx, id); err != nil {
+	if cookie, err := authHelpers.GenerateCookieAndSession(h.RedisClient, rctx, id); err != nil {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 	} else {
-		if outData, err := json.Marshal(responses.UserWithToken{
+		ctx.Response.Header.SetCookie(cookie)
+		if outData, err := json.Marshal(responses.User{
 			ID:       id,
 			Username: username,
 			Role:     role,
-			Token:    token,
 		}); err != nil {
 			ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -103,18 +103,18 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	if token, err := authHelpers.GenerateTokenAndSession(h.RedisClient, rctx, id); err != nil {
+	if cookie, err := authHelpers.GenerateCookieAndSession(h.RedisClient, rctx, id); err != nil {
 		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 	} else {
-		if outData, err := json.Marshal(responses.UserWithToken{
+		if outData, err := json.Marshal(responses.User{
 			ID:       id,
 			Username: strings.TrimSpace(body.Username),
 			Role:     "USER",
-			Token:    token,
 		}); err != nil {
 			ctx.Error("Internal error", fasthttp.StatusInternalServerError)
 		} else {
 			ctx.Response.Header.Add("Content-Type", "application/json")
+			ctx.Response.Header.SetCookie(cookie)
 			ctx.Write(outData)
 			ctx.SetStatusCode(fasthttp.StatusOK)
 		}
@@ -131,11 +131,10 @@ func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	if token, err := authHelpers.RefreshToken(h.RedisClient, rctx, h.DB, oldToken); err != nil {
+	if cookie, err := authHelpers.RefreshToken(h.RedisClient, ctx, rctx, h.DB); err != nil {
 		ctx.Error("Unauthorized. Your session most likely expired.", fasthttp.StatusUnauthorized)
 	} else {
-		ctx.Response.Header.Add("Content-Type", "text/plain")
-		ctx.Write([]byte(token))
+		ctx.Response.Header.SetCookie(cookie)
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	}
 }
@@ -150,11 +149,12 @@ func (h handler) Logout(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if _, sid, err := authHelpers.GetUidAndSidFromToken(h.RedisClient, rctx, h.DB, token); err != nil {
+	if _, sid, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB); err != nil {
 		ctx.Error("Invalid session ID", fasthttp.StatusForbidden)
 		return
 	} else {
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
+		ctx.Response.Header.SetCookie(authHelpers.GetClearedCookie())
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	}
 }

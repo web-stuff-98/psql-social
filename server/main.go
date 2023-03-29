@@ -13,6 +13,23 @@ import (
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
+var (
+	corsAllowHeaders     = "*"
+	corsAllowMethods     = "HEAD,GET,POST,PUT,DELETE,OPTIONS"
+	corsAllowOrigin      = "http://localhost:5173"
+	corsAllowCredentials = "true"
+)
+
+func CORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		ctx.Response.Header.Set("Access-Control-Allow-Headers", corsAllowHeaders)
+		ctx.Response.Header.Set("Access-Control-Allow-Methods", corsAllowMethods)
+		ctx.Response.Header.Set("Access-Control-Allow-Origin", corsAllowOrigin)
+		ctx.Response.Header.Set("Access-Control-Allow-Credentials", corsAllowCredentials)
+		next(ctx)
+	}
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -33,5 +50,5 @@ func main() {
 	r.GET("/api/ws", h.WebSocketEndpoint)
 
 	log.Printf("API opening on port %v", os.Getenv("PORT"))
-	log.Fatalln(fasthttp.ListenAndServe(":"+os.Getenv("PORT"), r.Handler))
+	log.Fatalln(fasthttp.ListenAndServe(":"+os.Getenv("PORT"), CORS(r.Handler)))
 }

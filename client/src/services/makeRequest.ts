@@ -12,16 +12,18 @@ const api = axios.create({
 
 export async function makeRequest(
   url: string,
-  options?: RawAxiosRequestConfig,
-  token?: string
+  options?: RawAxiosRequestConfig
 ) {
   return api(url, {
     ...options,
     headers: {
       ...options?.headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+    withCredentials: true,
   })
     .then((res: any) => res.data)
-    .catch((e: any) => Promise.reject(e.response?.data.replace("Error: ", "")));
+    .catch((e: any) => {
+      console.log(e);
+      Promise.reject(e.response?.data.replace("Error: ", ""));
+    });
 }

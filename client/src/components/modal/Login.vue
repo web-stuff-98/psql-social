@@ -8,6 +8,7 @@ import {
   validatePassword,
 } from "../../validators/validators";
 import { ref } from "vue";
+import ResMsg from "../shared/ResMsg.vue";
 
 const authStore = useAuthStore();
 
@@ -16,7 +17,7 @@ const resMsg = ref<IResMsg>({});
 async function handleSubmit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    await authStore.login(values.username, values.spassword);
+    await authStore.login(values.username, values.password);
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
@@ -47,6 +48,7 @@ async function handleSubmit(values: any) {
       <ErrorMessage name="password" />
     </div>
     <button type="submit">Login</button>
+    <ResMsg :resMsg="resMsg" />
   </Form>
 </template>
 

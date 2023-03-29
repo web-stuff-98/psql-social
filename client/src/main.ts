@@ -4,9 +4,9 @@ import router from "./router";
 import "./styles.css";
 import App from "./App.vue";
 import { OhVueIcon, addIcons } from "oh-vue-icons";
-import { IoClose } from "oh-vue-icons/icons";
+import { IoClose, PrSpinner, MdErrorRound } from "oh-vue-icons/icons";
 
-addIcons(IoClose);
+addIcons(IoClose, PrSpinner, MdErrorRound);
 
 const pinia = createPinia();
 

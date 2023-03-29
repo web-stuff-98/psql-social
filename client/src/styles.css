@@ -160,3 +160,16 @@ a {
   width: 12px;
   height: 12px;
 }
+
+@keyframes spin {
+  0% {
+    transform: rotateZ(0deg);
+  }
+  100% {
+    transform: rotateZ(360deg);
+  }
+}
+
+.spin {
+  animation: spin 500ms linear infinite;
+}

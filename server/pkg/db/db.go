@@ -14,6 +14,7 @@ func Init() *pgx.Conn {
 		return nil
 	} else {
 		defer conn.Close(context.Background())
+		log.Println("Connected to postgres")
 		return conn
 	}
 }

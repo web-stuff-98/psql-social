@@ -11,9 +11,36 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
+	"github.com/valyala/fasthttp"
 )
 
-func GenerateTokenAndSession(redisClient *redis.Client, ctx context.Context, uid string) (string, error) {
+func createCookie(token string, expiry time.Time) *fasthttp.Cookie {
+	var cookie fasthttp.Cookie
+	cookie.SetKey("session_token")
+	cookie.SetValue(token)
+	cookie.SetExpire(expiry)
+	cookie.SetMaxAge(120)
+	cookie.SetSecure(os.Getenv("PRODUCTION") == "PRODUCTION")
+	cookie.SetHTTPOnly(true)
+	cookie.SetSameSite(fasthttp.CookieSameSiteDefaultMode)
+	cookie.SetPath("/")
+	return &cookie
+}
+
+func GetClearedCookie() *fasthttp.Cookie {
+	var cookie fasthttp.Cookie
+	cookie.SetValue("")
+	cookie.SetKey("session_token")
+	cookie.SetExpire(fasthttp.CookieExpireDelete)
+	cookie.SetMaxAge(-1)
+	cookie.SetSecure(os.Getenv("PRODUCTION") == "PRODUCTION")
+	cookie.SetHTTPOnly(true)
+	cookie.SetSameSite(fasthttp.CookieSameSiteDefaultMode)
+	cookie.SetPath("/")
+	return &cookie
+}
+
+func GenerateCookieAndSession(redisClient *redis.Client, ctx context.Context, uid string) (*fasthttp.Cookie, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic in generate token helper function")
@@ -29,47 +56,53 @@ func GenerateTokenAndSession(redisClient *redis.Client, ctx context.Context, uid
 	token, err := claims.SignedString([]byte(os.Getenv("SECRET")))
 	cmd := redisClient.Set(ctx, sid.String(), uid, sessionDuration)
 	if cmd.Err() != nil {
-		return "", err
+		log.Fatalln("Error in GenerateCookieAndSession helper function:", err)
 	}
-	return token, err
+	cookie := createCookie(token, time.Now().Add(sessionDuration))
+	return cookie, nil
 }
 
-func GetUidAndSidFromToken(redisClient *redis.Client, ctx context.Context, db *pgx.Conn, inToken string) (uid string, sid string, err error) {
+func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx context.Context, db *pgx.Conn) (uid string, sid string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic in get user ID from session token helper function")
 		}
 	}()
 
-	token, err := jwt.ParseWithClaims(inToken, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
+	cookie := string(ctx.Request.Header.Cookie("session_token"))
+	if cookie == "" {
+		return "", "", fmt.Errorf("No cookie")
+	}
+
+	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("SECRET")), nil
 	})
 	sessionID := token.Claims.(*jwt.StandardClaims).Issuer
 	if sessionID == "" {
 		return "", "", fmt.Errorf("Empty value")
 	}
-	val, err := redisClient.Get(ctx, sessionID).Result()
+	val, err := redisClient.Get(rctx, sessionID).Result()
 	if err != nil {
 		return "", "", fmt.Errorf("Error retrieving session")
 	}
 	return val, sessionID, nil
 }
 
-func RefreshToken(redisClient *redis.Client, ctx context.Context, db *pgx.Conn, inToken string) (string, error) {
+func RefreshToken(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx context.Context, db *pgx.Conn) (*fasthttp.Cookie, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic in refresh session token helper function")
 		}
 	}()
 
-	if uid, sid, err := GetUidAndSidFromToken(redisClient, ctx, db, inToken); err != nil {
-		return "", err
+	if uid, sid, err := GetUidAndSidFromCookie(redisClient, ctx, rctx, db); err != nil {
+		return GetClearedCookie(), err
 	} else {
 		redisClient.Del(ctx, sid)
-		if token, err := GenerateTokenAndSession(redisClient, ctx, uid); err != nil {
-			return "", err
+		if cookie, err := GenerateCookieAndSession(redisClient, ctx, uid); err != nil {
+			return GetClearedCookie(), err
 		} else {
-			return token, nil
+			return cookie, nil
 		}
 	}
 }
