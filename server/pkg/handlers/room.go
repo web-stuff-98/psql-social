@@ -139,7 +139,7 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 
 	var id, name, author_id string
 	var private bool
-	if err := h.DB.QueryRow(ctx, "SELECT id,name,author_id,private FROM rooms WHERE id = $1;", room_id).Scan(&id, &name, &author_id, &private); err != nil {
+	if err := h.DB.QueryRow(rctx, "SELECT id,name,author_id,private FROM rooms WHERE id = $1;", room_id).Scan(&id, &name, &author_id, &private); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {

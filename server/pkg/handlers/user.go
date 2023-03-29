@@ -62,7 +62,7 @@ func (h handler) SearchUser(ctx *fasthttp.RequestCtx) {
 	}
 
 	var id, username, role string
-	if err := h.DB.QueryRow(ctx, "SELECT id,username,role FROM users WHERE LOWER(username) = LOWER($1);").Scan(&id, &username, &role); err != nil {
+	if err := h.DB.QueryRow(rctx, "SELECT id,username,role FROM users WHERE LOWER(username) = LOWER($1);").Scan(&id, &username, &role); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
