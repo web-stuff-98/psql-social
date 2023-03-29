@@ -33,7 +33,6 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 
 	var id, hash, username, role string
 	if err := h.DB.QueryRow(rctx, "SELECT id,password,username,role FROM users WHERE LOWER(username) = LOWER($1)", strings.TrimSpace(body.Username)).Scan(&id, &hash, &username, &role); err != nil {
-		log.Println("ERR C:", err)
 		if err == pgx.ErrNoRows {
 			ResponseMessage(ctx, "Account not found", fasthttp.StatusNotFound)
 		} else {
@@ -128,18 +127,6 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	}
 }
 
-func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	if cookie, err := authHelpers.RefreshToken(h.RedisClient, ctx, rctx, h.DB); err != nil {
-		ResponseMessage(ctx, "Unauthorized. Your session most likely expired", fasthttp.StatusUnauthorized)
-	} else {
-		ctx.Response.Header.SetCookie(cookie)
-		ctx.SetStatusCode(fasthttp.StatusOK)
-	}
-}
-
 func (h handler) Logout(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -152,6 +139,18 @@ func (h handler) Logout(ctx *fasthttp.RequestCtx) {
 	} else {
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
 		ctx.Response.Header.SetCookie(authHelpers.GetClearedCookie())
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
+}
+
+func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	if cookie, err := authHelpers.RefreshToken(h.RedisClient, ctx, rctx, h.DB); err != nil {
+		ResponseMessage(ctx, "Unauthorized. Your session most likely expired", fasthttp.StatusUnauthorized)
+	} else {
+		ctx.Response.Header.SetCookie(cookie)
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	}
 }

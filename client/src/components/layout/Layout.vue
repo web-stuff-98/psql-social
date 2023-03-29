@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { IResMsg } from "../../interfaces/GeneralInterfaces";
 import useAuthStore from "../../store/AuthStore";
 import Modal from "../modal/Modal.vue";
+import Aside from "./aside/Aside.vue";
 import ModalCloseButton from "../shared/ModalCloseButton.vue";
 import ResMsg from "../shared/ResMsg.vue";
 const authStore = useAuthStore();
@@ -16,6 +17,8 @@ async function logout() {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
 }
+
+const username = computed(() => authStore.getCurrentUser?.username);
 </script>
 
 <template>
@@ -25,21 +28,31 @@ async function logout() {
   </Modal>
   <div v-if="authStore.user" class="layout">
     <nav>
+      <div class="name">{{ username }}</div>
       <div class="nav-items">
-        <button class="nav-item">Settings</button>
-        <button class="nav-item" @click="logout">Logout</button>
+        <button type="button" class="nav-item">Settings</button>
+        <button type="button" class="nav-item" @click="logout">Logout</button>
       </div>
     </nav>
-    <router-view :key="$route.fullPath" />
+    <div class="aside-main">
+      <main>
+        <Aside />
+        <router-view :key="$route.fullPath" />
+      </main>
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .layout {
-  height: 100vh;
-  width: 100vw;
+  height: min(30rem, 100vh);
+  width: min(50rem, 100vw);
   display: flex;
   flex-direction: column;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  border: 2px solid var(--border-heavy);
+  box-shadow: 0px 2px 16px rgba(0, 0, 0, 0.33);
   nav {
     width: 100%;
     height: var(--nav-height);
@@ -48,6 +61,12 @@ async function logout() {
     justify-content: flex-end;
     align-items: center;
     padding: var(--gap-md);
+    .name {
+      flex-grow: 1;
+      text-align: left;
+      color: white;
+      font-size: var(--xs);
+    }
     .nav-items {
       display: flex;
       gap: var(--gap-md);
@@ -69,6 +88,10 @@ async function logout() {
         filter: opacity(1);
       }
     }
+  }
+  .aside-main {
+    display: flex;
+    flex-grow: 1;
   }
 }
 </style>

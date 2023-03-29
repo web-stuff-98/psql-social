@@ -16,6 +16,12 @@ CREATE TABLE rooms (
     author_id UUID REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE bans (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, room_id)
+);
+
 CREATE TABLE room_channels (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(24) NOT NULL,

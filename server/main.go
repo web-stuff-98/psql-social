@@ -34,6 +34,11 @@ func main() {
 	r.POST("/api/acc/logout", h.Logout)
 	r.POST("/api/acc/register", h.Register)
 	r.POST("/api/acc/refresh", h.Refresh)
+
+	r.POST("/api/room", h.CreateRoom)
+	r.PATCH("/api/room/{id}", h.UpdateRoom)
+	r.GET("/api/room/{id}", h.GetRoom)
+
 	r.GET("/api/ws", h.WebSocketEndpoint)
 
 	corsHandler := fasthttpcors.NewCorsHandler(fasthttpcors.Options{

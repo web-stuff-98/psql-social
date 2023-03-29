@@ -24,6 +24,7 @@ defineProps<{ resMsg?: IResMsg }>();
   justify-content: center;
   flex-direction: column;
   gap: var(--gap-md);
+  text-align: center;
   .msg {
     font-weight: 600;
   }

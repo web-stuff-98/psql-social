@@ -40,8 +40,8 @@
 
   /* Border radius */
   --border-radius-sm: 4px;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
 
   /* Border colour */
   --border-pale: rgb(122, 122, 122);
@@ -53,6 +53,7 @@
 
   /* Layout dimensions */
   --nav-height: 2rem;
+  --aside-width: min(12rem, 20vw);
 }
 
 button {
