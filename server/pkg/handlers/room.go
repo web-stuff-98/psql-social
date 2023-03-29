@@ -127,8 +127,10 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 
 	banExists := false
 	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&banExists); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
 	}
 	if banExists {
 		ResponseMessage(ctx, "You are banned from this room", fasthttp.StatusBadRequest)
@@ -149,8 +151,10 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 	if private && uid != author_id {
 		isMember := false
 		if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&isMember); err != nil {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			if err != pgx.ErrNoRows {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
 		}
 		if !isMember {
 			ResponseMessage(ctx, "You are not a member of this room", fasthttp.StatusBadRequest)

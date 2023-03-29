@@ -90,8 +90,10 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 
 	exists := false
 	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))", strings.TrimSpace(body.Username)).Scan(&exists); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
 	}
 	if exists {
 		ResponseMessage(ctx, "There is another user already registered with that name", fasthttp.StatusBadRequest)
