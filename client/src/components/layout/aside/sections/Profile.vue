@@ -13,15 +13,19 @@ const user = computed(() => authStore?.user);
     <div class="profile-section">
       <ModalCloseButton @click="closeClicked()" />
       <div class="pfp-name">
-        <div class="pfp" />
+        <button id="select profile picture" type="button" class="pfp" />
         <div class="name">
-          {{ user?.username }}
+          <div>
+            {{ user?.username }}
+          </div>
+          <label for="select profile picture">Select an image</label>
         </div>
       </div>
       <div class="bio-input-area">
         <label>Introduce yourself:</label>
         <textarea />
       </div>
+      <button type="submit">Update profile</button>
     </div>
   </Modal>
 </template>
@@ -45,10 +49,24 @@ const user = computed(() => authStore?.user);
       height: 3rem;
       width: 3rem;
       border-radius: var(--border-radius-md);
+      background: none;
     }
     .name {
       font-weight: 600;
       font-size: var(--lg);
+      text-align: left;
+      line-height: 0.7;
+      div {
+        margin: 0;
+        padding: 0;
+      }
+      label {
+        margin: 0;
+        padding: 0;
+        font-size: var(--xs);
+        font-style: italic;
+        filter: opacity(0.88);
+      }
     }
   }
 
@@ -62,6 +80,17 @@ const user = computed(() => authStore?.user);
       font-weight: 600;
       padding: 3px;
     }
+    textarea {
+      max-width: 15rem;
+      max-height: 15rem;
+      min-width: 12rem;
+      min-height: 8rem;
+    }
+  }
+
+  button[type="submit"] {
+    margin-top: var(--gap-md);
+    width: 100%;
   }
 }
 </style>

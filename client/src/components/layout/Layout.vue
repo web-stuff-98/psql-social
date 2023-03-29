@@ -46,7 +46,7 @@ const username = computed(() => authStore.getCurrentUser?.username);
 <style lang="scss" scoped>
 .layout {
   height: min(30rem, 100vh);
-  width: min(50rem, 100vw);
+  width: min(40rem, 100vw);
   display: flex;
   flex-direction: column;
   border-radius: var(--border-radius-lg);

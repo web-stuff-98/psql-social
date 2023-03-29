@@ -1,0 +1,9 @@
+
+- Dark mode
+- Add functionality to aside section
+- Complete other small sections
+- Fix cookie not being removed
+- Direct messaging
+- Room messaging (use modular message form)
+
+- The rest, including the ~40 socket events
