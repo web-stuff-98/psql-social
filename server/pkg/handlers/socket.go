@@ -35,6 +35,11 @@ func handleConnection(h handler, ctx *fasthttp.RequestCtx, c *websocket.Conn) {
 			log.Println("ws reader error:", err)
 			return
 		} else {
+			if len(p) == 4 {
+				if string(p) == "PING" {
+					continue
+				}
+			}
 			decoded := &decodedMsg{}
 			if err := json.Unmarshal(p, decoded); err != nil {
 				log.Println("Invalid message - connection closed")
