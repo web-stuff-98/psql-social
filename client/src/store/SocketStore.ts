@@ -10,7 +10,7 @@ const useSocketStore = defineStore("socket", {
       socket: undefined,
     } as SocketStoreState),
   actions: {
-    send(data: string | object) {
+    send(data: "PING" | object) {
       if (this.socket?.readyState === 1)
         this.socket.send(
           typeof data === "object" ? JSON.stringify(data) : data

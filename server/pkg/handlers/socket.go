@@ -24,8 +24,8 @@ var upgrader = websocket.FastHTTPUpgrader{
 */
 
 type decodedMsg struct {
-	Type string      `json:"event_type"`
-	Data interface{} `json:"data"`
+	Type string                 `json:"event_type"`
+	Data map[string]interface{} `json:"data"`
 }
 
 func SendSocketErrorMessage(m string, c *websocket.Conn) {
