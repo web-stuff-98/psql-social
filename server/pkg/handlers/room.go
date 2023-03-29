@@ -169,7 +169,6 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 		Private:  private,
 	}); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
 	} else {
 		ctx.Response.Header.Add("Content-Type", "application/json")
 		ctx.Write(bytes)
