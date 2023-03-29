@@ -47,6 +47,12 @@
   --border-pale: rgb(122, 122, 122);
   --border-medium: rgb(46, 46, 46);
   --border-heavy: rgb(16, 16, 16);
+
+  /* Layout component colours */
+  --nav-colour: var(--base-colour-contrast);
+
+  /* Layout dimensions */
+  --nav-height: 2rem;
 }
 
 button {
@@ -124,6 +130,8 @@ a {
   align-items: center;
   justify-content: center;
   z-index: 99;
+  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.02);
 }
 .modal-container .modal {
   border: 1px solid var(--border-medium);

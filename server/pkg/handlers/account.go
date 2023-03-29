@@ -124,12 +124,6 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
-	oldToken := strings.ReplaceAll(string(ctx.Request.Header.Peek("Authorization")), "Bearer ", "")
-	if oldToken == "" {
-		ResponseMessage(ctx, "No token provided", fasthttp.StatusForbidden)
-		return
-	}
-
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -145,13 +139,9 @@ func (h handler) Logout(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	token := strings.ReplaceAll(string(ctx.Request.Header.Peek("Authorization")), "Bearer ", "")
-	if token == "" {
-		ResponseMessage(ctx, "No token provided", fasthttp.StatusUnauthorized)
-		return
-	}
-
 	if _, sid, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB); err != nil {
+		log.Println(err)
+		ctx.Response.Header.SetCookie(authHelpers.GetClearedCookie())
 		ResponseMessage(ctx, "Invalid session ID", fasthttp.StatusForbidden)
 		return
 	} else {

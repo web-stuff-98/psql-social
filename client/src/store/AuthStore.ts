@@ -51,6 +51,7 @@ const useAuthStore = defineStore("auth", {
       await makeRequest("/api/acc/logout", {
         method: "POST",
       });
+      this.$state.user = undefined;
     },
   },
 });

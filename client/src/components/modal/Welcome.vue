@@ -6,7 +6,11 @@ defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
   <div class="welcome">
     <h1>Welcome</h1>
     <hr />
-    <p>This is my new Vue social app, this time only available online.</p>
+    <p>
+      This is my new Vue social app, it's basically the same as Go-Vue-Chat but
+      uses postgres and Pinia, and has a better project structure. The backend
+      code is also faster.
+    </p>
     <div class="buttons">
       <button type="button" @click="onLoginClicked()">Login</button>
       <button type="button" @click="onRegisterClicked()">Register</button>

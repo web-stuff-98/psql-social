@@ -1,20 +1,33 @@
 <script lang="ts" setup>
 import { ref } from "vue";
+import useIntervals from "./composables/useIntervals";
 import useAuthStore from "./store/AuthStore";
 import Modal from "./components/modal/Modal.vue";
 import Login from "./components/modal/Login.vue";
 import Register from "./components/modal/Register.vue";
 import Welcome from "./components/modal/Welcome.vue";
 import ModalCloseButton from "./components/shared/ModalCloseButton.vue";
+import Layout from "./components/layout/Layout.vue";
+import { IResMsg } from "./interfaces/GeneralInterfaces";
+import ResMsg from "./components/shared/ResMsg.vue";
 
 const authStore = useAuthStore();
+
+const intervalsResMsg = ref<IResMsg>();
+useIntervals({ resMsg: intervalsResMsg });
 
 const noUserModalSection = ref<"WELCOME" | "LOGIN" | "REGISTER">("WELCOME");
 </script>
 
 <template>
   <div class="container">
-    <router-view :key="$route.fullPath" />
+    <Layout />
+    <!-- Intervals response message modal (eg, when refreshing token faile) -->
+    <Modal v-if="intervalsResMsg?.msg">
+      <ModalCloseButton @click="() => (intervalsResMsg = {})" />
+      <ResMsg :resMsg="intervalsResMsg" />
+    </Modal>
+    <!-- Welcome / Login / Register modal -->
     <Modal v-if="!authStore.user">
       <ModalCloseButton
         v-if="noUserModalSection !== 'WELCOME'"

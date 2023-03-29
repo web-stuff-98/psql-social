@@ -22,14 +22,6 @@ CREATE TABLE room_channels (
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE
 );
 
-CREATE TABLE posts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title VARCHAR(64) NOT NULL,
-    content VARCHAR(5000) NOT NULL,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    room_channel_id UUID REFERENCES room_channels(id) ON DELETE CASCADE
-);
-
 CREATE TABLE room_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content TEXT NOT NULL,
@@ -42,14 +34,6 @@ CREATE TABLE direct_messages (
     content VARCHAR(200) NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     recipient_id UUID REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE post_comments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    content TEXT NOT NULL,
-    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    parent_comment_id UUID REFERENCES post_comments(id) ON DELETE CASCADE
 );
 
 CREATE TABLE direct_message_attachment_chunks (
@@ -82,35 +66,6 @@ CREATE TABLE room_message_attachment_metadata (
     size INT NOT NULL,
     first_chunk_id UUID REFERENCES room_message_attachment_chunks(id),
     message_id UUID REFERENCES room_messages(id) ON DELETE CASCADE
-);
-
-CREATE TABLE post_comment_attachment_chunks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    bytes BYTEA NOT NULL,
-    comment_id UUID REFERENCES post_comments(id) ON DELETE CASCADE,
-    next_chunk UUID REFERENCES post_comment_attachment_chunks(id)
-);
-
-CREATE TABLE post_comment_attachment_metadata (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    meta VARCHAR(128) NOT NULL,
-    name VARCHAR(200) NOT NULL,
-    size INT NOT NULL,
-    first_chunk_id UUID REFERENCES post_comment_attachment_chunks(id),
-    comment_id UUID REFERENCES post_comments(id) ON DELETE CASCADE
-);
-
-CREATE TABLE comment_votes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
-    comment_id UUID REFERENCES post_comments(id) ON DELETE CASCADE
-);
-
-CREATE TABLE post_votes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    post_id UUID REFERENCES posts(id) ON DELETE CASCADE
 );
 
 CREATE TABLE profile_pictures (
