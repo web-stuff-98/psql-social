@@ -9,7 +9,7 @@ defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
     <p>
       This is my new Vue social app, it's basically the same as Go-Vue-Chat but
       uses postgres and Pinia, and has a better project structure. The backend
-      code is also faster.
+      code is also faster. There are many minor improvements to the server and client code.
     </p>
     <div class="buttons">
       <button type="button" @click="onLoginClicked()">Login</button>
@@ -61,6 +61,9 @@ defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
     button {
       flex-grow: 1;
       width: 100%;
+      font-size: var(--md);
+      font-weight: 600;
+      border: 2px solid var(--border-heavy);
     }
   }
 }

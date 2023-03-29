@@ -9,5 +9,12 @@ export function validatePassword(password: string) {
   if (!password) return "Password is required";
   if (password.length > 72) return "Maximum 72 characters";
   if (password.length < 8) return "Minimum 8 characters";
+
+  const regex =
+    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+  if (!regex.test(password))
+    return "Password must contain at least one uppercase letter, one lowercase letter and a number";
+
+  //Minimum eight characters, at least one uppercase letter, one lowercase letter and one number
   return true;
 }

@@ -60,6 +60,8 @@ button {
   transition: background-color 100ms ease;
   border: 1px solid var(--border-medium);
   cursor: pointer;
+  color:white;
+  text-shadow: 0px 2px 3px black;
 }
 button:hover {
   background: var(--button-hover);
@@ -134,7 +136,7 @@ a {
   background: rgba(0, 0, 0, 0.02);
 }
 .modal-container .modal {
-  border: 1px solid var(--border-medium);
+  border: 2px solid var(--border-pale);
   padding: var(--gap-md);
   border-radius: var(--border-radius-md);
   box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.166), 0px 4px 8px rgba(0, 0, 0, 0.166);

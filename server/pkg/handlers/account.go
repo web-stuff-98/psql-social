@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -78,6 +79,14 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	}
 	if err := v.Struct(body); err != nil {
 		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
+		return
+	}
+
+	//https://stackoverflow.com/questions/19605150/regex-for-password-must-contain-at-least-eight-characters-at-least-one-number-a
+	//Minimum eight characters, at least one uppercase letter, one lowercase letter and one number
+	regex := regexp.MustCompile(`^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$`)
+	if !regex.MatchString(body.Password) || len(body.Password) > 72 {
+		ResponseMessage(ctx, "Password does not meet requirements", fasthttp.StatusBadRequest)
 		return
 	}
 

@@ -61,6 +61,7 @@ async function logout() {
         border: none;
         filter: opacity(0.866);
         cursor: pointer;
+        text-shadow: none;
         transition: filter 100ms ease;
       }
       .nav-item:hover {
