@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -39,6 +40,8 @@ func main() {
 	db := db.Init()
 	rdb := rdb.Init()
 	ss := socketServer.Init()
+
+	defer db.Close(context.Background())
 
 	h := handlers.New(db, rdb, ss)
 
