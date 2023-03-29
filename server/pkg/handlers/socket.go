@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
 	"github.com/fasthttp/websocket"
 	"github.com/valyala/fasthttp"
+	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 )
 
 var upgrader = websocket.FastHTTPUpgrader{
@@ -57,9 +59,13 @@ func handleConnection(h handler, ctx *fasthttp.RequestCtx, c *websocket.Conn) {
 }
 
 func (h handler) WebSocketEndpoint(ctx *fasthttp.RequestCtx) {
-	if err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {
-		handleConnection(h, ctx, c)
-	}); err != nil {
-		ctx.Error("Internal error", fasthttp.StatusInternalServerError)
+	if _, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, context.TODO(), h.DB); err != nil {
+		ResponseMessage(ctx, "Forbidden - Log in to gain access", fasthttp.StatusForbidden)
+	} else {
+		if err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {
+			handleConnection(h, ctx, c)
+		}); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		}
 	}
 }

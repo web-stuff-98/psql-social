@@ -8,14 +8,14 @@ import (
 )
 
 /*
-This works differently to my last 2 projects, mainly because users can
-establish a socket connection without being logged in. Also using
-unidirectional channels for performance.
+This works differently to my last 2 projects.
 
 There are loads more channels because I am trying to avoid ranging
 through maps as often this time. It means more code and memory usage
 but should improve performance since ranging through a map is slower
 than accessing by key.
+
+Also using unidirectional channels for performance.
 
 I haven't tested performance but it's probably better than the previous
 versions I used in my other projects.
