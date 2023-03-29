@@ -60,6 +60,8 @@ async function handleSubmit(values: any) {
   display: flex;
   flex-direction: column;
   gap: var(--gap-md);
+  width: 12rem;
+  max-width: 12rem;
   .input-label {
     display: flex;
     flex-direction: column;
@@ -67,6 +69,7 @@ async function handleSubmit(values: any) {
     align-items: center;
     justify-content: center;
     input {
+      width: 100%;
       text-align: center;
     }
   }

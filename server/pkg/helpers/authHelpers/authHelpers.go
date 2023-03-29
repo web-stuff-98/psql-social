@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -38,6 +39,27 @@ func GetClearedCookie() *fasthttp.Cookie {
 	cookie.SetSameSite(fasthttp.CookieSameSiteDefaultMode)
 	cookie.SetPath("/")
 	return &cookie
+}
+
+func PasswordValidates(pass string) bool {
+	count := 0
+
+	if 8 <= len(pass) && len(pass) <= 72 {
+		if matched, _ := regexp.MatchString(".*\\d.*", pass); matched {
+			count++
+		}
+		if matched, _ := regexp.MatchString(".*[a-z].*", pass); matched {
+			count++
+		}
+		if matched, _ := regexp.MatchString(".*[A-Z].*", pass); matched {
+			count++
+		}
+		if matched, _ := regexp.MatchString(".*[*.!@#$%^&(){}\\[\\]:;<>,.?/~`_+-=|\\\\].*", pass); matched {
+			count++
+		}
+	}
+
+	return count >= 3
 }
 
 func GenerateCookieAndSession(redisClient *redis.Client, ctx context.Context, uid string) (*fasthttp.Cookie, error) {
