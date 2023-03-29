@@ -51,7 +51,7 @@ func (h handler) GetUser(ctx *fasthttp.RequestCtx) {
 	}
 }
 
-func (h handler) SearchUser(ctx *fasthttp.RequestCtx) {
+func (h handler) GetUserByName(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
