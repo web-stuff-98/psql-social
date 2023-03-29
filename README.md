@@ -1,9 +1,11 @@
 # pSQL-Social
 
-## Basically Go-Vue-Chat V2
+## Basically Go-Social-Media V2, but with Vue and Postgres
 
-### Not finished, only just started. It's going to be very similar to Go-Vue-Chat, but I am using postgres for the database, and I'm implementing Pinia for state management. Hopefully the database query performance will be better, and the backend code improvements I made improve performance in general. I'm completing the backend base functionality before I start on the client code.
+### Also the successor to Go-Vue-Chat
 
-### I have included cascaded deletes in the schema but I have no idea if it works yet. I chose to not use an ORM because it just made things more confusing dealing with SQL the last time I used it with Go.
+### Not finished, only just started. Hopefully the database query performance will be better, and the backend code improvements I made improve performance in general.
 
-### I'm using fasthttp & fasthttp websocket since its faster and gorilla toolkit is no longer being maintained
+### I have included cascaded deletes in the schema but I have no idea if it works yet. I chose to not use an ORM because it just made things more confusing dealing with SQL the last time I used it with Go, and part of the point of this project is using SQL so I can get experience with it.
+
+### I'm using fasthttp & fasthttp websocket since its faster and gorilla is no longer being maintained

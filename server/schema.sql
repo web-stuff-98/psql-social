@@ -1,3 +1,5 @@
+DROP DATABASE;
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
@@ -5,19 +7,19 @@ CREATE TABLE users (
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(72) NOT NULL,
     /* "ADMIN" | "OWNER" | "USER" */
-    role VARCHAR(10) NOT NULL,
+    role VARCHAR(5) NOT NULL,
     friends UUID[] DEFAULT '{}'::UUID[],
     blocked UUID[] DEFAULT '{}'::UUID[]
 );
 
 CREATE TABLE rooms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(50) UNIQUE NOT NULL
+    name VARCHAR(24) NOT NULL
 );
 
 CREATE TABLE room_channels (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(24) NOT NULL,
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE
 );
 
