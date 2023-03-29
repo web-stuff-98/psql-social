@@ -13,3 +13,7 @@ type CreateUpdateRoom struct {
 type GetUserByName struct {
 	Username string `json:"username" validate:"required,gte=2,lte=16"`
 }
+
+type Bio struct {
+	Content string `json:"content" validate:"required,lte=300"`
+}

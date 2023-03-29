@@ -156,3 +156,49 @@ func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	}
 }
+
+func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	v := validator.New()
+	bio := &validation.Bio{}
+	if err := json.Unmarshal(ctx.Request.Body(), bio); err != nil {
+		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
+		return
+	}
+	if err := v.Struct(bio); err != nil {
+		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
+		return
+	}
+
+	exists := false
+	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bios WHERE user_id = $1);", uid).Scan(&exists); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	var id string
+	if !exists {
+		if err := h.DB.QueryRow(rctx, "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id;", strings.TrimSpace(bio.Content), uid).Scan(&id); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+		ctx.Response.Header.Add("Content-Type", "text/plain")
+		ctx.WriteString(id)
+		ctx.SetStatusCode(fasthttp.StatusCreated)
+	} else {
+		if err := h.DB.QueryRow(rctx, "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id;", strings.TrimSpace(bio.Content), uid).Scan(&id); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+		ctx.Response.Header.Add("Content-Type", "text/plain")
+		ctx.WriteString(id)
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
+}
