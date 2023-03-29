@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
+	"github.com/web-stuff-98/psql-social/pkg/responses"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
 )
 
@@ -47,7 +48,7 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 	}
 
 	var id string
-	if err := h.DB.QueryRow(rctx, "INSERT INTO rooms (name, author_id) VALUES ($1, $2) RETURNING id;", name, uid).Scan(&id); err != nil {
+	if err := h.DB.QueryRow(rctx, "INSERT INTO rooms (name, author_id, private) VALUES ($1, $2, $3) RETURNING id;", name, uid, body.Private).Scan(&id); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -124,14 +125,51 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	var room interface{}
-	if err := h.DB.QueryRow(ctx, "SELECT * FROM rooms WHERE id = $1;", room_id).Scan(&room); err != nil {
+	banExists := false
+	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);", uid, room_id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	if banExists {
+		ResponseMessage(ctx, "You are banned from this room", fasthttp.StatusBadRequest)
+		return
+	}
+
+	var id, name, author_id string
+	var private bool
+	if err := h.DB.QueryRow(ctx, "SELECT id,name,author_id,private FROM rooms WHERE id = $1;", room_id).Scan(&id, &name, &author_id, &private); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
 			ResponseMessage(ctx, "Room not found", fasthttp.StatusNotFound)
 		}
 		return
+	}
+
+	if private && uid != author_id {
+		isMember := false
+		if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);", uid, room_id); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+		if !isMember {
+			ResponseMessage(ctx, "You are not a member of this room", fasthttp.StatusBadRequest)
+			return
+		}
+	}
+
+	if bytes, err := json.Marshal(responses.Room{
+		ID:       id,
+		Name:     name,
+		AuthorID: author_id,
+		Private:  private,
+	}); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	} else {
+		ctx.Response.Header.Add("Content-Type", "application/json")
+		ctx.Write(bytes)
+		ctx.SetStatusCode(fasthttp.StatusOK)
 	}
 }
 

@@ -13,10 +13,17 @@ CREATE TABLE users (
 CREATE TABLE rooms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(24) NOT NULL,
+    private BOOLEAN NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE bans (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, room_id)
+);
+
+CREATE TABLE members (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, room_id)
