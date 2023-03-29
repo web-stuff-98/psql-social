@@ -22,8 +22,7 @@ export async function makeRequest(
     withCredentials: true,
   })
     .then((res: any) => res.data)
-    .catch((e: any) => {
-      console.log(e);
-      Promise.reject(e.response?.data.replace("Error: ", ""));
-    });
+    .catch((e: any) =>
+      Promise.reject(e.response ? e.response.data : "Network error")
+    );
 }

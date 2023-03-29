@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/adhityaramadhanus/fasthttpcors v0.0.0-20170121111917-d4c07198763a // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect

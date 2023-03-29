@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/adhityaramadhanus/fasthttpcors"
 	"github.com/fasthttp/router"
 	"github.com/joho/godotenv"
 	"github.com/valyala/fasthttp"
@@ -13,23 +14,6 @@ import (
 	rdb "github.com/web-stuff-98/psql-social/pkg/redis"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
-
-var (
-	corsAllowHeaders     = "*"
-	corsAllowMethods     = "HEAD,GET,POST,PUT,DELETE,OPTIONS"
-	corsAllowOrigin      = "http://localhost:5173"
-	corsAllowCredentials = "true"
-)
-
-func CORS(next fasthttp.RequestHandler) fasthttp.RequestHandler {
-	return func(ctx *fasthttp.RequestCtx) {
-		ctx.Response.Header.Set("Access-Control-Allow-Headers", corsAllowHeaders)
-		ctx.Response.Header.Set("Access-Control-Allow-Methods", corsAllowMethods)
-		ctx.Response.Header.Set("Access-Control-Allow-Origin", corsAllowOrigin)
-		ctx.Response.Header.Set("Access-Control-Allow-Credentials", corsAllowCredentials)
-		next(ctx)
-	}
-}
 
 func main() {
 	err := godotenv.Load()
@@ -52,6 +36,11 @@ func main() {
 	r.POST("/api/acc/refresh", h.Refresh)
 	r.GET("/api/ws", h.WebSocketEndpoint)
 
+	corsHandler := fasthttpcors.NewCorsHandler(fasthttpcors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowCredentials: true,
+	})
+
 	log.Printf("API opening on port %v", os.Getenv("PORT"))
-	log.Fatalln(fasthttp.ListenAndServe(":"+os.Getenv("PORT"), CORS(r.Handler)))
+	log.Fatalln(fasthttp.ListenAndServe(":"+os.Getenv("PORT"), corsHandler.CorsMiddleware(r.Handler)))
 }

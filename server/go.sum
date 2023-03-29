@@ -1,3 +1,5 @@
+github.com/adhityaramadhanus/fasthttpcors v0.0.0-20170121111917-d4c07198763a h1:/Crz3EkXO3i1JsZ8VGRnP4EMQ91NMn2meNzZyBziv6Q=
+github.com/adhityaramadhanus/fasthttpcors v0.0.0-20170121111917-d4c07198763a/go.mod h1:nRKQcoNwlDDIGlkaivCFTccvuJj6SnKV7w8T/WVqwgo=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
