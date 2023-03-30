@@ -1,57 +1,39 @@
 import { defineStore } from "pinia";
-import { IUser } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "../services/makeRequest";
 
 type AuthStoreState = {
-  user?: IUser;
+  uid?: string;
 };
 
 const useAuthStore = defineStore("auth", {
   state: () =>
     ({
-      user: undefined,
+      uid: undefined,
     } as AuthStoreState),
-  getters: {
-    getCurrentUser(state) {
-      return state.user;
-    },
-  },
   actions: {
     async login(username: string, password: string) {
-      const user: {
-        ID: string;
-        username: string;
-        role: "ADMIN" | "USER";
-      } = await makeRequest("/api/acc/login", {
+      const uid: string = await makeRequest("/api/acc/login", {
         method: "POST",
         data: { username, password },
+        responseType: "text",
       });
-      this.$state.user = {
-        ID: user.ID,
-        username: user.username,
-        role: user.role,
-      };
+      console.log(uid);
+      this.$state.uid = uid;
     },
     async register(username: string, password: string) {
-      const user: {
-        ID: string;
-        username: string;
-        role: "ADMIN" | "USER";
-      } = await makeRequest("/api/acc/register", {
+      const uid: string = await makeRequest("/api/acc/register", {
         method: "POST",
         data: { username, password },
+        responseType:"text"
       });
-      this.$state.user = {
-        ID: user.ID,
-        username: user.username,
-        role: user.role,
-      };
+      console.log(uid)
+      this.$state.uid = uid;
     },
     async logout() {
       await makeRequest("/api/acc/logout", {
         method: "POST",
       });
-      this.$state.user = undefined;
+      this.$state.uid = undefined;
     },
   },
 });

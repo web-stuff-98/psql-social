@@ -16,5 +16,10 @@ export function validatePassword(password: string) {
   if (password.match(/.*[A-Z].*/)) count++;
   if (password.match(/.*[*.!@#$%^&(){}[\]:;<>,.?/~`_+-=|\\].*/)) count++;
 
-  return count >= 3 ? true : "Password must contain a number, lowercase letter, uppercase letter and a special character";
+  return count >= 3
+    ? true
+    : "Password must contain a number, lowercase letter, uppercase letter and a special character";
 }
+
+export const validateBio = (bio: string) =>
+  bio.length > 300 ? "Maximum 300 characters" : true;

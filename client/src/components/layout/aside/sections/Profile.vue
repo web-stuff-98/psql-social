@@ -1,32 +1,128 @@
 <script lang="ts" setup>
-import { computed } from "vue";
+import { Field, Form } from "vee-validate";
+import { computed, onMounted, ref } from "vue";
+import { IResMsg } from "../../../../interfaces/GeneralInterfaces";
+import { makeRequest } from "../../../../services/makeRequest";
+import { getUserBio } from "../../../../services/user";
+import { validateBio } from "../../../../validators/validators";
+import useUserStore from "../../../../store/UserStore";
 import useAuthStore from "../../../../store/AuthStore";
 import Modal from "../../../modal/Modal.vue";
+import ErrorMessage from "../../../shared/ErrorMessage.vue";
 import ModalCloseButton from "../../../shared/ModalCloseButton.vue";
+import ResMsg from "../../../shared/ResMsg.vue";
 defineProps<{ closeClicked: Function }>();
+
 const authStore = useAuthStore();
-const user = computed(() => authStore?.user);
+const userStore = useUserStore();
+const user = computed(() => userStore.getUser(authStore.uid as string));
+
+const bio = ref("");
+const bioInput = ref<HTMLElement>();
+const pfpInput = ref<HTMLInputElement>();
+
+const pfpFile = ref<File>();
+const pfpUrl = ref<string>("");
+
+const resMsg = ref<IResMsg>({});
+
+onMounted(async () => {
+  if (user.value?.pfp) pfpUrl.value = user.value.pfp;
+  try {
+    resMsg.value = { msg: "", err: false, pen: true };
+    const content = await getUserBio(user.value?.ID!);
+    bio.value = content;
+    // @ts-ignore
+    bioInput.value = content;
+    resMsg.value = { msg: "", err: false, pen: false };
+  } catch (e) {
+    const notFound = e === "Bio not found";
+    resMsg.value = { msg: notFound ? "" : `${e}`, err: !notFound, pen: false };
+    bio.value = "";
+    // @ts-ignore
+    bioInput.value = "";
+  }
+});
+
+async function handleSubmit() {
+  try {
+    resMsg.value = { msg: "", err: false, pen: true };
+    await makeRequest("/api/acc/bio", {
+      method: "POST",
+      data: { content: bio.value },
+    });
+    const formData = new FormData();
+    formData.append("file", pfpFile.value!);
+    if (pfpFile.value) {
+      await makeRequest("/api/acc/pfp", {
+        method: "POST",
+        data: formData,
+      });
+    }
+    resMsg.value = { msg: "", err: false, pen: false };
+    const i = userStore.users.findIndex((u) => u.ID === authStore.uid);
+    if (i !== -1) userStore.users[i].pfp = pfpUrl.value;
+  } catch (e) {
+    resMsg.value = { msg: `${e}`, err: true, pen: false };
+  }
+}
+
+function selectImage(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (!target.files || !target.files[0]) return;
+  if (pfpUrl.value && pfpFile.value) URL.revokeObjectURL(pfpUrl.value);
+  const file = target.files[0];
+  pfpFile.value = file;
+  pfpUrl.value = URL.createObjectURL(file);
+}
 </script>
 
 <template>
   <Modal>
-    <div class="profile-section">
+    <Form @submit="handleSubmit" class="profile-section">
       <ModalCloseButton @click="closeClicked()" />
       <div class="pfp-name">
-        <button id="select profile picture" type="button" class="pfp" />
+        <button
+          :style="{ backgroundImage: `url(${pfpUrl})` }"
+          @click="pfpInput?.click()"
+          id="select profile picture"
+          type="button"
+          class="pfp"
+        >
+          <v-icon v-if="!pfpUrl" name="fa-user-alt" />
+        </button>
+        <!-- Hidden file input -->
+        <input
+          accept=".png,.jpeg.jpg"
+          @change="selectImage"
+          ref="pfpInput"
+          type="file"
+        />
         <div class="name">
           <div>
             {{ user?.username }}
           </div>
-          <label for="select profile picture">Select an image</label>
+          <label for="select profile picture"
+            >Click the image to select a new picture</label
+          >
         </div>
       </div>
       <div class="bio-input-area">
-        <label>Introduce yourself:</label>
-        <textarea />
+        <label for="bio">Bio (can be left blank)</label>
+        <Field
+          as="textarea"
+          type="textarea"
+          name="bio"
+          v-model="bio"
+          ref="bioInput"
+          id="bio"
+          :rules="validateBio as any"
+        />
+        <ErrorMessage name="bio" />
       </div>
       <button type="submit">Update profile</button>
-    </div>
+      <ResMsg :resMsg="resMsg" />
+    </Form>
   </Modal>
 </template>
 
@@ -37,6 +133,7 @@ const user = computed(() => authStore?.user);
   align-items: center;
   justify-content: center;
   text-align: center;
+  max-width: 12rem;
   .pfp-name {
     display: flex;
     align-items: center;
@@ -46,19 +143,25 @@ const user = computed(() => authStore?.user);
     filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.166));
     .pfp {
       border: 2px outset var(--border-pale);
-      height: 3rem;
-      width: 3rem;
+      min-height: 3rem;
+      min-width: 3rem;
+      background: var(--foreground-colour);
       border-radius: var(--border-radius-md);
-      background: none;
+      background-size: cover;
+      background-position: center;
+      svg {
+        fill: var(--text-colour);
+      }
     }
     .name {
-      font-weight: 600;
       font-size: var(--lg);
       text-align: left;
-      line-height: 0.7;
+      line-height: 0.3;
       div {
         margin: 0;
         padding: 0;
+        line-height: 1;
+        font-weight: 600;
       }
       label {
         margin: 0;
@@ -81,7 +184,7 @@ const user = computed(() => authStore?.user);
       padding: 3px;
     }
     textarea {
-      max-width: 15rem;
+      max-width: 12rem;
       max-height: 15rem;
       min-width: 12rem;
       min-height: 8rem;

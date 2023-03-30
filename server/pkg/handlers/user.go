@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
@@ -120,7 +122,7 @@ func (h handler) GetUserBio(ctx *fasthttp.RequestCtx) {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
-			ResponseMessage(ctx, "User not found", fasthttp.StatusNotFound)
+			ResponseMessage(ctx, "Bio not found", fasthttp.StatusNotFound)
 		}
 		return
 	}
@@ -128,4 +130,37 @@ func (h handler) GetUserBio(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.Add("Content-Type", "text/plain")
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.WriteString(content)
+}
+
+func (h handler) GetUserPfp(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	user_id := ctx.UserValue("id").(string)
+	if user_id == "" {
+		ResponseMessage(ctx, "Provide a user ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	var pictureData pgtype.Bytea
+	var mime string
+	if err = h.DB.QueryRow(context.Background(), "SELECT picture_data,mime FROM profile_pictures WHERE user_id = $1;", uid).Scan(&pictureData, &mime); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "Pfp not found", fasthttp.StatusNotFound)
+		}
+		return
+	}
+
+	ctx.Response.Header.Add("Content-Type", mime)
+	ctx.Response.Header.Add("Content-Length", strconv.Itoa(len(pictureData.Bytes)))
+	ctx.Write(pictureData.Bytes)
+	ctx.SetStatusCode(fasthttp.StatusOK)
 }

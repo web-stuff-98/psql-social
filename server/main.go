@@ -30,14 +30,22 @@ func main() {
 	h := handlers.New(db, rdb, ss)
 
 	r := router.New()
+
 	r.POST("/api/acc/login", h.Login)
 	r.POST("/api/acc/logout", h.Logout)
 	r.POST("/api/acc/register", h.Register)
 	r.POST("/api/acc/refresh", h.Refresh)
+	r.POST("/api/acc/bio", h.UpdateBio)
+	r.POST("/api/acc/pfp", h.UploadPfp)
 
 	r.POST("/api/room", h.CreateRoom)
 	r.PATCH("/api/room/{id}", h.UpdateRoom)
 	r.GET("/api/room/{id}", h.GetRoom)
+
+	r.GET("/api/user/bio/{id}", h.GetUserBio)
+	r.GET("/api/user/pfp/{id}", h.GetUserPfp)
+	r.GET("/api/user/{id}", h.GetUser)
+	r.GET("/api/user/name", h.GetUserByName)
 
 	r.GET("/api/ws", h.WebSocketEndpoint)
 

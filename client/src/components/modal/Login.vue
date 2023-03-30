@@ -10,9 +10,11 @@ import {
 import { ref } from "vue";
 import ResMsg from "../shared/ResMsg.vue";
 import useSocketStore from "../../store/SocketStore";
+import useUserStore from "../../store/UserStore";
 
 const authStore = useAuthStore();
 const socketStore = useSocketStore();
+const userStore = useUserStore();
 
 const resMsg = ref<IResMsg>({});
 
@@ -21,6 +23,7 @@ async function handleSubmit(values: any) {
     resMsg.value = { msg: "", err: false, pen: true };
     await authStore.login(values.username, values.password);
     await socketStore.connectSocket();
+    await userStore.cacheUser(authStore.uid!, true);
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };

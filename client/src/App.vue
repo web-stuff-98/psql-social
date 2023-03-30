@@ -19,7 +19,7 @@ useIntervals({ resMsg: intervalsResMsg });
 const noUserModalSection = ref<"WELCOME" | "LOGIN" | "REGISTER">("WELCOME");
 
 watch(authStore, (_, newVal) => {
-  if (!newVal.user) noUserModalSection.value = "WELCOME";
+  if (!newVal.uid) noUserModalSection.value = "WELCOME";
 });
 </script>
 
@@ -32,7 +32,7 @@ watch(authStore, (_, newVal) => {
       <ResMsg :resMsg="intervalsResMsg" />
     </Modal>
     <!-- Welcome / Login / Register modal -->
-    <Modal v-if="!authStore.user">
+    <Modal v-if="!authStore.uid">
       <ModalCloseButton
         v-if="noUserModalSection !== 'WELCOME'"
         @click="() => (noUserModalSection = 'WELCOME')"

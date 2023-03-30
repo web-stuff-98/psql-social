@@ -2,8 +2,10 @@
 import { onBeforeUnmount, onMounted, Ref, ref } from "vue";
 import { IResMsg } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "../services/makeRequest";
+
 import useAuthStore from "../store/AuthStore";
 import useSocketStore from "../store/SocketStore";
+import useUserStore from "../store/UserStore";
 
 export default function useIntervals({
   resMsg,
@@ -12,14 +14,17 @@ export default function useIntervals({
 }) {
   const refreshTokenInterval = ref<NodeJS.Timer>();
   const pingSocketInterval = ref<NodeJS.Timer>();
+  const clearUserCacheInterval = ref<NodeJS.Timer>();
 
   const authStore = useAuthStore();
   const socketStore = useSocketStore();
+  const userStore = useUserStore();
 
   onMounted(() => {
+    /* Refresh the token */
     refreshTokenInterval.value = setInterval(async () => {
       try {
-        if (authStore.user)
+        if (authStore.uid)
           await makeRequest("/api/acc/refresh", {
             method: "POST",
           });
@@ -29,13 +34,32 @@ export default function useIntervals({
           err: true,
           pen: false,
         };
-        authStore.user = undefined;
+        authStore.uid = undefined;
       }
     }, 90000);
 
-    pingSocketInterval.value = setInterval(() => {
-      socketStore.send("PING");
-    }, 20000);
+    /* Ping the server websocket connection to keep connection alive */
+    pingSocketInterval.value = setInterval(
+      () => socketStore.send("PING"),
+      20000
+    );
+
+    /* Remove data for users that haven't been seen in 30 seconds - except for the current users data */
+    clearUserCacheInterval.value = setInterval(() => {
+      const disappared = userStore.disappearedUsers.map((du) =>
+        Date.now() - du.disappearedAt > 30000 && du.id !== authStore.uid
+          ? du.id
+          : ""
+      );
+      userStore.users = [
+        ...userStore.users.filter((u) => !disappared.includes(u.ID)),
+      ];
+      userStore.disappearedUsers = [
+        ...userStore.disappearedUsers.filter(
+          (du) => !disappared.includes(du.id)
+        ),
+      ];
+    }, 30000);
   });
 
   onBeforeUnmount(() => {

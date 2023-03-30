@@ -15,5 +15,5 @@ type GetUserByName struct {
 }
 
 type Bio struct {
-	Content string `json:"content" validate:"required,lte=300"`
+	Content string `json:"content" validate:"lte=300"`
 }

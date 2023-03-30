@@ -96,7 +96,8 @@ CREATE TABLE room_message_attachment_metadata (
 
 CREATE TABLE profile_pictures (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    mime VARCHAR(10) NOT NULL,
     picture_data BYTEA NOT NULL
 );
 

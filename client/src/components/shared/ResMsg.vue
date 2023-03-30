@@ -35,6 +35,7 @@ defineProps<{ resMsg?: IResMsg }>();
   }
   .error {
     color: red;
+    fill: red;
   }
 }
 </style>

@@ -2,11 +2,14 @@
 import { computed, ref } from "vue";
 import { IResMsg } from "../../interfaces/GeneralInterfaces";
 import useAuthStore from "../../store/AuthStore";
+import useUserStore from "../../store/UserStore";
 import Modal from "../modal/Modal.vue";
 import Aside from "./aside/Aside.vue";
 import ModalCloseButton from "../shared/ModalCloseButton.vue";
 import ResMsg from "../shared/ResMsg.vue";
+
 const authStore = useAuthStore();
+const userStore = useUserStore();
 
 const resMsg = ref<IResMsg>({});
 
@@ -18,7 +21,7 @@ async function logout() {
   }
 }
 
-const username = computed(() => authStore.getCurrentUser?.username);
+const username = computed(() => userStore.getUser(authStore.uid as string));
 </script>
 
 <template>
@@ -26,7 +29,7 @@ const username = computed(() => authStore.getCurrentUser?.username);
     <ModalCloseButton @click="resMsg = {}" />
     <ResMsg :resMsg="resMsg" />
   </Modal>
-  <div v-if="authStore.user" class="layout">
+  <div v-if="authStore.uid" class="layout">
     <nav>
       <div class="name">{{ username }}</div>
       <div class="nav-items">

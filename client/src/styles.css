@@ -5,6 +5,9 @@
 
 * {
   font-family: "Didact gothic";
+  color: var(--text-colour);
+  line-height: 1;
+  box-sizing: border-box;
 }
 
 :root {
@@ -32,6 +35,7 @@
   --xl: 1.5rem;
 
   /* Base colours */
+  --text-colour: black;
   --base-colour: #ededed;
   --base-colour-contrast: #1a1a1a;
   --hover: #e1e1f0;
@@ -81,6 +85,10 @@ body {
   margin: 0;
 }
 
+input[type="file"] {
+  display: none;
+}
+
 input,
 textarea,
 button,
@@ -125,11 +133,6 @@ strong,
 a {
   margin: 0;
   padding: 0;
-}
-
-* {
-  line-height: 1;
-  box-sizing: border-box;
 }
 
 .modal-container {
