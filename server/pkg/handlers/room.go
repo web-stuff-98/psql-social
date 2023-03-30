@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
@@ -194,13 +195,14 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 	if rows, err := h.DB.Query(rctx, "SELECT id,name,private,author_id,created_at FROM rooms WHERE author_id = $1;", uid); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
 		}
-		return
 	} else {
 		defer rows.Close()
 
 		for rows.Next() {
-			var id, name, author_id, created_at string
+			var id, name, author_id string
+			var created_at pgtype.Timestamptz
 			var private bool
 
 			err = rows.Scan(&id, &name, &private, &author_id, &created_at)
@@ -214,7 +216,7 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 				ID:        id,
 				Name:      name,
 				Private:   private,
-				CreatedAt: created_at,
+				CreatedAt: created_at.Time.String(),
 			})
 		}
 	}
@@ -248,7 +250,8 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 			defer rows.Close()
 
 			for rows.Next() {
-				var id, name, author_id, created_at string
+				var id, name, author_id string
+				var created_at pgtype.Timestamptz
 				var private bool
 
 				err = rows.Scan(&id, &name, &private, &author_id, &created_at)
@@ -262,7 +265,7 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 					ID:        id,
 					Name:      name,
 					Private:   private,
-					CreatedAt: created_at,
+					CreatedAt: created_at.Time.String(),
 				})
 			}
 		}

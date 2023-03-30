@@ -22,7 +22,9 @@ onMounted(async () => {
 
 <template>
   <div class="rooms">
-    <div class="results"></div>
+    <div class="results">
+        {{ rooms }}
+    </div>
     <button
       @click="showCreate = true"
       type="button"
