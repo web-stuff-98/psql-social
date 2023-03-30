@@ -3,6 +3,7 @@ import { ref } from "vue";
 import EAsideSection from "../../../enums/EAsideSection";
 import FindUser from "./sections/FindUser.vue";
 import Profile from "./sections/Profile.vue";
+import Rooms from "./sections/Rooms.vue";
 
 const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
 const show = ref(false);
@@ -27,10 +28,8 @@ const show = ref(false);
         :closeClicked="() => (currentSection = EAsideSection.FRIENDS)"
         v-if="currentSection === EAsideSection.PROFILE"
       />
-      <FindUser
-        :closeClicked="() => (currentSection = EAsideSection.FIND_USER)"
-        v-if="currentSection === EAsideSection.FIND_USER"
-      />
+      <FindUser v-if="currentSection === EAsideSection.FIND_USER" />
+      <Rooms v-if="currentSection === EAsideSection.ROOMS" />
       <button
         @click="show = false"
         type="button"

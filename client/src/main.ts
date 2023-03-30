@@ -12,6 +12,7 @@ import {
   FaUserAlt,
   IoSend,
   IoSearch,
+  IoAddCircleSharp,
 } from "oh-vue-icons/icons";
 
 addIcons(
@@ -21,7 +22,8 @@ addIcons(
   HiSolidMenu,
   FaUserAlt,
   IoSend,
-  IoSearch
+  IoSearch,
+  IoAddCircleSharp
 );
 
 const pinia = createPinia();

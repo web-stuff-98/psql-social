@@ -38,7 +38,7 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 	name := strings.TrimSpace(body.Name)
 
 	exists := false
-	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(name) = LOWER($1));", name); err != nil {
+	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(name) = LOWER($1));", name).Scan(&exists); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}

@@ -70,6 +70,24 @@
   --aside-width: min(9rem, 20vw);
 }
 
+.input-label {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-label label {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.input-label input {
+  width: 100%;
+  text-align: center;
+}
+
 button {
   background: var(--button);
   transition: background-color 100ms ease;

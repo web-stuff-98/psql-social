@@ -6,7 +6,7 @@ type LoginRegister struct {
 }
 
 type CreateUpdateRoom struct {
-	Name    string `json:"name" validate:"required,gte=24,lte=2"`
+	Name    string `json:"name" validate:"required,gte=2,lte=16"`
 	Private bool   `json:"private"`
 }
 

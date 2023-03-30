@@ -38,7 +38,7 @@ CREATE TABLE direct_messages (
 
 CREATE TABLE rooms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(24) NOT NULL,
+    name VARCHAR(16) NOT NULL,
     private BOOLEAN NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

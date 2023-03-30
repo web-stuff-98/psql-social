@@ -23,3 +23,10 @@ export function validatePassword(password: string) {
 
 export const validateBio = (bio: string) =>
   bio.length > 300 ? "Maximum 300 characters" : true;
+
+export const validateRoomName = (name: string) => {
+  if (!name) return "Name is required";
+  if (name.length < 2) return "Minimum 2 characters";
+  if (name.length > 16) return "Maximum 16 characters";
+  return true;
+};

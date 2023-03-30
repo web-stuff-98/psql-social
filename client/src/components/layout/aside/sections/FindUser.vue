@@ -10,8 +10,6 @@ import User from "../../../shared/User.vue";
 
 const userStore = useUserStore();
 
-defineProps<{ closeClicked: Function }>();
-
 const formRef = ref<HTMLFormElement>();
 const searchTimeout = ref<NodeJS.Timeout>();
 const username = ref("");
