@@ -1,17 +1,17 @@
 @font-face {
-  font-family: "Shackle";
+  font-family: "Cq Mono";
   src: url(./assets/CqMono-mBXa.ttf);
 }
 
 * {
-  font-family: "Shackle";
+  font-family: "Cq Mono";
   color: var(--text-colour);
   line-height: 1;
   box-sizing: border-box;
 }
 
 :root {
-  font-family: "Shackle";
+  font-family: "Cq Mono";
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;

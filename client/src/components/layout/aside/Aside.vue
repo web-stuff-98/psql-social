@@ -10,7 +10,7 @@ const show = ref(false);
 </script>
 
 <template>
-  <aside :style="show ? {} : { width: 'fit-content' }">
+  <aside :style="show ? {} : { minWidth: 'fit-content' }">
     <button v-if="!show" @click="show = true" type="button" class="show-button">
       <v-icon name="hi-solid-menu" />
     </button>
@@ -43,7 +43,7 @@ const show = ref(false);
 
 <style lang="scss" scoped>
 aside {
-  width: var(--aside-width);
+  min-width: var(--aside-width);
   height: 100%;
   border-right: 2px solid var(--border-pale);
   position: relative;

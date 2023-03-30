@@ -96,9 +96,12 @@ const username = computed(
   .aside-main {
     display: flex;
     flex-grow: 1;
+    height: 100%;
+    width: 100%;
     main {
       width: 100%;
       display: flex;
+      height: 100%;
     }
   }
 }
