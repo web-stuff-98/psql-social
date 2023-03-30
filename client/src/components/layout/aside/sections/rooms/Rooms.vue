@@ -5,6 +5,7 @@ import { getRooms } from "../../../../../services/room";
 import useRoomStore from "../../../../../store/RoomStore";
 import ResMsg from "../../../../shared/ResMsg.vue";
 import CreateRoom from "./CreateRoom.vue";
+import Room from "./Room.vue";
 
 const roomStore = useRoomStore();
 
@@ -36,6 +37,7 @@ onMounted(async () => {
       "
       class="results"
     >
+      <Room :rid="rid" v-for="rid in rooms" />
       <ResMsg :resMsg="resMsg" />
     </div>
     <button
@@ -61,6 +63,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   .results {
+    gap: var(--gap-sm);
+    padding: var(--gap-sm);
     flex-grow: 1;
     overflow-y: auto;
     border-bottom: 1px solid var(--border-pale);
