@@ -1,9 +1,8 @@
 
-- Dark mode
-- Add functionality to aside section
-- Complete other small sections
-- Fix cookie not being removed
-- Direct messaging
-- Room messaging (use modular message form)
+not all todos, just ones I plan on doing next
 
-- The rest, including the ~40 socket events
+- Room page component
+- Join/Leave channel socket events
+- Room messaging
+
+- Fix cookie not being removed

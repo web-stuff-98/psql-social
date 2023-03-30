@@ -254,13 +254,13 @@ func connection(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws connection loop:", r)
 				if failCount < 10 {
 					go connection(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -286,13 +286,13 @@ func disconnect(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws disconnect loop:", r)
 				if failCount < 10 {
 					go disconnect(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -318,13 +318,13 @@ func sendUserData(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send user data loop:", r)
 				if failCount < 10 {
 					go sendUserData(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -344,13 +344,13 @@ func sendUsersData(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send users data loop:", r)
 				if failCount < 10 {
 					go sendUsersData(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -371,13 +371,13 @@ func sendConnData(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send conn data loop:", r)
 				if failCount < 10 {
 					go sendConnData(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -397,13 +397,13 @@ func sendConnsData(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send connections data loop:", r)
 				if failCount < 10 {
 					go sendConnsData(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -424,13 +424,13 @@ func joinSubsByWs(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws register subscription by ws connection loop:", r)
 				if failCount < 10 {
 					go joinSubsByWs(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -457,13 +457,13 @@ func joinSubsByID(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws register subscription by uid loop:", r)
 				if failCount < 10 {
 					go joinSubsByID(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -496,13 +496,13 @@ func leaveSubByWs(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws leave subscription by ws conn loop:", r)
 				if failCount < 10 {
 					go leaveSubByWs(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -530,13 +530,13 @@ func leaveSubByID(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws leave subscription by uid loop:", r)
 				if failCount < 10 {
 					go leaveSubByWs(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -572,13 +572,13 @@ func sendSubData(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send data to subscription loop:", r)
 				if failCount < 10 {
 					go sendSubData(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -601,13 +601,13 @@ func sendSubsData(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send data to subscriptions loop:", r)
 				if failCount < 10 {
 					go sendSubsData(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -634,13 +634,13 @@ func sendDataToSubExcludeWss(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send data to subscription excluding connections loop:", r)
 				if failCount < 10 {
 					go sendDataToSubExcludeWss(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -665,13 +665,13 @@ func sendDataToSubExcludeIDs(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send data to subscription excluding user ids loop:", r)
 				if failCount < 10 {
 					go sendDataToSubExcludeIDs(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -700,13 +700,13 @@ func sendDataToSubsExcludeIDs(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send data to subscriptions excluding user ids loop:", r)
 				if failCount < 10 {
 					go sendDataToSubsExcludeIDs(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -737,13 +737,13 @@ func sendDataToSubsExcludeWss(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws send data to subscriptions excluding connections loop:", r)
 				if failCount < 10 {
 					go sendDataToSubsExcludeWss(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
@@ -770,13 +770,13 @@ func getConnSubscriptions(ss *SocketServer) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				failCount++
 				log.Println("Recovered from panic in ws get connection subscriptions loop:", r)
 				if failCount < 10 {
 					go getConnSubscriptions(ss)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
+				failCount++
 			}
 		}()
 
