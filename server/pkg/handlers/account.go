@@ -36,8 +36,16 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	// Prepare the SQL statement once and reuse it
+	stmt, err := h.DB.Prepare(rctx, "login_stmt", "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1)")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	var id, hash string
-	if err := h.DB.QueryRow(rctx, "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1)", strings.TrimSpace(body.Username)).Scan(&id, &hash); err != nil {
+	// Execute the prepared statement with the parameter
+	if err := h.DB.QueryRow(rctx, stmt.Name, strings.TrimSpace(body.Username)).Scan(&id, &hash); err != nil {
 		if err == pgx.ErrNoRows {
 			ResponseMessage(ctx, "Account not found", fasthttp.StatusNotFound)
 		} else {

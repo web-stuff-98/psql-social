@@ -1,6 +1,8 @@
 
 not all todos, just ones I plan on doing next
 
+- Sanitize all SQL statements - important - login is already done
+
 - Room page component
 - Join/Leave channel socket events
 - Room messaging
