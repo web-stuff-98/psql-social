@@ -1,18 +1,24 @@
 <script lang="ts" setup>
 import { onMounted, ref } from "vue";
-import { IResMsg, IRoom } from "../../../../interfaces/GeneralInterfaces";
-import { getRooms } from "../../../../services/room";
+import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
+import { getRooms } from "../../../../../services/room";
+import useRoomStore from "../../../../../store/RoomStore";
+import ResMsg from "../../../../shared/ResMsg.vue";
 import CreateRoom from "./CreateRoom.vue";
 
+const roomStore = useRoomStore();
+
 const showCreate = ref(false);
-const rooms = ref<IRoom[]>([]);
+const rooms = ref<string[]>([]);
 const resMsg = ref<IResMsg>({});
 
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
+    rooms.value = [];
     const result = await getRooms();
-    rooms.value = result || [];
+    roomStore.addRoomsData(result);
+    rooms.value = result?.map((r) => r.ID) || [];
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
@@ -22,8 +28,15 @@ onMounted(async () => {
 
 <template>
   <div class="rooms">
-    <div class="results">
-        {{ rooms }}
+    <div
+      :style="
+        resMsg.msg || resMsg.pen
+          ? { justifyContent: 'center', alignItems: 'center' }
+          : {}
+      "
+      class="results"
+    >
+      <ResMsg :resMsg="resMsg" />
     </div>
     <button
       @click="showCreate = true"
@@ -51,6 +64,8 @@ onMounted(async () => {
     flex-grow: 1;
     overflow-y: auto;
     border-bottom: 1px solid var(--border-pale);
+    display: flex;
+    flex-direction: column;
   }
   .create-button {
     padding: var(--gap-sm);

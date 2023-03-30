@@ -1,14 +1,14 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { Form, Field } from "vee-validate";
-import { createRoom } from "../../../../services/room";
-import { IResMsg } from "../../../../interfaces/GeneralInterfaces";
-import { validateRoomName } from "../../../../validators/validators";
-import Modal from "../../../modal/Modal.vue";
-import ModalCloseButton from "../../../shared/ModalCloseButton.vue";
-import ResMsg from "../../../shared/ResMsg.vue";
-import CustomCheckbox from "../../../shared/CustomCheckbox.vue";
-import ErrorMessage from "../../../shared/ErrorMessage.vue";
+import { createRoom } from "../../../../../services/room";
+import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
+import { validateRoomName } from "../../../../../validators/validators";
+import Modal from "../../../../modal/Modal.vue";
+import ModalCloseButton from "../../../../shared/ModalCloseButton.vue";
+import ResMsg from "../../../../shared/ResMsg.vue";
+import CustomCheckbox from "../../../../shared/CustomCheckbox.vue";
+import ErrorMessage from "../../../../shared/ErrorMessage.vue";
 
 defineProps<{ closeClicked: Function }>();
 

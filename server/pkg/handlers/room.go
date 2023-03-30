@@ -216,6 +216,7 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 				ID:        id,
 				Name:      name,
 				Private:   private,
+				AuthorID:  author_id,
 				CreatedAt: created_at.Time.String(),
 			})
 		}
@@ -265,6 +266,7 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 					ID:        id,
 					Name:      name,
 					Private:   private,
+					AuthorID:  author_id,
 					CreatedAt: created_at.Time.String(),
 				})
 			}

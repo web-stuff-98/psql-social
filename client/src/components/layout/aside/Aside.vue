@@ -3,7 +3,7 @@ import { ref } from "vue";
 import EAsideSection from "../../../enums/EAsideSection";
 import FindUser from "./sections/FindUser.vue";
 import Profile from "./sections/Profile.vue";
-import Rooms from "./sections/Rooms.vue";
+import Rooms from "./sections/rooms/Rooms.vue";
 
 const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
 const show = ref(false);
