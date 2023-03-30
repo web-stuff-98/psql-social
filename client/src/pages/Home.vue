@@ -5,5 +5,5 @@ const authStore = useAuthStore();
 
 <template>
   <h1>Home</h1>
-  {{ authStore.user ? "No user" : "User" }}
+  {{ authStore.uid ? "No user" : "User" }}
 </template>

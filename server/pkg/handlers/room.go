@@ -55,6 +55,11 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	if _, err := h.DB.Exec(rctx, "INSERT INTO room_channels (name, main, room_id) VALUES ($1, $2, $3);", "Main channel", true, id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	ctx.Response.Header.Add("Content-Type", "text/plain")
 	ctx.WriteString(id)
 	ctx.SetStatusCode(fasthttp.StatusCreated)

@@ -18,3 +18,6 @@ export const getRooms = (): Promise<IRoom[] | null> =>
 
 export const getRoom = (id: string): Promise<IRoom> =>
   makeRequest(`/api/room/${id}`);
+
+export const deleteRoom = (id: string) =>
+  makeRequest(`/api/room/${id}`, { method: "DELETE" });

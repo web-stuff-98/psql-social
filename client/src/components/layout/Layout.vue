@@ -21,7 +21,9 @@ async function logout() {
   }
 }
 
-const username = computed(() => userStore.getUser(authStore.uid as string)?.username);
+const username = computed(
+  () => userStore.getUser(authStore.uid as string)?.username
+);
 </script>
 
 <template>
@@ -37,8 +39,8 @@ const username = computed(() => userStore.getUser(authStore.uid as string)?.user
       </div>
     </nav>
     <div class="aside-main">
+      <Aside />
       <main>
-        <Aside />
         <router-view :key="$route.fullPath" />
       </main>
     </div>
@@ -94,6 +96,10 @@ const username = computed(() => userStore.getUser(authStore.uid as string)?.user
   .aside-main {
     display: flex;
     flex-grow: 1;
+    main {
+      width: 100%;
+      display: flex;
+    }
   }
 }
 </style>

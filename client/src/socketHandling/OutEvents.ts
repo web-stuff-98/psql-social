@@ -11,7 +11,7 @@ export type StopWatching = {
   data: { entity: Watchable; id: string };
 };
 
-/* Direct messages */
+/* Direct messages / invites / invitations */
 export type DirectMessage = {
   event_type: "DIRECT_MESSAGE";
   data: {
@@ -29,7 +29,7 @@ export type DirectMessageDelete = {
   data: { id: string };
 };
 
-/* Room messages */
+/* Room events */
 export type RoomMessage = {
   event_type: "ROOM_MESSAGE";
   data: {
@@ -50,6 +50,14 @@ export type RoomMessageDelete = {
     id: string;
     channel_id: string;
   };
+};
+export type JoinRoom = {
+  event_type: "JOIN_ROOM";
+  data: { room_id: string };
+};
+export type LeaveRoom = {
+  event_type: "LEAVE_ROOM";
+  data: { room_id: string };
 };
 
 /* WebRTC events */
