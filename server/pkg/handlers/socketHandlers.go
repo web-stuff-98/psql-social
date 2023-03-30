@@ -113,5 +113,19 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	var mainChannelId, mainChannelName string
+	if err = h.DB.QueryRow(ctx, "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE;", data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		} else {
+			return fmt.Errorf("Main channel could not be found")
+		}
+	}
+
+	h.SocketServer.LeaveSubscriptionByWs <- socketServer.RegisterUnregisterSubsConnWs{
+		Conn:    c,
+		SubName: fmt.Sprintf("channel:%v", mainChannelId),
+	}
+
 	return nil
 }
