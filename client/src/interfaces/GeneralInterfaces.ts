@@ -10,3 +10,12 @@ export interface IResMsg {
   err?: boolean;
   pen?: boolean;
 }
+export interface IMediaOptions {
+  userMedia: {
+    video: boolean;
+    audio: boolean;
+  };
+  displayMedia: {
+    video: boolean;
+  };
+}

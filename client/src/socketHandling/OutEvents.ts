@@ -51,3 +51,22 @@ export type RoomMessageDelete = {
     channel_id: string;
   };
 };
+
+/* WebRTC events */
+export type ChannelWebRTCUpdateMediaOptions = {
+  event_type: "CHANNEL_WEBRTC_UPDATE_MEDIA_OPTIONS";
+  data: {
+    um_vid: boolean;
+    dm_vid: boolean;
+    um_stream_id: string;
+    channel_id: string;
+  };
+};
+export type CallWebRTCUpdateMediaOptions = {
+  event_type: "CALL_UPDATE_MEDIA_OPTIONS";
+  data: {
+    um_vid: boolean;
+    dm_vid: boolean;
+    um_stream_id: string;
+  };
+};
