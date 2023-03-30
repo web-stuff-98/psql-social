@@ -27,7 +27,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="container" class="room">
-    {{ rid }}
+    {{ room?.name }}
   </div>
 </template>
 

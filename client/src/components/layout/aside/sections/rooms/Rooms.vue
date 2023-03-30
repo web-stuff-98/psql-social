@@ -17,7 +17,7 @@ onMounted(async () => {
     resMsg.value = { msg: "", err: false, pen: true };
     rooms.value = [];
     const result = await getRooms();
-    roomStore.addRoomsData(result);
+    if (result) roomStore.addRoomsData(result);
     rooms.value = result?.map((r) => r.ID) || [];
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
