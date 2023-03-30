@@ -1,17 +1,17 @@
 @font-face {
-  font-family: "Didact gothic";
-  src: url(./assets/didact-gothic.regular.ttf);
+  font-family: "Shackle";
+  src: url(./assets/CqMono-mBXa.ttf);
 }
 
 * {
-  font-family: "Didact gothic";
+  font-family: "Shackle";
   color: var(--text-colour);
   line-height: 1;
   box-sizing: border-box;
 }
 
 :root {
-  font-family: "Didact gothic";
+  font-family: "Shackle";
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
@@ -19,7 +19,7 @@
   color: #0f0f0f;
   background-color: #f6f6f6;
 
-  font-synthesis: none;
+  font-synthesis: weight;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -28,8 +28,8 @@
   background: var(--base-colour);
 
   /* Base sizes (not for margin/padding) */
-  --xs: 0.75rem;
-  --sm: 0.833rem;
+  --xs: 0.8rem;
+  --sm: 0.9rem;
   --md: 1rem;
   --lg: 1.25rem;
   --xl: 1.5rem;
@@ -42,8 +42,8 @@
   --hover-contrast: #242424;
   --focus: #b5b3d9;
   --focus-contrast: #383838;
-  --button: #00569c;
-  --button-hover: #1871ba;
+  --button: hsl(22, 100%, 31%);
+  --button-hover: hsl(22, 100%, 39%);
 
   /* Margin & padding */
   --gap-sm: 3px;
@@ -58,6 +58,7 @@
 
   /* Border colour */
   --border-pale: rgb(198, 198, 198);
+  --border-light: rgb(142, 142, 142);
   --border-medium: rgb(46, 46, 46);
   --border-heavy: rgb(16, 16, 16);
 
@@ -65,8 +66,8 @@
   --nav-colour: var(--base-colour-contrast);
 
   /* Layout dimensions */
-  --nav-height: 2rem;
-  --aside-width: min(12rem, 20vw);
+  --nav-height: 1.5rem;
+  --aside-width: min(9rem, 20vw);
 }
 
 button {
@@ -76,6 +77,7 @@ button {
   cursor: pointer;
   color: white;
   text-shadow: 0px 2px 3px black;
+  font-size: var(--md);
 }
 button:hover {
   background: var(--button-hover);
@@ -170,7 +172,7 @@ a {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  filter: opacity(0.5);
+  filter: opacity(0.75);
   transition: filter 100ms ease;
 }
 

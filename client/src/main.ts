@@ -10,9 +10,19 @@ import {
   MdErrorRound,
   HiSolidMenu,
   FaUserAlt,
+  IoSend,
+  IoSearch,
 } from "oh-vue-icons/icons";
 
-addIcons(IoClose, PrSpinner, MdErrorRound, HiSolidMenu, FaUserAlt);
+addIcons(
+  IoClose,
+  PrSpinner,
+  MdErrorRound,
+  HiSolidMenu,
+  FaUserAlt,
+  IoSend,
+  IoSearch
+);
 
 const pinia = createPinia();
 

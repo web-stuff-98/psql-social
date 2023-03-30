@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -69,16 +70,18 @@ func (h handler) GetUserByName(ctx *fasthttp.RequestCtx) {
 	v := validator.New()
 	body := &validation.GetUserByName{}
 	if err := json.Unmarshal(ctx.Request.Body(), &body); err != nil {
+		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
 		return
 	}
 	if err := v.Struct(body); err != nil {
+		log.Println("ERR B:", err)
 		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
 		return
 	}
 
-	var id, username, role string
-	if err := h.DB.QueryRow(rctx, "SELECT id,username,role FROM users WHERE LOWER(username) = LOWER($1);", strings.TrimSpace(body.Username)).Scan(&id, &username, &role); err != nil {
+	var id string
+	if err := h.DB.QueryRow(rctx, "SELECT id FROM users WHERE LOWER(username) = LOWER($1);", strings.TrimSpace(body.Username)).Scan(&id); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -87,18 +90,9 @@ func (h handler) GetUserByName(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if bytes, err := json.Marshal(responses.User{
-		ID:       id,
-		Username: username,
-		Role:     role,
-	}); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
-	} else {
-		ctx.Response.Header.Add("Content-Type", "application/json")
-		ctx.SetStatusCode(fasthttp.StatusOK)
-		ctx.Write(bytes)
-	}
+	ctx.Response.Header.Add("Content-Type", "text/plain")
+	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.WriteString(id)
 }
 
 func (h handler) GetUserBio(ctx *fasthttp.RequestCtx) {

@@ -45,7 +45,7 @@ func main() {
 	r.GET("/api/user/bio/{id}", h.GetUserBio)
 	r.GET("/api/user/pfp/{id}", h.GetUserPfp)
 	r.GET("/api/user/{id}", h.GetUser)
-	r.GET("/api/user/name", h.GetUserByName)
+	r.POST("/api/user/name", h.GetUserByName)
 
 	r.GET("/api/ws", h.WebSocketEndpoint)
 

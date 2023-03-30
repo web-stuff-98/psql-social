@@ -1,11 +1,10 @@
 // Friends is the default section
 enum EAsideSection {
   "FRIENDS" = "Friends",
-  "DIRECT_MESSAGES" = "Direct messages",
-  "JOINED_ROOMS" = "Joined rooms",
-  "YOUR_ROOMS" = "Your rooms",
+  "DEVICE_SETTINGS" = "Device settings",
+  "ROOMS" = "Rooms",
   "PROFILE" = "Profile",
-  "USERS" = "Users",
+  "FIND_USER" = "Find user",
 }
 
 export default EAsideSection;

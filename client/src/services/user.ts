@@ -10,5 +10,5 @@ export const getUser = (id: string): Promise<IUser> =>
 export const getUserPfp = (id: string) =>
   makeRequest(`/api/user/pfp/${id}`, { responseType: "arraybuffer" });
 
-export const getUserByName = (username: string) =>
-  makeRequest(`/api/user/name`, { data: { username } });
+export const getUserByName = (username: string): Promise<string> =>
+  makeRequest(`/api/user/name`, { data: { username }, method: "POST" });

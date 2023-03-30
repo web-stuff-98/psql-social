@@ -26,7 +26,7 @@ const useUserStore = defineStore("users", {
     },
   },
   actions: {
-    async cacheUser(id: string, force: boolean) {
+    async cacheUser(id: string, force?: boolean) {
       if (this.$state.users.findIndex((u) => u.ID === id) !== -1 && !force)
         return;
       try {

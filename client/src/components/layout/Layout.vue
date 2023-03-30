@@ -21,7 +21,7 @@ async function logout() {
   }
 }
 
-const username = computed(() => userStore.getUser(authStore.uid as string));
+const username = computed(() => userStore.getUser(authStore.uid as string)?.username);
 </script>
 
 <template>
@@ -33,7 +33,6 @@ const username = computed(() => userStore.getUser(authStore.uid as string));
     <nav>
       <div class="name">{{ username }}</div>
       <div class="nav-items">
-        <button type="button" class="nav-item">Settings</button>
         <button type="button" class="nav-item" @click="logout">Logout</button>
       </div>
     </nav>

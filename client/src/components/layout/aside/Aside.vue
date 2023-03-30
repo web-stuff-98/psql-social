@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import EAsideSection from "../../../enums/EAsideSection";
+import FindUser from "./sections/FindUser.vue";
 import Profile from "./sections/Profile.vue";
 
 const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
@@ -12,19 +13,23 @@ const show = ref(false);
     <button v-if="!show" @click="show = true" type="button" class="show-button">
       <v-icon name="hi-solid-menu" />
     </button>
+    <!-- Aside section menu buttons -->
+    <div v-show="show" class="buttons">
+      <button
+        @click="currentSection = section"
+        v-for="section in EAsideSection"
+      >
+        {{ section }}
+      </button>
+    </div>
     <div v-show="show" class="inner">
-      <!-- Aside section menu buttons -->
-      <div class="buttons">
-        <button
-          @click="currentSection = section"
-          v-for="section in EAsideSection"
-        >
-          {{ section }}
-        </button>
-      </div>
       <Profile
         :closeClicked="() => (currentSection = EAsideSection.FRIENDS)"
         v-if="currentSection === EAsideSection.PROFILE"
+      />
+      <FindUser
+        :closeClicked="() => (currentSection = EAsideSection.FIND_USER)"
+        v-if="currentSection === EAsideSection.FIND_USER"
       />
       <button
         @click="show = false"
@@ -46,6 +51,25 @@ aside {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  .buttons {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    padding: var(--gap-sm);
+    padding-bottom: 0;
+    button {
+      text-align: left;
+      font-size: var(--sm);
+      padding: 4px 5px;
+      font-weight: 600;
+      background: none;
+      border: 2px solid var(--border-pale);
+      color: var(--text-colour);
+      text-shadow: none;
+    }
+  }
   .show-button {
     background: none;
     border: none;
@@ -60,20 +84,12 @@ aside {
     }
   }
   .inner {
+    padding: var(--gap-sm);
+    padding-bottom: calc(6px + 1rem);
     width: 100%;
     height: 100%;
-    .buttons {
-      display: flex;
-      flex-direction: column;
-      gap: var(--gap-sm);
-      padding: var(--gap-sm);
-      button {
-        text-align: left;
-        font-size: var(--xs);
-        padding: 4px;
-        font-weight: 600;
-      }
-    }
+    display: flex;
+    flex-direction: column;
     .aside-close-button {
       position: absolute;
       bottom: 3px;

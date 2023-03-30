@@ -143,8 +143,8 @@ function selectImage(e: Event) {
     filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.166));
     .pfp {
       border: 2px outset var(--border-pale);
-      min-height: 3rem;
-      min-width: 3rem;
+      min-height: 3.75rem;
+      min-width: 3.75rem;
       background: var(--foreground-colour);
       border-radius: var(--border-radius-md);
       background-size: cover;
