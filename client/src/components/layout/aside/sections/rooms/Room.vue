@@ -28,6 +28,17 @@ onBeforeUnmount(() => {
 <template>
   <div ref="container" class="room">
     {{ room?.name }}
+    <div class="buttons">
+      <button type="button">
+        <v-icon name="md-modeeditoutline" />
+      </button>
+      <button type="button">
+        <v-icon name="md-delete-round" />
+      </button>
+      <button type="button">
+        <v-icon name="md-sensordoor-round" />
+      </button>
+    </div>
   </div>
 </template>
 
@@ -35,9 +46,34 @@ onBeforeUnmount(() => {
 .room {
   border: 1px solid var(--border-pale);
   border-radius: var(--border-radius-sm);
-  padding: 3px;
+  padding: 1px;
+  padding-left: 6px;
   font-size: var(--xs);
   font-weight: 600;
   box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  .buttons {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    padding: 1px;
+    border: 1px solid var(--border-medium);
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: var(--border-radius-sm);
+    margin-left: 2px;
+    button {
+      padding: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--base-colour);
+      svg {
+        width: var(--sm);
+        height: var(--sm);
+      }
+    }
+  }
 }
 </style>

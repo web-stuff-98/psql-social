@@ -13,6 +13,9 @@ import {
   IoSend,
   IoSearch,
   IoAddCircleSharp,
+  MdSensordoorRound,
+  MdModeeditoutline,
+  MdDeleteRound,
 } from "oh-vue-icons/icons";
 
 addIcons(
@@ -23,7 +26,10 @@ addIcons(
   FaUserAlt,
   IoSend,
   IoSearch,
-  IoAddCircleSharp
+  IoAddCircleSharp,
+  MdSensordoorRound,
+  MdModeeditoutline,
+  MdDeleteRound
 );
 
 const pinia = createPinia();

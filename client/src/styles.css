@@ -67,7 +67,7 @@
 
   /* Layout dimensions */
   --nav-height: 1.5rem;
-  --aside-width: min(9rem, 20vw);
+  --aside-width: min(10rem, 20vw);
 }
 
 .input-label {
