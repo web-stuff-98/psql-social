@@ -283,6 +283,34 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 	}
 }
 
+func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	room_id := ctx.UserValue("id").(string)
+	if room_id == "" {
+		ResponseMessage(ctx, "Provide a room ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	if _, err := h.DB.Exec(rctx, "DELETE FROM rooms WHERE room_id = $1 AND author_id = $2", room_id, uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusOK)
+}
+
 func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
