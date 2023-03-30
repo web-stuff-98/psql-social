@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/fasthttp/websocket"
@@ -122,9 +123,20 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 		}
 	}
 
-	h.SocketServer.LeaveSubscriptionByWs <- socketServer.RegisterUnregisterSubsConnWs{
-		Conn:    c,
-		SubName: fmt.Sprintf("channel:%v", mainChannelId),
+	recvChan := make(chan map[string]struct{})
+	h.SocketServer.GetConnectionSubscriptions <- socketServer.GetConnectionSubscriptions{
+		RecvChan: recvChan,
+		Conn:     c,
+	}
+	subs := <-recvChan
+
+	for sub := range subs {
+		if strings.HasPrefix(sub, "channel:") {
+			h.SocketServer.LeaveSubscriptionByWs <- socketServer.RegisterUnregisterSubsConnWs{
+				SubName: sub,
+				Conn:    c,
+			}
+		}
 	}
 
 	return nil

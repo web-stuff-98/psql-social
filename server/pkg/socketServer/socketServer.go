@@ -27,7 +27,8 @@ type SocketServer struct {
 
 	// used to avoid ranging through maps. Keeps names of every subscription
 	// a connection is registered to.
-	ConnectionSubscriptions ConnectionSubscriptions
+	ConnectionSubscriptions    ConnectionSubscriptions
+	GetConnectionSubscriptions chan GetConnectionSubscriptions
 
 	RegisterConn   chan ConnnectionData
 	UnregisterConn chan *websocket.Conn
@@ -70,12 +71,19 @@ type ConnectionsByID struct {
 
 type ConnectionSubscriptions struct {
 	data  map[*websocket.Conn]map[string]struct{}
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 type Subscriptions struct {
 	data  map[string]map[*websocket.Conn]struct{}
 	mutex sync.RWMutex
+}
+
+/* ------ RECV CHAN STRUCTS ------ */
+
+type GetConnectionSubscriptions struct {
+	RecvChan chan map[string]struct{}
+	Conn     *websocket.Conn
 }
 
 /* ------ GENERAL STRUCTS USED INTERNALLY AND EXTERNALLY ------ */
@@ -171,6 +179,7 @@ func Init() *SocketServer {
 		ConnectionSubscriptions: ConnectionSubscriptions{
 			data: make(map[*websocket.Conn]map[string]struct{}),
 		},
+		GetConnectionSubscriptions: make(chan GetConnectionSubscriptions),
 
 		RegisterConn:   make(chan ConnnectionData),
 		UnregisterConn: make(chan *websocket.Conn),
@@ -235,6 +244,8 @@ func runServer(ss *SocketServer) {
 	go sendDataToSubsExcludeWss(ss)
 	// Send data to multiple subscriptions excluding connection(s) by matching user ids
 	go sendDataToSubsExcludeIDs(ss)
+	// Get the subscriptions a socket connection is using
+	go getConnSubscriptions(ss)
 }
 
 func connection(ss *SocketServer) {
@@ -750,5 +761,32 @@ func sendDataToSubsExcludeWss(ss *SocketServer) {
 			}
 		}
 		ss.Subscriptions.mutex.RUnlock()
+	}
+}
+
+func getConnSubscriptions(ss *SocketServer) {
+	var failCount uint8
+	for {
+		defer func() {
+			r := recover()
+			if r != nil {
+				failCount++
+				log.Println("Recovered from panic in ws get connection subscriptions loop:", r)
+				if failCount < 10 {
+					go getConnSubscriptions(ss)
+				} else {
+					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
+				}
+			}
+		}()
+
+		data := <-ss.GetConnectionSubscriptions
+		ss.ConnectionSubscriptions.mutex.RLock()
+		if subs, ok := ss.ConnectionSubscriptions.data[data.Conn]; ok {
+			data.RecvChan <- subs
+		} else {
+			data.RecvChan <- make(map[string]struct{})
+		}
+		ss.ConnectionSubscriptions.mutex.RUnlock()
 	}
 }
