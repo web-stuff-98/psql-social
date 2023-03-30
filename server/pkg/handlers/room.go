@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -173,6 +174,109 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 		ctx.Response.Header.Add("Content-Type", "application/json")
 		ctx.Write(bytes)
 		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
+}
+
+// Retrieve the users own rooms, and rooms they are a member of
+func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	rooms := []responses.Room{}
+
+	// retrieve the users own rooms first
+	if rows, err := h.DB.Query(rctx, "SELECT id,name,private,author_id,created_at FROM rooms WHERE author_id = $1;", uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "No rooms found", fasthttp.StatusNotFound)
+		}
+		return
+	} else {
+		defer rows.Close()
+
+		for rows.Next() {
+			var id, name, author_id, created_at string
+			var private bool
+
+			err = rows.Scan(&id, &name, &private, &author_id, &created_at)
+
+			if err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			rooms = append(rooms, responses.Room{
+				ID:        id,
+				Name:      name,
+				Private:   private,
+				CreatedAt: created_at,
+			})
+		}
+	}
+
+	// get all the users room memberships
+	memberOf := []string{}
+	if rows, err := h.DB.Query(rctx, "SELECT room_id FROM members WHERE user_id = $1", uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "No rooms found", fasthttp.StatusNotFound)
+		}
+		return
+	} else {
+		defer rows.Close()
+
+		for rows.Next() {
+			var room_id string
+			rows.Scan(&room_id)
+			memberOf = append(memberOf, room_id)
+		}
+	}
+
+	// get the rooms the user is a member of
+	if len(memberOf) > 0 {
+		query := fmt.Sprintf("SELECT id,name,private,author_id,created_at FROM rooms WHERE id IN (%s);", strings.Join(memberOf, ","))
+		if rows, err := h.DB.Query(rctx, query); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		} else {
+			defer rows.Close()
+
+			for rows.Next() {
+				var id, name, author_id, created_at string
+				var private bool
+
+				err = rows.Scan(&id, &name, &private, &author_id, &created_at)
+
+				if err != nil {
+					ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+					return
+				}
+
+				rooms = append(rooms, responses.Room{
+					ID:        id,
+					Name:      name,
+					Private:   private,
+					CreatedAt: created_at,
+				})
+			}
+		}
+	}
+
+	if data, err := json.Marshal(rooms); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	} else {
+		ctx.Response.Header.Add("Content-Type", "application/json")
+		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Write(data)
 	}
 }
 

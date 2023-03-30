@@ -8,10 +8,11 @@ type User struct {
 }
 
 type Room struct {
-	ID       string `json:"ID"`
-	Name     string `json:"name"`
-	AuthorID string `json:"author_id"`
-	Private  bool   `json:"private"`
+	ID        string `json:"ID"`
+	Name      string `json:"name"`
+	AuthorID  string `json:"author_id"`
+	Private   bool   `json:"private"`
+	CreatedAt string `json:"created_at"`
 }
 
 type RoomMessage struct {
