@@ -24,9 +24,11 @@ async function handleSubmit() {
   try {
     result.value = "";
     resMsg.value = { msg: "", err: false, pen: true };
-    const uid = await getUserByName(username.value);
-    if (username.value) result.value = uid;
-    if (uid) await userStore.cacheUser(uid);
+    if (username.value.trim()) {
+      const uid = await getUserByName(username.value);
+      result.value = uid;
+      if (uid) await userStore.cacheUser(uid);
+    }
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
@@ -46,7 +48,7 @@ function handleInput(e: Event) {
 </script>
 
 <template>
-  <div class="find-user">
+  <div :style="result ? { height: '100%' } : {}" class="find-user">
     <div v-if="result" class="result"><User :uid="result" /></div>
     <ErrorMessage name="username" />
     <ResMsg
@@ -55,7 +57,10 @@ function handleInput(e: Event) {
     />
     <Form ref="formRef" @submit="handleSubmit" class="search-container">
       <Field name="username" id="username" @change="handleInput" type="text" />
-      <v-icon name="io-search" />
+      <v-icon
+        :class="resMsg.pen ? 'spin' : ''"
+        :name="resMsg.pen ? 'pr-spinner' : 'io-search'"
+      />
     </Form>
   </div>
 </template>
@@ -63,8 +68,6 @@ function handleInput(e: Event) {
 <style lang="scss" scoped>
 .find-user {
   border: 2px solid var(--border-pale);
-  flex-grow: 1;
-  height: 100%;
   width: 100%;
   position: relative;
   border-radius: var(--border-radius-sm);
