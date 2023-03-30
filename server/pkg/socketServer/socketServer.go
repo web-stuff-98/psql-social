@@ -29,29 +29,29 @@ type SocketServer struct {
 	// a connection is registered to.
 	ConnectionSubscriptions ConnectionSubscriptions
 
-	RegisterConn   <-chan ConnnectionData
-	UnregisterConn <-chan *websocket.Conn
+	RegisterConn   chan ConnnectionData
+	UnregisterConn chan *websocket.Conn
 
-	SendDataToUser  <-chan UserMessageData
-	SendDataToConn  <-chan ConnMessageData
-	SendDataToUsers <-chan UsersMessageData
-	SendDataToConns <-chan ConnsMessageData
+	SendDataToUser  chan UserMessageData
+	SendDataToConn  chan ConnMessageData
+	SendDataToUsers chan UsersMessageData
+	SendDataToConns chan ConnsMessageData
 
-	JoinSubscriptionByWs  <-chan RegisterUnregisterSubsConnWs
-	JoinSubscriptionByID  <-chan RegisterUnregisterSubsConnID
-	LeaveSubscriptionByWs <-chan RegisterUnregisterSubsConnWs
-	LeaveSubscriptionByID <-chan RegisterUnregisterSubsConnID
+	JoinSubscriptionByWs  chan RegisterUnregisterSubsConnWs
+	JoinSubscriptionByID  chan RegisterUnregisterSubsConnID
+	LeaveSubscriptionByWs chan RegisterUnregisterSubsConnWs
+	LeaveSubscriptionByID chan RegisterUnregisterSubsConnID
 
-	SendDataToSub  <-chan SubscriptionMessageData
-	SendDataToSubs <-chan SubscriptionsMessageData
+	SendDataToSub  chan SubscriptionMessageData
+	SendDataToSubs chan SubscriptionsMessageData
 	// Send data to subscription, exclude connection(s)
-	SendDataToSubExcludeByWss <-chan SubscriptionMessageDataExcludeByWss
+	SendDataToSubExcludeByWss chan SubscriptionMessageDataExcludeByWss
 	// Send data to subscription, exclude connection(s) by matching user ids
-	SendDataToSubExcludeByIDs <-chan SubscriptionMessageDataExcludeByIDs
+	SendDataToSubExcludeByIDs chan SubscriptionMessageDataExcludeByIDs
 	// Send data to multiple subscriptions, exclude connection(s)
-	SendDataToSubsExcludeByWss <-chan SubscriptionsMessageDataExcludeByWss
+	SendDataToSubsExcludeByWss chan SubscriptionsMessageDataExcludeByWss
 	// Send data to multiple subscriptions, exclude connection(s) by matching user ids
-	SendDataToSubsExcludeByIDs <-chan SubscriptionsMessageDataExcludeByIDs
+	SendDataToSubsExcludeByIDs chan SubscriptionsMessageDataExcludeByIDs
 
 	Subscriptions Subscriptions
 }
@@ -172,26 +172,26 @@ func Init() *SocketServer {
 			data: make(map[*websocket.Conn]map[string]struct{}),
 		},
 
-		RegisterConn:   make(<-chan ConnnectionData),
-		UnregisterConn: make(<-chan *websocket.Conn),
+		RegisterConn:   make(chan ConnnectionData),
+		UnregisterConn: make(chan *websocket.Conn),
 
-		SendDataToUser:  make(<-chan UserMessageData),
-		SendDataToConn:  make(<-chan ConnMessageData),
-		SendDataToUsers: make(<-chan UsersMessageData),
-		SendDataToConns: make(<-chan ConnsMessageData),
+		SendDataToUser:  make(chan UserMessageData),
+		SendDataToConn:  make(chan ConnMessageData),
+		SendDataToUsers: make(chan UsersMessageData),
+		SendDataToConns: make(chan ConnsMessageData),
 
-		SendDataToSubExcludeByWss:  make(<-chan SubscriptionMessageDataExcludeByWss),
-		SendDataToSubExcludeByIDs:  make(<-chan SubscriptionMessageDataExcludeByIDs),
-		SendDataToSubsExcludeByWss: make(<-chan SubscriptionsMessageDataExcludeByWss),
-		SendDataToSubsExcludeByIDs: make(<-chan SubscriptionsMessageDataExcludeByIDs),
+		SendDataToSubExcludeByWss:  make(chan SubscriptionMessageDataExcludeByWss),
+		SendDataToSubExcludeByIDs:  make(chan SubscriptionMessageDataExcludeByIDs),
+		SendDataToSubsExcludeByWss: make(chan SubscriptionsMessageDataExcludeByWss),
+		SendDataToSubsExcludeByIDs: make(chan SubscriptionsMessageDataExcludeByIDs),
 
-		JoinSubscriptionByWs:  make(<-chan RegisterUnregisterSubsConnWs),
-		JoinSubscriptionByID:  make(<-chan RegisterUnregisterSubsConnID),
-		LeaveSubscriptionByWs: make(<-chan RegisterUnregisterSubsConnWs),
-		LeaveSubscriptionByID: make(<-chan RegisterUnregisterSubsConnID),
+		JoinSubscriptionByWs:  make(chan RegisterUnregisterSubsConnWs),
+		JoinSubscriptionByID:  make(chan RegisterUnregisterSubsConnID),
+		LeaveSubscriptionByWs: make(chan RegisterUnregisterSubsConnWs),
+		LeaveSubscriptionByID: make(chan RegisterUnregisterSubsConnID),
 
-		SendDataToSub:  make(<-chan SubscriptionMessageData),
-		SendDataToSubs: make(<-chan SubscriptionsMessageData),
+		SendDataToSub:  make(chan SubscriptionMessageData),
+		SendDataToSubs: make(chan SubscriptionsMessageData),
 
 		Subscriptions: Subscriptions{
 			data: make(map[string]map[*websocket.Conn]struct{}),

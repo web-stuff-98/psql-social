@@ -34,7 +34,7 @@ func SendSocketErrorMessage(m string, c *websocket.Conn) {
 	})
 }
 
-func handleConnection(h handler, ctx *fasthttp.RequestCtx, c *websocket.Conn) {
+func handleConnection(h handler, ctx *fasthttp.RequestCtx, uid string, c *websocket.Conn) {
 	for {
 		if _, p, err := c.ReadMessage(); err != nil {
 			log.Println("ws reader error:", err)
@@ -52,7 +52,7 @@ func handleConnection(h handler, ctx *fasthttp.RequestCtx, c *websocket.Conn) {
 				return
 			} else {
 				log.Println("Message event recieved:", decoded.Type)
-				if err := handleSocketEvent(decoded.Data, decoded.Type, h, c); err != nil {
+				if err := handleSocketEvent(decoded.Data, decoded.Type, h, uid, c); err != nil {
 					log.Println("Socket event error:", err)
 					SendSocketErrorMessage(err.Error(), c)
 				}
@@ -62,11 +62,11 @@ func handleConnection(h handler, ctx *fasthttp.RequestCtx, c *websocket.Conn) {
 }
 
 func (h handler) WebSocketEndpoint(ctx *fasthttp.RequestCtx) {
-	if _, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, context.TODO(), h.DB); err != nil {
+	if uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, context.TODO(), h.DB); err != nil {
 		ResponseMessage(ctx, "Forbidden - Log in to gain access", fasthttp.StatusForbidden)
 	} else {
 		if err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {
-			handleConnection(h, ctx, c)
+			handleConnection(h, ctx, uid, c)
 		}); err != nil {
 			log.Println(err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
