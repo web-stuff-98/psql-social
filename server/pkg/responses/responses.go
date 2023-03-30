@@ -11,7 +11,7 @@ type Room struct {
 	ID        string `json:"ID"`
 	Name      string `json:"name"`
 	AuthorID  string `json:"author_id"`
-	Private   bool   `json:"private"`
+	Private   bool   `json:"is_private"`
 	CreatedAt string `json:"created_at"`
 }
 

@@ -194,8 +194,6 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 	if rows, err := h.DB.Query(rctx, "SELECT id,name,private,author_id,created_at FROM rooms WHERE author_id = $1;", uid); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		} else {
-			ResponseMessage(ctx, "No rooms found", fasthttp.StatusNotFound)
 		}
 		return
 	} else {

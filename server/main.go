@@ -39,6 +39,7 @@ func main() {
 	r.POST("/api/acc/pfp", h.UploadPfp)
 
 	r.POST("/api/room", h.CreateRoom)
+	r.POST("/api/rooms", h.GetRooms)
 	r.PATCH("/api/room/{id}", h.UpdateRoom)
 	r.GET("/api/room/{id}", h.GetRoom)
 

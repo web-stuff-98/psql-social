@@ -10,6 +10,13 @@ export interface IResMsg {
   err?: boolean;
   pen?: boolean;
 }
+export interface IRoom {
+  ID: string;
+  name: string;
+  author_id: string;
+  is_private: boolean;
+  created_at: string;
+}
 export interface IMediaOptions {
   userMedia: {
     video: boolean;

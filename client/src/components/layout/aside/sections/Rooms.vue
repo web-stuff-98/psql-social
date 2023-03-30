@@ -1,8 +1,23 @@
 <script lang="ts" setup>
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
+import { IResMsg, IRoom } from "../../../../interfaces/GeneralInterfaces";
+import { getRooms } from "../../../../services/room";
 import CreateRoom from "./CreateRoom.vue";
 
 const showCreate = ref(false);
+const rooms = ref<IRoom[]>([]);
+const resMsg = ref<IResMsg>({});
+
+onMounted(async () => {
+  try {
+    resMsg.value = { msg: "", err: false, pen: true };
+    const result = await getRooms();
+    rooms.value = result || [];
+    resMsg.value = { msg: "", err: false, pen: false };
+  } catch (e) {
+    resMsg.value = { msg: `${e}`, err: true, pen: false };
+  }
+});
 </script>
 
 <template>
@@ -18,7 +33,7 @@ const showCreate = ref(false);
       Create
     </button>
   </div>
-  <CreateRoom :closeClicked="() => (showCreate = false)" v-if="showCreate"/>
+  <CreateRoom :closeClicked="() => (showCreate = false)" v-if="showCreate" />
 </template>
 
 <style lang="scss" scoped>

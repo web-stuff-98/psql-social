@@ -1,3 +1,4 @@
+import { IRoom } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "./makeRequest";
 
 export const createRoom = ({
@@ -11,3 +12,6 @@ export const createRoom = ({
     method: "POST",
     data: { name, private: isPrivate },
   });
+
+export const getRooms = (): Promise<IRoom[] | null> =>
+  makeRequest("/api/rooms");
