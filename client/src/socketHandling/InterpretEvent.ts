@@ -9,6 +9,27 @@ type RoomMessageData = {
   };
 };
 
+type RoomMessageDeleteData = {
+  data: {
+    ID: string;
+  };
+};
+
+type RoomMessageUpdateData = {
+  data: {
+    ID: string;
+    content: string;
+  };
+};
+
 export function isRoomMsg(object: any): object is RoomMessageData {
   return object.event_type === "ROOM_MESSAGE";
+}
+
+export function isRoomMsgDelete(object: any): object is RoomMessageDeleteData {
+  return object.event_type === "ROOM_MESSAGE_DELETE";
+}
+
+export function isRoomMsgUpdate(object: any): object is RoomMessageUpdateData {
+  return object.event_type === "ROOM_MESSAGE_UPDATE";
 }

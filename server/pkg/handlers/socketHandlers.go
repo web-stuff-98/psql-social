@@ -25,6 +25,8 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = leaveRoom(data, h, uid, c)
 	case "ROOM_MESSAGE":
 		err = roomMessage(data, h, uid, c)
+	case "ROOM_MESSAGE_UPDATE":
+		err = roomMessageUpdate(data, h, uid, c)
 	default:
 		return fmt.Errorf("Unrecognized event type")
 	}
@@ -241,6 +243,105 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 			AuthorID:  uid,
 		},
 		MessageType: "ROOM_MESSAGE",
+	}
+
+	return nil
+}
+
+func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.RoomMessageUpdate{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	stmt, err := h.DB.Prepare(ctx, "room_message_update_stmt", "UPDATE room_messages SET content = $1 WHERE user_id = $2 AND id = $3")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	content := strings.TrimSpace(data.Content)
+
+	if h.DB.QueryRow(ctx, stmt.Name, content, uid, data.MsgID); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		} else {
+			return fmt.Errorf("Message not found")
+		}
+	}
+
+	recvChan := make(chan map[string]struct{})
+	h.SocketServer.GetConnectionSubscriptions <- socketServer.GetConnectionSubscriptions{
+		RecvChan: recvChan,
+		Conn:     c,
+	}
+	subs := <-recvChan
+	channelName := ""
+	for k := range subs {
+		if strings.HasPrefix(k, "channel:") {
+			channelName = k
+			break
+		}
+	}
+
+	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+		MessageType: "ROOM_MESSAGE_UPDATE",
+		Data: socketmessages.RoomMessageUpdate{
+			ID:      data.MsgID,
+			Content: content,
+		},
+		SubName: channelName,
+	}
+
+	return nil
+}
+
+func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.RoomMessageDelete{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	stmt, err := h.DB.Prepare(ctx, "room_message_delete_stmt", "DELETE FROM room_messages WHERE user_id = $1 AND id = $2")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	if h.DB.QueryRow(ctx, stmt.Name, uid, data.MsgID); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		} else {
+			return fmt.Errorf("Message not found")
+		}
+	}
+
+	recvChan := make(chan map[string]struct{})
+	h.SocketServer.GetConnectionSubscriptions <- socketServer.GetConnectionSubscriptions{
+		RecvChan: recvChan,
+		Conn:     c,
+	}
+	subs := <-recvChan
+	channelName := ""
+	for k := range subs {
+		if strings.HasPrefix(k, "channel:") {
+			channelName = k
+			break
+		}
+	}
+
+	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+		MessageType: "ROOM_MESSAGE_DELETE",
+		Data: socketmessages.RoomMessageDelete{
+			ID: data.MsgID,
+		},
+		SubName: channelName,
 	}
 
 	return nil
