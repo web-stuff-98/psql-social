@@ -1,26 +1,29 @@
 <script lang="ts" setup>
-import { IResMsg } from "../interfaces/GeneralInterfaces";
+import { IResMsg, IRoomChannel } from "../../interfaces/GeneralInterfaces";
 import { onBeforeUnmount, onMounted, toRef, ref } from "vue";
 import { useRoute } from "vue-router";
 import {
   JoinRoom,
   LeaveRoom,
   RoomMessage as RoomMessageEvent,
-} from "../socketHandling/OutEvents";
-import { getRoomChannel } from "../services/room";
+} from "../../socketHandling/OutEvents";
+import { getRoomChannel } from "../../services/room";
 import {
   isRoomMsg,
   isRoomMsgDelete,
   isRoomMsgUpdate,
-} from "../socketHandling/InterpretEvent";
-import { IRoomMessage } from "../interfaces/GeneralInterfaces";
-import MessageForm from "../components/shared/MessageForm.vue";
-import useSocketStore from "../store/SocketStore";
-import useRoomChannelStore from "../store/RoomChannelStore";
-import ResMsg from "../components/shared/ResMsg.vue";
-import RoomMessage from "../components/messages/RoomMessage.vue";
+} from "../../socketHandling/InterpretEvent";
+import { IRoomMessage } from "../../interfaces/GeneralInterfaces";
+import MessageForm from "../../components/shared/MessageForm.vue";
+import useSocketStore from "../../store/SocketStore";
+import useRoomChannelStore from "../../store/RoomChannelStore";
+import ResMsg from "../../components/shared/ResMsg.vue";
+import RoomMessage from "../../components/shared/Message.vue";
+import Channel from "./Channel.vue";
+import useRoomStore from "../../store/RoomStore";
 
 const roomChannelStore = useRoomChannelStore();
+const roomStore = useRoomStore();
 const socketStore = useSocketStore();
 
 const route = useRoute();
@@ -46,6 +49,8 @@ onMounted(async () => {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
 
+  roomStore.roomEnteredView(roomId.value as string);
+
   socketStore.socket?.addEventListener("message", handleMessages);
 });
 
@@ -54,6 +59,8 @@ onBeforeUnmount(() => {
     event_type: "LEAVE_ROOM",
     data: { room_id: roomId.value },
   } as LeaveRoom);
+
+  roomStore.roomEnteredView(roomId.value as string);
 
   socketStore.socket?.removeEventListener("message", handleMessages);
 });
@@ -89,13 +96,27 @@ function handleSubmit(values: any) {
 
 <template>
   <div class="room">
-    <div v-if="!resMsg.pen && !resMsg.err" class="messages">
-      <div class="list">
-        <RoomMessage :msg="msg" v-for="msg in messages" />
+    <div class="channels-messages">
+      <div class="channels">
+        <!-- Main channel -->
+        <Channel
+          v-if="roomChannelStore.channels.find((c) => c.main) as IRoomChannel"
+          :channel="roomChannelStore.channels.find((c) => c.main) as IRoomChannel"
+        />
+        <!-- Secondary channels -->
+        <Channel
+          :channel="channel"
+          v-for="channel in roomChannelStore.channels.filter((c) => !c.main)"
+        />
       </div>
-    </div>
-    <div v-else class="res-msg-container">
-      <ResMsg :resMsg="resMsg" />
+      <div v-if="!resMsg.pen && !resMsg.err" class="messages">
+        <div class="list">
+          <RoomMessage :msg="msg" v-for="msg in messages" />
+        </div>
+      </div>
+      <div v-else class="res-msg-container">
+        <ResMsg :resMsg="resMsg" />
+      </div>
     </div>
     <div class="form-container">
       <MessageForm :handleSubmit="handleSubmit" />
@@ -122,13 +143,11 @@ function handleSubmit(values: any) {
     align-items: center;
     justify-content: center;
   }
-  .messages {
-    width: 100%;
+  .channels-messages {
     height: 100%;
-    border: 2px solid var(--border-pale);
-    border-radius: var(--border-radius-md);
-    position: relative;
-    overflow: hidden;
+    width: 100%;
+    display: flex;
+    gap: calc(var(--gap-md) - 1px);
     .list {
       display: flex;
       flex-direction: column;
@@ -140,6 +159,26 @@ function handleSubmit(values: any) {
       left: 0;
       top: 0;
       overflow-y: auto;
+    }
+    .channels {
+      width: 10rem;
+      height: 100%;
+      padding: var(--gap-sm);
+      button:first-of-type {
+        margin-bottom: var(--gap-md);
+        font-weight: 600;
+      }
+    }
+    .channels,
+    .messages {
+      border: 2px solid var(--border-pale);
+      border-radius: var(--border-radius-md);
+      position: relative;
+      overflow: hidden;
+      height: 100%;
+    }
+    .messages {
+      width: 100%;
     }
   }
   .form-container {

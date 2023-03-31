@@ -17,6 +17,20 @@ export const createRoom = ({
     data: { name, private: isPrivate },
   });
 
+export const updateRoom = ({
+  name,
+  isPrivate,
+  id,
+}: {
+  name: string;
+  isPrivate: boolean;
+  id: string;
+}) =>
+  makeRequest(`/api/room/${id}`, {
+    method: "PATCH",
+    data: { name, private: isPrivate },
+  });
+
 export const getRooms = (): Promise<IRoom[] | null> =>
   makeRequest("/api/rooms");
 

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { IRoomMessage } from "../../interfaces/GeneralInterfaces";
-import User from "../shared/User.vue";
+import User from "./User.vue";
 import useSocketStore from "../../store/SocketStore";
 import {
   RoomMessageDelete,
@@ -9,7 +9,7 @@ import {
 import { validateMessage } from "../../validators/validators";
 import { ref, toRefs } from "vue";
 import { Field, Form } from "vee-validate";
-import ErrorMessage from "../shared/ErrorMessage.vue";
+import ErrorMessage from "./ErrorMessage.vue";
 const props = defineProps<{ msg: IRoomMessage }>();
 
 const socketStore = useSocketStore();
@@ -21,7 +21,7 @@ const inputRef = ref<HTMLInputElement>();
 function editClicked() {
   isEditing.value = true;
   //@ts-ignore
-  inputRef.value = msg.value.content;
+  inputRef.value.value = msg.value.content;
 }
 
 function deleteClicked() {

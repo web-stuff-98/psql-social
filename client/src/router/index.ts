@@ -1,5 +1,5 @@
 import Home from "../pages/Home.vue";
-import Room from "../pages/Room.vue";
+import Room from "../pages/Room/Room.vue";
 import { createRouter, createWebHashHistory } from "vue-router";
 
 const router = createRouter({

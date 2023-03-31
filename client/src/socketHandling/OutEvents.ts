@@ -11,7 +11,7 @@ export type StopWatching = {
   data: { entity: Watchable; id: string };
 };
 
-/* Direct messages / invites / invitations */
+/* Direct messages / friend requests / invitations */
 export type DirectMessage = {
   event_type: "DIRECT_MESSAGE";
   data: {

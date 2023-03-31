@@ -30,6 +30,10 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = roomMessageUpdate(data, h, uid, c)
 	case "ROOM_MESSAGE_DELETE":
 		err = roomMessageDelete(data, h, uid, c)
+	case "START_WATCHING":
+		err = startWatching(data, h, uid, c)
+	case "STOP_WATCHING":
+		err = stopWatching(data, h, uid, c)
 	default:
 		return fmt.Errorf("Unrecognized event type")
 	}
@@ -379,6 +383,62 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 			ID: data.MsgID,
 		},
 		SubName: channelName,
+	}
+
+	return nil
+}
+
+func startWatching(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.StartStopWatching{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	subName := ""
+
+	switch data.Entity {
+	case "ROOM":
+		subName = fmt.Sprintf("room:%v", data.ID)
+	case "USER":
+		subName = fmt.Sprintf("user:%v", data.ID)
+	case "BIO":
+		subName = fmt.Sprintf("bio:%v", data.ID)
+	default:
+		return fmt.Errorf("Unrecognized entity")
+	}
+
+	h.SocketServer.JoinSubscriptionByWs <- socketServer.RegisterUnregisterSubsConnWs{
+		Conn:    c,
+		SubName: subName,
+	}
+
+	return nil
+}
+
+func stopWatching(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.StartStopWatching{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	subName := ""
+
+	switch data.Entity {
+	case "ROOM":
+		subName = fmt.Sprintf("room:%v", data.ID)
+	case "USER":
+		subName = fmt.Sprintf("user:%v", data.ID)
+	case "BIO":
+		subName = fmt.Sprintf("bio:%v", data.ID)
+	default:
+		return fmt.Errorf("Unrecognized entity")
+	}
+
+	h.SocketServer.LeaveSubscriptionByWs <- socketServer.RegisterUnregisterSubsConnWs{
+		Conn:    c,
+		SubName: subName,
 	}
 
 	return nil

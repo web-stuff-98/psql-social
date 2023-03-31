@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref, watch } from "vue";
-import useIntervals from "./composables/useIntervals";
+import useBackgroundProcess from "./composables/useBackgroundProcess";
 import useAuthStore from "./store/AuthStore";
 import Modal from "./components/modal/Modal.vue";
 import Login from "./components/modal/Login.vue";
@@ -13,8 +13,8 @@ import ResMsg from "./components/shared/ResMsg.vue";
 
 const authStore = useAuthStore();
 
-const intervalsResMsg = ref<IResMsg>();
-useIntervals({ resMsg: intervalsResMsg });
+const backgroundProcessResMsg = ref<IResMsg>();
+useBackgroundProcess({ resMsg: backgroundProcessResMsg });
 
 const noUserModalSection = ref<"WELCOME" | "LOGIN" | "REGISTER">("WELCOME");
 
@@ -27,9 +27,9 @@ watch(authStore, (_, newVal) => {
   <div class="container">
     <Layout />
     <!-- Intervals response message modal (eg, when refreshing token failed) -->
-    <Modal v-if="intervalsResMsg?.msg">
-      <ModalCloseButton @click="() => (intervalsResMsg = {})" />
-      <ResMsg :resMsg="intervalsResMsg" />
+    <Modal v-if="backgroundProcessResMsg?.msg">
+      <ModalCloseButton @click="() => (backgroundProcessResMsg = {})" />
+      <ResMsg :resMsg="backgroundProcessResMsg" />
     </Modal>
     <!-- Welcome / Login / Register modal -->
     <Modal v-if="!authStore.uid">

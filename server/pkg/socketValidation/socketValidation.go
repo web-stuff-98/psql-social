@@ -21,3 +21,9 @@ type RoomMessageUpdate struct {
 type RoomMessageDelete struct {
 	MsgID string `json:"msg_id" validate:"required,lte=36"`
 }
+
+// START_WATCHING/STOP_WATCHING
+type StartStopWatching struct {
+	ID     string `json:"id" validate:"required,lte=36"`
+	Entity string `json:"entity" validate:"required,lte=4"`
+}

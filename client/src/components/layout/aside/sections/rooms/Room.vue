@@ -1,6 +1,15 @@
 <script lang="ts" setup>
+import { Field, Form } from "vee-validate";
 import { computed, onBeforeUnmount, onMounted, ref, toRefs } from "vue";
+import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
+import { validateRoomName } from "../../../../../validators/validators";
+import { updateRoom } from "../../../../../services/room";
 import useRoomStore from "../../../../../store/RoomStore";
+import Modal from "../../../../modal/Modal.vue";
+import CustomCheckbox from "../../../../shared/CustomCheckbox.vue";
+import ErrorMessage from "../../../../shared/ErrorMessage.vue";
+import ModalCloseButton from "../../../../shared/ModalCloseButton.vue";
+import ResMsg from "../../../../shared/ResMsg.vue";
 
 const props = defineProps<{ rid: string }>();
 
@@ -10,6 +19,23 @@ const roomStore = useRoomStore();
 
 const container = ref<HTMLElement>();
 const room = computed(() => roomStore.getRoom(rid.value));
+
+const isEditing = ref(false);
+const editResMsg = ref<IResMsg>({});
+
+async function handleSubmitEdit(values: any) {
+  try {
+    editResMsg.value = { msg: "", err: false, pen: true };
+    await updateRoom({
+      name: values.name,
+      isPrivate: values.isPrivate,
+      id: rid.value,
+    });
+    editResMsg.value = { msg: "", err: false, pen: false };
+  } catch (e) {
+    editResMsg.value = { msg: `${e}`, err: true, pen: false };
+  }
+}
 
 const observer = new IntersectionObserver(([entry]) => {
   if (entry.isIntersecting) roomStore.roomEnteredView(rid.value);
@@ -29,7 +55,7 @@ onBeforeUnmount(() => {
   <div ref="container" class="room">
     {{ room?.name }}
     <div class="buttons">
-      <button name="edit room" type="button">
+      <button @click="isEditing = true" name="edit room" type="button">
         <v-icon name="md-modeeditoutline" />
       </button>
       <router-link :to="`/room/${rid}`">
@@ -42,6 +68,28 @@ onBeforeUnmount(() => {
       </button>
     </div>
   </div>
+  <Modal v-if="isEditing">
+    <ModalCloseButton @click="isEditing = false" />
+    <Form @submit="handleSubmitEdit">
+      <div class="input-label">
+        <label for="name">Name</label>
+        <Field
+          :rules="validateRoomName as any"
+          type="text"
+          name="name"
+          id="name"
+        />
+        <ErrorMessage name="name" />
+      </div>
+      <div class="input-label">
+        <label for="private">Private</label>
+        <CustomCheckbox name="isPrivate" />
+        <ErrorMessage name="isPrivate" />
+      </div>
+      <button type="submit">Update room</button>
+      <ResMsg :resMsg="editResMsg" />
+    </Form>
+  </Modal>
 </template>
 
 <style lang="scss" scoped>
@@ -79,6 +127,16 @@ onBeforeUnmount(() => {
     .delete-button {
       background: red;
     }
+  }
+}
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-md);
+  button[type="submit"] {
+    width: 100%;
   }
 }
 </style>
