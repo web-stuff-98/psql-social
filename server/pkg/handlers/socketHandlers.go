@@ -745,16 +745,16 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 	}
 	defer conn.Release()
 
-	selectInvitationExistsStmt, err := conn.Conn().Prepare(ctx, "invitation_select_invitation_stmt", "SELECT EXISTS(SELECT 1 FROM invitations WHERE inviter = $1 AND invited = $2 OR (inviter = $2 AND inviter = $1))")
+	selectInvitationExistsStmt, err := conn.Conn().Prepare(ctx, "invitation_select_invitation_stmt", "SELECT EXISTS(SELECT 1 FROM invitations WHERE inviter = $1 AND invited = $2 AND room_id = $3")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	var friendRequestExists bool
-	if err = h.DB.QueryRow(ctx, selectInvitationExistsStmt.Name, data.Uid, uid).Scan(&selectInvitationExistsStmt); err != nil {
+	if err = h.DB.QueryRow(ctx, selectInvitationExistsStmt.Name, uid, data.Uid, data.RoomID).Scan(&selectInvitationExistsStmt); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if friendRequestExists {
-		return fmt.Errorf("You have already sent or recieved an invitation from this user")
+		return fmt.Errorf("You have already sent an invitation to this user")
 	}
 
 	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
@@ -781,6 +781,11 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 	}
 	if blockedExists {
 		return fmt.Errorf("You have blocked this user, you must unblock them first")
+	}
+
+	insertStmt, err := conn.Conn().Prepare(ctx, "invitation_insert_stmt", "INSERT INTO invitations (inviter, invited, room_id) VALUES($1, $2, $3)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
 	}
 
 	return nil
