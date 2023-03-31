@@ -39,6 +39,11 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 	case "DIRECT_MESSAGE_DELETE":
 		err = directMessageDelete(data, h, uid, c)
 
+	case "FRIEND_REQUEST":
+		err = friendRequest(data, h, uid, c)
+	case "FRIEND_REQUEST_RESPONSE":
+		err = friendRequestResponse(data, h, uid, c)
+
 	case "START_WATCHING":
 		err = startWatching(data, h, uid, c)
 	case "STOP_WATCHING":
@@ -541,6 +546,129 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 			ID: data.MsgID,
 		},
 		MessageType: "DIRECT_MESSAGE_DELETE",
+	}
+
+	return nil
+}
+
+func friendRequest(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.FriendRequest{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var blockedExists bool
+	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blockedExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blockedExists {
+		return fmt.Errorf("This user has blocked your account")
+	}
+
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var blockerExists bool
+	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blockedExists {
+		return fmt.Errorf("You have blocked this user, you must unblock them first")
+	}
+
+	insertFriendRequestStmt, err := conn.Conn().Prepare(ctx, "friend_request_insert_stmt", "INSERT INTO friend_requests (friender,friended) VALUES($1, $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	if _, err = h.DB.Exec(ctx, insertFriendRequestStmt.Name, uid, data.Uid); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
+		Uids: []string{uid, data.Uid},
+		Data: socketmessages.FriendRequest{
+			Friender: uid,
+			Friended: data.Uid,
+		},
+		MessageType: "FRIEND_REQUEST",
+	}
+
+	return nil
+}
+
+func friendRequestResponse(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.FriendRequestResponse{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectExistsStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_select_stmt", "SELECT EXISTS(SELECT 1 FROM friend_requests WHERE friender = $1 AND friended = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var friendRequestExists bool
+	if err = h.DB.QueryRow(ctx, selectExistsStmt.Name, data.Friender, uid).Scan(&friendRequestExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if !friendRequestExists {
+		return fmt.Errorf("This user did not send you a friend request")
+	}
+
+	deleteStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_delete_stmt", "DELETE FROM friend_requests WHERE friender = $1 AND friended = $2")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	if _, err = h.DB.Exec(ctx, deleteStmt.Name, data.Friender, uid); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	if data.Accepted {
+		insertStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_insert_stmt", "INSERT INTO friends (friender,friended) VALUES($1, $2)")
+		if err != nil {
+			return fmt.Errorf("Internal error")
+		}
+		if _, err = h.DB.Exec(ctx, insertStmt.Name, data.Friender, uid); err != nil {
+			return fmt.Errorf("Internal error")
+		}
+	}
+
+	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
+		Uids:        []string{uid, data.Friender},
+		MessageType: "FRIEND_REQUEST_RESPONSE",
+		Data: socketmessages.FriendRequestResponse{
+			Accepted: data.Accepted,
+			Friended: uid,
+		},
 	}
 
 	return nil

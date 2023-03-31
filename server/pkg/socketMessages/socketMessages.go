@@ -40,6 +40,18 @@ type DirectMessageDelete struct {
 	ID string `json:"ID"`
 }
 
+// TYPE: FRIEND_REQUEST
+type FriendRequest struct {
+	Friender string `json:"friender"`
+	Friended string `json:"friended"`
+}
+
+// TYPE: FRIEND_REQUEST_RESPONSE
+type FriendRequestResponse struct {
+	Accepted bool   `json:"accepted"`
+	Friended string `json:"friended"`
+}
+
 // TYPE: CHANGE_EVENT
 type ChangeEvent struct {
 	// UPDATE/DELETE/INSERT/UPDATE_IMAGE

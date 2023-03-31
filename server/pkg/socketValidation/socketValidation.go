@@ -44,3 +44,20 @@ type DirectMessageUpdate struct {
 type DirectMessageDelete struct {
 	MsgID string `json:"msg_id" validate:"required,lte=36"`
 }
+
+// FRIEND_REQUEST
+type FriendRequest struct {
+	Uid string `json:"uid" validate:"required,lte=36"`
+}
+
+// FRIEND_REQUEST_RESPONSE
+type FriendRequestResponse struct {
+	Friender string `json:"friender" validate:"required,lte=36"`
+	Accepted bool   `json:"accepted"`
+}
+
+// INVITATION
+type Invitation struct {
+	RoomID string `json:"room_id" validation:"required,lte=36"`
+	Uid    string `json:"uid" validation:"required,lte=36"`
+}

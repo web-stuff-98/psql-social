@@ -16,6 +16,18 @@ CREATE TABLE users (
     blocked UUID [] DEFAULT '{}' :: UUID []
 );
 
+CREATE TABLE friends (
+    friender UUID REFERENCES users(id) ON DELETE CASCADE,
+    friended UUID REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (friender, friended)
+);
+
+CREATE TABLE friend_requests (
+    friender UUID REFERENCES users(id) ON DELETE CASCADE,
+    friended UUID REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (friender, friended)
+);
+
 CREATE TABLE bios (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content VARCHAR(300) NOT NULL,
