@@ -300,7 +300,7 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 
 	stmt, err := conn.Conn().Prepare(ctx, "room_message_update_stmt", "UPDATE room_messages SET content = $1 WHERE author_id = $2 AND id = $3")
 	if err != nil {
-		log.Println("ERR A:", err)
+		log.Println("ERR A:", err, err)
 		return fmt.Errorf("Internal error")
 	}
 
@@ -308,7 +308,7 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 
 	if _, err := conn.Exec(ctx, stmt.Name, content, uid, data.MsgID); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR B:", err)
+			log.Println("ERR B:", err, err)
 			return fmt.Errorf("Internal error")
 		} else {
 			return fmt.Errorf("Message not found")
@@ -359,13 +359,13 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 
 	stmt, err := conn.Conn().Prepare(ctx, "room_message_delete_stmt", "DELETE FROM room_messages WHERE author_id = $1 AND id = $2")
 	if err != nil {
-		log.Println("ERR A:", err)
+		log.Println("ERR A:", err, err)
 		return fmt.Errorf("Internal error")
 	}
 
 	if _, err = conn.Exec(ctx, stmt.Name, uid, data.MsgID); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR B:", err)
+			log.Println("ERR B:", err, err)
 			return fmt.Errorf("Internal error")
 		} else {
 			return fmt.Errorf("Message not found")
@@ -399,8 +399,7 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 
 func directMessage(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
 	data := &socketvalidation.DirectMessage{}
-	var err error
-	if err = UnmarshalMap(inData, data); err != nil {
+	if err := UnmarshalMap(inData, data); err != nil {
 		return err
 	}
 
@@ -413,41 +412,28 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 	}
 	defer conn.Release()
 
-	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "direct_message_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
-	if err != nil {
-		return fmt.Errorf("Internal error")
-	}
-
-	blocked := false
-	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blocked); err != nil {
+	var blocked bool
+	selectBlockedStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)"
+	if err := conn.QueryRow(ctx, selectBlockedStmt, data.Uid, uid).Scan(&blocked); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blocked {
 		return fmt.Errorf("This user has blocked your account")
 	}
 
-	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "direct_message_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
-	if err != nil {
-		return fmt.Errorf("Internal error")
-	}
-
-	blocker := false
-	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blocked); err != nil {
+	var blocker bool
+	selectBlockerStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)"
+	if err := conn.QueryRow(ctx, selectBlockerStmt, uid, data.Uid).Scan(&blocker); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blocker {
 		return fmt.Errorf("You have blocked this user, you must unblock them to message them")
 	}
 
-	createMsgStmt, err := conn.Conn().Prepare(ctx, "direct_message_insert_stmt", "INSERT INTO direct_messages (content,author_id,recipient_id) VALUES ($1, $2, $3) RETURNING id")
-	if err != nil {
-		return fmt.Errorf("Internal error")
-	}
-
-	content := strings.TrimSpace(data.Content)
-
+	createMsgStmt := "INSERT INTO direct_messages (content, author_id, recipient_id) VALUES ($1, $2, $3) RETURNING id"
 	var id string
-	if err = h.DB.QueryRow(ctx, createMsgStmt.Name, content, uid, data.Uid).Scan(&id); err != nil {
+	content := strings.TrimSpace(data.Content)
+	if err := conn.QueryRow(ctx, createMsgStmt, content, uid, data.Uid).Scan(&id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 

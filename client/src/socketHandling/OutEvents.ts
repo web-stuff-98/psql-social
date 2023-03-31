@@ -16,6 +16,7 @@ export type DirectMessage = {
   event_type: "DIRECT_MESSAGE";
   data: {
     content: string;
+    uid: string;
   };
 };
 export type DirectMessageUpdate = {

@@ -109,7 +109,7 @@ function banClicked() {
 }
 
 function callClicked() {
-  userdropdownStore.open;
+  userdropdownStore.open = false;
 }
 
 const msgInputRef = ref<HTMLElement | null>();
@@ -120,6 +120,7 @@ function submitDirectMessage(values: any) {
     event_type: "DIRECT_MESSAGE",
     data: {
       content: values.content,
+      uid: userdropdownStore.subject,
     },
   } as DirectMessage);
   userdropdownStore.open = false;
