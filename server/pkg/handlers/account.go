@@ -91,7 +91,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	existsStmt, err := h.DB.Prepare(rctx, "exists_stmt", "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))")
+	existsStmt, err := h.DB.Prepare(rctx, "register_exists_stmt", "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
@@ -114,7 +114,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
-		insertStmt, err := h.DB.Prepare(rctx, "insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
+		insertStmt, err := h.DB.Prepare(rctx, "register_insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
 		if err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
@@ -188,7 +188,8 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 	content := strings.TrimSpace(bio.Content)
 
 	exists := false
-	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bios WHERE user_id = $1);", uid).Scan(&exists); err != nil {
+	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bios WHERE user_id = $1);", uid).Scan(&exists) // added error handling here
+	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -200,16 +201,17 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 				return
 			}
 		}
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ResponseMessage(ctx, "Bio deleted successfully.", fasthttp.StatusOK)
 	} else {
 		if !exists {
-			insertStmt, err := h.DB.Prepare(rctx, "insert_stmt", "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id")
+			insertStmt, err := h.DB.Prepare(rctx, "insert_bio_stmt", "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id")
 			if err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
 
-			if err := h.DB.QueryRow(rctx, insertStmt.Name, content, uid).Scan(&id); err != nil {
+			err = h.DB.QueryRow(rctx, insertStmt.Name, content, uid).Scan(&id)
+			if err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -217,13 +219,14 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 			ctx.WriteString(id)
 			ctx.SetStatusCode(fasthttp.StatusCreated)
 		} else {
-			updateStmt, err := h.DB.Prepare(rctx, "update_stmt", "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id")
+			updateStmt, err := h.DB.Prepare(rctx, "update_bio_stmt", "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id")
 			if err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
 
-			if err := h.DB.QueryRow(rctx, updateStmt.Name, content, uid).Scan(&id); err != nil {
+			err = h.DB.QueryRow(rctx, updateStmt.Name, content, uid).Scan(&id)
+			if err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -231,6 +234,7 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 			ctx.WriteString(id)
 			ctx.SetStatusCode(fasthttp.StatusOK)
 		}
+
 	}
 }
 
@@ -245,6 +249,10 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 	}
 
 	fh, err := ctx.FormFile("file")
+	if err != nil {
+		ResponseMessage(ctx, "Error loading file", fasthttp.StatusInternalServerError)
+		return
+	}
 	if fh.Size > 20*1024*1024 {
 		ResponseMessage(ctx, "Maxiumum file size allowed is 20mb", fasthttp.StatusBadRequest)
 		return
@@ -256,73 +264,60 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if file, err := fh.Open(); err != nil {
+	file, err := fh.Open()
+	if err != nil {
 		ResponseMessage(ctx, "Error loading file", fasthttp.StatusInternalServerError)
 		return
+	}
+	defer file.Close()
+
+	var img image.Image
+	var decodeErr error
+	switch mime {
+	case "image/jpeg":
+		img, decodeErr = jpeg.Decode(file)
+	case "image/png":
+		img, decodeErr = png.Decode(file)
+	default:
+		ResponseMessage(ctx, "Only JPEG and PNG are supported", fasthttp.StatusBadRequest)
+		return
+	}
+	if decodeErr != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	buf := &bytes.Buffer{}
+	if img.Bounds().Dx() > img.Bounds().Dy() {
+		img = resize.Resize(300, 0, img, resize.Lanczos3)
 	} else {
-		defer file.Close()
+		img = resize.Resize(0, 300, img, resize.Lanczos3)
+	}
+	if err := jpeg.Encode(buf, img, nil); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	pfpBytes := buf.Bytes()
 
-		var isJPEG, isPNG bool
-		isJPEG = mime == "image/jpeg"
-		isPNG = mime == "image/png"
-		if !isJPEG && !isPNG {
-			ResponseMessage(ctx, "Only JPEG and PNG are supported", fasthttp.StatusBadRequest)
-			return
-		}
-		var img image.Image
-		var decodeErr error
-		if isJPEG {
-			img, decodeErr = jpeg.Decode(file)
-		} else {
-			img, decodeErr = png.Decode(file)
-		}
-		if decodeErr != nil {
+	pictureData := pgtype.Bytea{Bytes: pfpBytes, Status: pgtype.Present}
+
+	exists := false
+	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM profile_pictures WHERE user_id = $1);", uid).Scan(&exists)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if exists {
+		if _, err := h.DB.Exec(rctx, "UPDATE profile_pictures SET picture_data = $1 WHERE user_id = $2;", pictureData, uid); err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
-		buf := &bytes.Buffer{}
-		if img.Bounds().Dx() > img.Bounds().Dy() {
-			img = resize.Resize(300, 0, img, resize.Lanczos3)
-		} else {
-			img = resize.Resize(0, 300, img, resize.Lanczos3)
-		}
-		if err := jpeg.Encode(buf, img, nil); err != nil {
+	} else {
+		if _, err := h.DB.Exec(rctx, "INSERT INTO profile_pictures (user_id,picture_data) VALUES ($1,$2);", uid, pictureData); err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
-		}
-		pfpBytes := buf.Bytes()
-
-		pictureData := pgtype.Bytea{Bytes: pfpBytes, Status: pgtype.Present}
-
-		exists := false
-		if h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM profile_pictures WHERE user_id = $1);", uid).Scan(&exists); err != nil {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
-		}
-		if !exists {
-			insertStmt, err := h.DB.Prepare(rctx, "insert_stmt", "INSERT INTO profile_pictures (user_id, picture_data, mime) VALUES ($1, $2, $3) RETURNING id")
-			if err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
-			}
-
-			if _, err := h.DB.Exec(rctx, insertStmt.Name, uid, pictureData.Bytes, mime); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
-			}
-			ResponseMessage(ctx, "Pfp created", fasthttp.StatusCreated)
-		} else {
-			updateStmt, err := h.DB.Prepare(rctx, "update_stmt", "UPDATE profile_pictures SET picture_data = $1, mime = $2 WHERE user_id = $3")
-			if err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
-			}
-
-			if _, err := h.DB.Exec(rctx, updateStmt.Name, pictureData.Bytes, mime, uid); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
-			}
-			ResponseMessage(ctx, "Pfp updated", fasthttp.StatusOK)
 		}
 	}
+
+	ResponseMessage(ctx, "Profile picture updated successfully.", fasthttp.StatusOK)
 }

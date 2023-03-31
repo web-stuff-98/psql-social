@@ -29,15 +29,17 @@ onBeforeUnmount(() => {
   <div ref="container" class="room">
     {{ room?.name }}
     <div class="buttons">
-      <button type="button">
+      <button name="edit room" type="button">
         <v-icon name="md-modeeditoutline" />
       </button>
-      <button type="button">
+      <button name="delete room" type="button">
         <v-icon name="md-delete-round" />
       </button>
-      <button type="button">
-        <v-icon name="md-sensordoor-round" />
-      </button>
+      <router-link :to="`/room/${rid}`">
+        <button name="enter room" type="button">
+          <v-icon name="md-sensordoor-round" />
+        </button>
+      </router-link>
     </div>
   </div>
 </template>

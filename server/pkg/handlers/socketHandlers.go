@@ -55,7 +55,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	selectRoomExistsStmt, err := h.DB.Prepare(ctx, "select_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(id) = LOWER($1))")
+	selectRoomExistsStmt, err := h.DB.Prepare(ctx, "join_room_select_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(id) = LOWER($1))")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -76,7 +76,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 		return fmt.Errorf("You are banned from this room")
 	}
 
-	selectRoomStmt, err := h.DB.Prepare(ctx, "select_room_stmt", "SELECT private,author_id FROM rooms WHERE id = $1")
+	selectRoomStmt, err := h.DB.Prepare(ctx, "join_room_select_room_stmt", "SELECT private,author_id FROM rooms WHERE id = $1")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -88,7 +88,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	}
 
 	if private && author_id != uid {
-		membershipExistsStmt, err := h.DB.Prepare(ctx, "select_room_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE LOWER(user_id) = LOWER($1))")
+		membershipExistsStmt, err := h.DB.Prepare(ctx, "join_room_select_room_membership_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE LOWER(user_id) = LOWER($1))")
 		if err != nil {
 			return fmt.Errorf("Internal error")
 		}
@@ -102,7 +102,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 		}
 	}
 
-	selectChannelStmt, err := h.DB.Prepare(ctx, "select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
+	selectChannelStmt, err := h.DB.Prepare(ctx, "join_room_select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -134,7 +134,7 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	selectChannelStmt, err := h.DB.Prepare(ctx, "select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
+	selectChannelStmt, err := h.DB.Prepare(ctx, "leave_room_select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
