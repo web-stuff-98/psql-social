@@ -65,6 +65,7 @@ type ChangeEvent struct {
 type Invitation struct {
 	Inviter string `json:"inviter"`
 	Invited string `json:"invited"`
+	RoomID  string `json:"room_id"`
 }
 
 // TYPE: INVITATION_RESPONSE

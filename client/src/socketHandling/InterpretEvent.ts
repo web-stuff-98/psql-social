@@ -54,6 +54,21 @@ type FriendRequestResponse = {
   };
 };
 
+type Invitation = {
+  data: {
+    inviter: string;
+    invited: string;
+    room_id: string;
+  };
+};
+type InvitationResponse = {
+  data: {
+    inviter: string;
+    invited: string;
+    room_id: string;
+  };
+};
+
 export function isChangeEvent(object: any): object is ChangeEventData {
   return object.event_type === "CHANGE";
 }
@@ -89,4 +104,13 @@ export function isFriendRequestResponse(
   object: any
 ): object is FriendRequestResponse {
   return object.event_type === "FRIEND_REQUEST_RESPONSE";
+}
+
+export function isInvitation(object: any): object is Invitation {
+  return object.event_type === "INVITATION";
+}
+export function isInvitationResponse(
+  object: any
+): object is InvitationResponse {
+  return object.event_type === "INVITATION_RESPONSE";
 }
