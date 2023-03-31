@@ -48,6 +48,8 @@ export default function useBackgroundProcess({
               ...roomStore.rooms.filter((r) => r.ID !== msg.data.data.ID),
               newRoom,
             ];
+          } else {
+            console.log("Update failed - room not found");
           }
         }
         if (msg.data.change_type === "INSERT") {
@@ -63,10 +65,10 @@ export default function useBackgroundProcess({
         if (msg.data.change_type === "UPDATE_IMAGE") {
           const i = userStore.users.findIndex((u) => u.ID === msg.data.data.ID);
           if (i !== -1) {
+            URL.revokeObjectURL(userStore.users[i].pfp!);
             // wait a bit to make sure the new image is retrieved
-            await new Promise<void>((r) => setTimeout(r, 50));
+            await new Promise<void>((r) => setTimeout(r, 80));
             try {
-              URL.revokeObjectURL(userStore.users[i].pfp!);
               const pfp: BlobPart | undefined = await new Promise((resolve) =>
                 getUserPfp(msg.data.data.ID)
                   .catch(() => resolve(undefined))
@@ -90,6 +92,8 @@ export default function useBackgroundProcess({
                 msg.data.data.ID
               );
             }
+          } else {
+            console.log("Update failed - user not found");
           }
         }
         if (msg.data.change_type === "DELETE") {
@@ -193,7 +197,9 @@ export default function useBackgroundProcess({
         } as StartWatching)
       );
     });
+  });
 
+  watchEffect(() => {
     socketStore.socket?.addEventListener("message", watchForChangeEvents);
   });
 

@@ -229,13 +229,13 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 		msgData := make(map[string]interface{})
 		msgData["ID"] = uid
 		h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
-			SubName:     fmt.Sprintf("bio:%v", uid),
-			MessageType: "CHANGE",
+			SubName: fmt.Sprintf("bio:%v", uid),
 			Data: socketmessages.ChangeEvent{
 				Type:   "DELETE",
 				Entity: "BIO",
 				Data:   msgData,
 			},
+			MessageType: "CHANGE",
 		}
 
 		ResponseMessage(ctx, "Bio deleted successfully.", fasthttp.StatusOK)
@@ -244,13 +244,13 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 		msgData["ID"] = uid
 		msgData["content"] = content
 		h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
-			SubName:     fmt.Sprintf("bio:%v", uid),
-			MessageType: "CHANGE",
+			SubName: fmt.Sprintf("bio:%v", uid),
 			Data: socketmessages.ChangeEvent{
 				Type:   "UPDATE",
 				Entity: "BIO",
 				Data:   msgData,
 			},
+			MessageType: "CHANGE",
 		}
 
 		if !exists {
@@ -369,13 +369,13 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 	msgData := make(map[string]interface{})
 	msgData["ID"] = uid
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
-		SubName:     fmt.Sprintf("user:%v", uid),
-		MessageType: "CHANGE",
+		SubName: fmt.Sprintf("user:%v", uid),
 		Data: socketmessages.ChangeEvent{
 			Type:   "UPDATE_IMAGE",
 			Entity: "USER",
 			Data:   msgData,
 		},
+		MessageType: "CHANGE",
 	}
 
 	ResponseMessage(ctx, "Profile picture updated successfully", fasthttp.StatusOK)

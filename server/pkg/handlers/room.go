@@ -99,6 +99,7 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 			Entity: "ROOM",
 			Data:   outChangeData,
 		},
+		MessageType: "CHANGE",
 	}
 
 	ctx.Response.Header.Add("Content-Type", "text/plain")
@@ -161,14 +162,14 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	updateStmt, err := conn.Conn().Prepare(rctx, "update_room_stmt", "UPDATE rooms SET name = $1 WHERE id = $2 RETURNING id")
+	updateStmt, err := conn.Conn().Prepare(rctx, "update_room_stmt", "UPDATE rooms SET name = $1 WHERE id = $2")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 
 	name := strings.TrimSpace(body.Name)
-	if err := conn.QueryRow(rctx, updateStmt.Name, name, room_id).Scan(); err != nil {
+	if _, err := conn.Exec(rctx, updateStmt.Name, name, room_id); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -185,6 +186,7 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 			Entity: "ROOM",
 			Data:   outChangeData,
 		},
+		MessageType: "CHANGE",
 	}
 
 	ctx.SetStatusCode(fasthttp.StatusOK)
@@ -435,6 +437,7 @@ func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
 			Entity: "ROOM",
 			Type:   "DELETE",
 		},
+		MessageType: "CHANGE",
 	}
 
 	ctx.SetStatusCode(fasthttp.StatusOK)

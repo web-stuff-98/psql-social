@@ -54,6 +54,7 @@ func main() {
 
 	corsHandler := fasthttpcors.NewCorsHandler(fasthttpcors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"POST", "PATCH", "PUT", "GET", "OPTIONS", "DELETE"},
 		AllowCredentials: true,
 	})
 
