@@ -60,3 +60,16 @@ type ChangeEvent struct {
 	// "ID" should be included in Data
 	Data map[string]interface{} `json:"data"`
 }
+
+// TYPE: INVITATION
+type Invitation struct {
+	Inviter string `json:"inviter"`
+	Invited string `json:"invited"`
+}
+
+// TYPE: INVITATION_RESPONSE
+type InvitationResponse struct {
+	Invited  string `json:"invited"`
+	Accepted bool   `json:"accepted"`
+	RoomID   string `json:"room_id"`
+}

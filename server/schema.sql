@@ -28,6 +28,12 @@ CREATE TABLE friend_requests (
     PRIMARY KEY (friender, friended)
 );
 
+CREATE TABLE invitations (
+    inviter UUID REFERENCES users(id) ON DELETE CASCADE,
+    invited UUID REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (inviter, invited)
+);
+
 CREATE TABLE bios (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content VARCHAR(300) NOT NULL,

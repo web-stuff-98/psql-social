@@ -44,6 +44,11 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 	case "FRIEND_REQUEST_RESPONSE":
 		err = friendRequestResponse(data, h, uid, c)
 
+	case "INVITATION":
+		err = invitation(data, h, uid, c)
+	case "INVITATION_RESPONSE":
+		err = invitationResponse(data, h, uid, c)
+
 	case "START_WATCHING":
 		err = startWatching(data, h, uid, c)
 	case "STOP_WATCHING":
@@ -652,6 +657,32 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 		return fmt.Errorf("Internal error")
 	}
 
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var blockedExists bool
+	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Friender).Scan(&blockedExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blockedExists {
+		return fmt.Errorf("This user has blocked your account")
+	}
+
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var blockerExists bool
+	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Friender).Scan(&blockerExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blockedExists {
+		return fmt.Errorf("You have blocked this user, you must unblock them first")
+	}
+
 	if data.Accepted {
 		insertStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_insert_stmt", "INSERT INTO friends (friender,friended) VALUES($1, $2)")
 		if err != nil {
@@ -670,6 +701,44 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 			Friended: uid,
 		},
 	}
+
+	return nil
+}
+
+func invitation(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.Invitation{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	return nil
+}
+
+func invitationResponse(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.InvitationResponse{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
 
 	return nil
 }

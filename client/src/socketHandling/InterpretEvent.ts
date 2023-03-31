@@ -1,6 +1,6 @@
 /**
  * Used to get types for data sent through the socket by the server.
- * Matches with socketMessages.go 
+ * Matches with socketMessages.go
  */
 
 type ChangeEventData = {
@@ -41,6 +41,19 @@ type DirectMessageData = MessageData;
 type DirectMessageDeleteData = MessageDeleteData;
 type DirectMessageUpdateData = MessageUpdateData;
 
+type FriendRequest = {
+  data: {
+    friender: string;
+    friended: string;
+  };
+};
+type FriendRequestResponse = {
+  data: {
+    friended: string;
+    accepted: boolean;
+  };
+};
+
 export function isChangeEvent(object: any): object is ChangeEventData {
   return object.event_type === "CHANGE";
 }
@@ -67,4 +80,13 @@ export function isDirectMsgUpdate(
   object: any
 ): object is DirectMessageUpdateData {
   return object.event_type === "DIRECT_MESSAGE_UPDATE";
+}
+
+export function isFriendRequest(object: any): object is FriendRequest {
+  return object.event_type === "FRIEND_REQUEST";
+}
+export function isFriendRequestResponse(
+  object: any
+): object is FriendRequestResponse {
+  return object.event_type === "FRIEND_REQUEST_RESPONSE";
 }

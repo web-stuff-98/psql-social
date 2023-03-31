@@ -61,3 +61,10 @@ type Invitation struct {
 	RoomID string `json:"room_id" validation:"required,lte=36"`
 	Uid    string `json:"uid" validation:"required,lte=36"`
 }
+
+// INVITATION_RESPONSE
+type InvitationResponse struct {
+	Inviter  string `json:"inviter" validation:"required,lte=36"`
+	RoomID   string `json:"room_id" validation:"required,lte=36"`
+	Accepted bool   `json:"accepted"`
+}
