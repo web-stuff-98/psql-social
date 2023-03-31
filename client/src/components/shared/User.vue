@@ -67,6 +67,7 @@ onBeforeUnmount(() => {
     box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.33);
     background-size: cover;
     background-position: center;
+    background-color: var(--base-colour);
     padding: 0;
   }
   .name {

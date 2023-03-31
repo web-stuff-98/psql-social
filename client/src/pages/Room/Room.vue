@@ -45,6 +45,7 @@ onMounted(async () => {
     resMsg.value = { msg: "", err: false, pen: true };
     const main = await roomChannelStore.getRoomChannels(roomId.value as string);
     const msgs = await getRoomChannel(main);
+    if (msgs) msgs.forEach((m) => userStore.cacheUser(m.author_id));
     messages.value = msgs || [];
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {

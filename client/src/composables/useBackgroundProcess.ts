@@ -1,5 +1,5 @@
 import { onBeforeUnmount, onMounted, Ref, ref, watchEffect } from "vue";
-import { IResMsg, IRoom, IUser } from "../interfaces/GeneralInterfaces";
+import { IResMsg, IRoom } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "../services/makeRequest";
 import { StartWatching, StopWatching } from "../socketHandling/OutEvents";
 
@@ -36,6 +36,8 @@ export default function useBackgroundProcess({
   const userStore = useUserStore();
   const roomStore = useRoomStore();
   const inboxStore = useInboxStore();
+
+  const currentlyWatching = ref<string[]>([]);
 
   async function watchForChangeEvents(e: MessageEvent) {
     const msg = JSON.parse(e.data);
@@ -178,9 +180,12 @@ export default function useBackgroundProcess({
           data: { entity: "USER", id },
         } as StopWatching)
       );
+      currentlyWatching.value = currentlyWatching.value.filter(
+        (id) => !disappeared.includes(id)
+      );
     }, 30000);
 
-    /* Remove data for rooms that haven't been seen in 30 seconds - except for the current users data, also stop watching users depending on visiblity */
+    /* Remove data for rooms that haven't been seen in 30 seconds, also stop watching rooms depending on visiblity */
     clearRoomCacheInterval.value = setInterval(() => {
       const disappeared = roomStore.disappearedRooms.map((dr) =>
         Date.now() - dr.disappearedAt > 30000 ? dr.id : ""
@@ -199,33 +204,40 @@ export default function useBackgroundProcess({
           data: { entity: "ROOM", id },
         } as StopWatching)
       );
+      currentlyWatching.value = currentlyWatching.value.filter(
+        (id) => !disappeared.includes(id)
+      );
     }, 30000);
   });
 
   /* Automatically start watching users */
   watchEffect(() => {
-    userStore.visibleUsers.forEach((id) =>
+    userStore.visibleUsers.forEach((id) => {
+      if (currentlyWatching.value.includes(id)) return;
       socketStore.send({
         event_type: "START_WATCHING",
         data: {
           entity: "USER",
           id,
         },
-      } as StartWatching)
-    );
+      } as StartWatching);
+      currentlyWatching.value.push(id);
+    });
   });
 
   /* Automatically start watching rooms */
   watchEffect(() => {
-    roomStore.visibleRooms.forEach((id) =>
+    roomStore.visibleRooms.forEach((id) => {
+      if (currentlyWatching.value.includes(id)) return;
       socketStore.send({
         event_type: "START_WATCHING",
         data: {
           entity: "ROOM",
           id,
         },
-      } as StartWatching)
-    );
+      } as StartWatching);
+      currentlyWatching.value.push(id);
+    });
   });
 
   watchEffect(() => {
