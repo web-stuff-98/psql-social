@@ -14,11 +14,6 @@ This works differently to my last 2 projects.
 It can only send JSON messages, in this form:
 { event_type, data }
 
-There are loads more channels because I am trying to avoid ranging
-through maps as often this time. It means more code and memory usage
-but should improve performance since ranging through a map is slower
-than accessing by key.
-
 I haven't tested performance but it's probably better than the previous
 versions I used in my other projects.
 */

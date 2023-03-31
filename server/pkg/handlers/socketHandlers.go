@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/fasthttp/websocket"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
-	"github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
-	socketvalidation "github.com/web-stuff-98/psql-social/socketValidation"
+	socketvalidation "github.com/web-stuff-98/psql-social/pkg/socketValidation"
 )
 
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {
@@ -180,18 +181,19 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	selectChannelStmt, err := h.DB.Prepare(ctx, "room_message_select_room_channel_stmt", "SELECT room_id,private,author_id FROM room_channels WHERE id = $1")
+	selectChannelStmt, err := h.DB.Prepare(ctx, "room_message_select_room_channel_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
 	if err != nil {
 		if err != pgx.ErrNoRows {
+			log.Println("ERR A:", err)
 			return fmt.Errorf("Internal error")
 		}
 		return fmt.Errorf("Channel not found")
 	}
 
-	var room_id, author_id string
-	var private bool
-	if err := h.DB.QueryRow(ctx, selectChannelStmt.Name, data.ChannelID).Scan(&room_id, &private, &author_id); err != nil {
+	var room_id string
+	if err = h.DB.QueryRow(ctx, selectChannelStmt.Name, data.ChannelID).Scan(&room_id); err != nil {
 		if err != pgx.ErrNoRows {
+			log.Println("ERR B:", err)
 			return fmt.Errorf("Internal error")
 		}
 		return fmt.Errorf("Room not found")
@@ -199,15 +201,23 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 
 	banExists := false
 	if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&banExists); err != nil {
+		log.Println("ERR C:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if banExists {
 		return fmt.Errorf("You are banned from this room")
 	}
 
+	var private bool
+	var author_id string
+	if err = h.DB.QueryRow(ctx, "SELECT private,author_id FROM rooms WHERE id = $1;", room_id).Scan(&private, &author_id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
 	if private && author_id != uid {
 		var membershipExists bool
-		if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM memebers WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&membershipExists); err != nil {
+		if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&membershipExists); err != nil {
+			log.Println("ERR D:", err)
 			return fmt.Errorf("Internal error")
 		}
 		if !membershipExists {
@@ -215,8 +225,9 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 		}
 	}
 
-	insertStmt, err := h.DB.Prepare(ctx, "insert_room_message_stmt", "INSERT INTO room_messages (content,author_id,room_channel_id) VALUES($1, $2, $2) RETURNING id")
+	insertStmt, err := h.DB.Prepare(ctx, "insert_room_message_stmt", "INSERT INTO room_messages (content,author_id,room_channel_id) VALUES($1, $2, $3) RETURNING id")
 	if err != nil {
+		log.Println("ERR E:", err)
 		return fmt.Errorf("Internal error")
 	}
 
@@ -224,12 +235,13 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 
 	var id string
 	if err := h.DB.QueryRow(ctx, insertStmt.Name, content, uid, data.ChannelID).Scan(&id); err != nil {
+		log.Println("ERR F:", err)
 		return fmt.Errorf("Internal error")
 	}
 
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("channel:%v", data.ChannelID),
-		Data: socketMessages.RoomMessage{
+		Data: socketmessages.RoomMessage{
 			ID:        id,
 			Content:   content,
 			CreatedAt: time.Now().Format(time.RFC3339),
