@@ -611,7 +611,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
-	if blockedExists {
+	if blockerExists {
 		return fmt.Errorf("You have blocked this user, you must unblock them first")
 	}
 
@@ -707,7 +707,7 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Friender).Scan(&blockerExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
-	if blockedExists {
+	if blockerExists {
 		return fmt.Errorf("You have blocked this user, you must unblock them first")
 	}
 
@@ -783,7 +783,7 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
-	if blockedExists {
+	if blockerExists {
 		return fmt.Errorf("You have blocked this user, you must unblock them first")
 	}
 
@@ -837,7 +837,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		return fmt.Errorf("This user did not send you an invitation")
 	}
 
-	selectInvitationExistsStmt, err := conn.Conn().Prepare(ctx, "invitation_response_select_member_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2")
+	selectInvitationExistsStmt, err := conn.Conn().Prepare(ctx, "invitation_response_select_member_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -880,7 +880,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Inviter).Scan(&blockerExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
-	if blockedExists {
+	if blockerExists {
 		return fmt.Errorf("You have blocked this user, you must unblock them first")
 	}
 
