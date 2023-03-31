@@ -159,20 +159,20 @@ export default function useBackgroundProcess({
 
     /* Remove data for users that haven't been seen in 30 seconds - except for the current users data, also stop watching users depending on visiblity */
     clearUserCacheInterval.value = setInterval(() => {
-      const disappared = userStore.disappearedUsers.map((du) =>
+      const disappeared = userStore.disappearedUsers.map((du) =>
         Date.now() - du.disappearedAt > 30000 && du.id !== authStore.uid
           ? du.id
           : ""
       );
       userStore.users = [
-        ...userStore.users.filter((u) => !disappared.includes(u.ID)),
+        ...userStore.users.filter((u) => !disappeared.includes(u.ID)),
       ];
       userStore.disappearedUsers = [
         ...userStore.disappearedUsers.filter(
-          (du) => !disappared.includes(du.id)
+          (du) => !disappeared.includes(du.id)
         ),
       ];
-      disappared.forEach((id) =>
+      disappeared.forEach((id) =>
         socketStore.send({
           event_type: "STOP_WATCHING",
           data: { entity: "USER", id },
@@ -182,18 +182,18 @@ export default function useBackgroundProcess({
 
     /* Remove data for rooms that haven't been seen in 30 seconds - except for the current users data, also stop watching users depending on visiblity */
     clearRoomCacheInterval.value = setInterval(() => {
-      const disappared = roomStore.disappearedRooms.map((dr) =>
+      const disappeared = roomStore.disappearedRooms.map((dr) =>
         Date.now() - dr.disappearedAt > 30000 ? dr.id : ""
       );
       roomStore.rooms = [
-        ...roomStore.rooms.filter((r) => !disappared.includes(r.ID)),
+        ...roomStore.rooms.filter((r) => !disappeared.includes(r.ID)),
       ];
       roomStore.disappearedRooms = [
         ...roomStore.disappearedRooms.filter(
-          (dr) => !disappared.includes(dr.id)
+          (dr) => !disappeared.includes(dr.id)
         ),
       ];
-      disappared.forEach((id) =>
+      disappeared.forEach((id) =>
         socketStore.send({
           event_type: "STOP_WATCHING",
           data: { entity: "ROOM", id },
