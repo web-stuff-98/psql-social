@@ -171,32 +171,32 @@ export default function useBackgroundProcess({
         } as StopWatching)
       );
     }, 30000);
+  });
 
-    /* Automatically start watching users */
-    watchEffect(() => {
-      userStore.visibleUsers.forEach((id) =>
-        socketStore.send({
-          event_type: "START_WATCHING",
-          data: {
-            entity: "USER",
-            id,
-          },
-        } as StartWatching)
-      );
-    });
+  /* Automatically start watching users */
+  watchEffect(() => {
+    userStore.visibleUsers.forEach((id) =>
+      socketStore.send({
+        event_type: "START_WATCHING",
+        data: {
+          entity: "USER",
+          id,
+        },
+      } as StartWatching)
+    );
+  });
 
-    /* Automatically start watching rooms */
-    watchEffect(() => {
-      roomStore.visibleRooms.forEach((id) =>
-        socketStore.send({
-          event_type: "START_WATCHING",
-          data: {
-            entity: "ROOM",
-            id,
-          },
-        } as StartWatching)
-      );
-    });
+  /* Automatically start watching rooms */
+  watchEffect(() => {
+    roomStore.visibleRooms.forEach((id) =>
+      socketStore.send({
+        event_type: "START_WATCHING",
+        data: {
+          entity: "ROOM",
+          id,
+        },
+      } as StartWatching)
+    );
   });
 
   watchEffect(() => {

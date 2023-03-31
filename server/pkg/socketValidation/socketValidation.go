@@ -27,3 +27,20 @@ type StartStopWatching struct {
 	ID     string `json:"id" validate:"required,lte=36"`
 	Entity string `json:"entity" validate:"required,lte=4"`
 }
+
+// DIRECT_MESSAGE
+type DirectMessage struct {
+	Content string `json:"content" validate:"required,lte=200"`
+	Uid     string `json:"uid" validate:"required,lte=36"`
+}
+
+// DIRECT_MESSAGE_UPDATE
+type DirectMessageUpdate struct {
+	Content string `json:"content" validate:"required,lte=200"`
+	MsgID   string `json:"msg_id" validate:"required,lte=36"`
+}
+
+// DIRECT_MESSAGE_DELETE
+type DirectMessageDelete struct {
+	MsgID string `json:"msg_id" validate:"required,lte=36"`
+}

@@ -1,8 +1,11 @@
 <script lang="ts" setup>
 import useUserStore from "../../store/UserStore";
+import useAuthStore from "../../store/AuthStore";
 import { computed, onBeforeUnmount, onMounted, ref, toRefs } from "vue";
+import { userdropdownStore } from "../../store/UserDropdownStore";
 
 const userStore = useUserStore();
+const authStore = useAuthStore();
 
 const props = defineProps<{ uid: string }>();
 const { uid } = toRefs(props);
@@ -26,9 +29,21 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="container" class="user">
-    <div :style="{ backgroundImage: `url(${user?.pfp})` }" class="pfp">
+    <button
+      type="button"
+      @click="
+        {
+          if (authStore.uid !== uid) userdropdownStore.openOnSubject(uid);
+        }
+      "
+      :style="{
+        backgroundImage: `url(${user?.pfp})`,
+        ...(authStore.uid === uid ? { cursor: 'default' } : {}),
+      }"
+      class="pfp"
+    >
       <v-icon v-if="!user?.pfp" name="fa-user-alt" />
-    </div>
+    </button>
     <div class="name">
       {{ user?.username }}
     </div>
@@ -52,6 +67,7 @@ onBeforeUnmount(() => {
     box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.33);
     background-size: cover;
     background-position: center;
+    padding: 0;
   }
   .name {
     font-weight: 600;

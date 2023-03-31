@@ -24,12 +24,21 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = joinRoom(data, h, uid, c)
 	case "LEAVE_ROOM":
 		err = leaveRoom(data, h, uid, c)
+
 	case "ROOM_MESSAGE":
 		err = roomMessage(data, h, uid, c)
 	case "ROOM_MESSAGE_UPDATE":
 		err = roomMessageUpdate(data, h, uid, c)
 	case "ROOM_MESSAGE_DELETE":
 		err = roomMessageDelete(data, h, uid, c)
+
+	case "DIRECT_MESSAGE":
+		err = directMessage(data, h, uid, c)
+	case "DIRECT_MESSAGE_UPDATE":
+		err = directMessageUpdate(data, h, uid, c)
+	case "DIRECT_MESSAGE_DELETE":
+		err = directMessageDelete(data, h, uid, c)
+
 	case "START_WATCHING":
 		err = startWatching(data, h, uid, c)
 	case "STOP_WATCHING":
@@ -383,6 +392,169 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 			ID: data.MsgID,
 		},
 		SubName: channelName,
+	}
+
+	return nil
+}
+
+func directMessage(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.DirectMessage{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "direct_message_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	blocked := false
+	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blocked); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blocked {
+		return fmt.Errorf("This user has blocked your account")
+	}
+
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "direct_message_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	blocker := false
+	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blocked); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blocker {
+		return fmt.Errorf("You have blocked this user, you must unblock them to message them")
+	}
+
+	createMsgStmt, err := conn.Conn().Prepare(ctx, "direct_message_insert_stmt", "INSERT INTO direct_messages (content,author_id,recipient_id) VALUES ($1, $2, $3) RETURNING id")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	content := strings.TrimSpace(data.Content)
+
+	var id string
+	if err = h.DB.QueryRow(ctx, createMsgStmt.Name, content, uid, data.Uid).Scan(&id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
+		Uids: []string{uid, data.Uid},
+		Data: socketmessages.DirectMessage{
+			ID:        id,
+			Content:   content,
+			CreatedAt: time.Now().Format(time.RFC3339),
+			AuthorID:  uid,
+		},
+		MessageType: "DIRECT_MESSAGE",
+	}
+
+	return nil
+}
+
+func directMessageUpdate(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.DirectMessageUpdate{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectMsgStmt, err := conn.Conn().Prepare(ctx, "direct_message_update_select_stmt", "SELECT recipient_id FROM direct_messages WHERE author_id = $1 AND id = $2")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var recipient_id string
+	if err = h.DB.QueryRow(ctx, selectMsgStmt.Name, uid, data.MsgID).Scan(&recipient_id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	updateMsgStmt, err := conn.Conn().Prepare(ctx, "direct_message_update_stmt", "UPDATE direct_messages SET content = $1 WHERE id = $2")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	content := strings.TrimSpace(data.Content)
+
+	if _, err = h.DB.Exec(ctx, updateMsgStmt.Name, content, data.MsgID); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
+		Uids: []string{uid, recipient_id},
+		Data: socketmessages.DirectMessageUpdate{
+			ID:      data.MsgID,
+			Content: content,
+		},
+		MessageType: "DIRECT_MESSAGE_UPDATE",
+	}
+
+	return nil
+}
+
+func directMessageDelete(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.DirectMessageDelete{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectMsgStmt, err := conn.Conn().Prepare(ctx, "direct_message_delete_select_stmt", "SELECT recipient_id FROM direct_messages WHERE author_id = $1 AND id = $2")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var recipient_id string
+	if err = h.DB.QueryRow(ctx, selectMsgStmt.Name, uid, data.MsgID).Scan(&recipient_id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	deleteMsgStmt, err := conn.Conn().Prepare(ctx, "direct_message_delete_stmt", "DELETE FROM direct_messages WHERE id = $1")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	if _, err = h.DB.Exec(ctx, deleteMsgStmt.Name, data.MsgID); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
+		Uids: []string{uid, recipient_id},
+		Data: socketmessages.DirectMessageUpdate{
+			ID: data.MsgID,
+		},
+		MessageType: "DIRECT_MESSAGE_DELETE",
 	}
 
 	return nil

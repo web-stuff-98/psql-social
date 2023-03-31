@@ -10,6 +10,7 @@ import ModalCloseButton from "./components/shared/ModalCloseButton.vue";
 import Layout from "./components/layout/Layout.vue";
 import { IResMsg } from "./interfaces/GeneralInterfaces";
 import ResMsg from "./components/shared/ResMsg.vue";
+import UserDropdown from "./components/userDropdown/UserDropdown.vue";
 
 const authStore = useAuthStore();
 
@@ -45,6 +46,7 @@ watch(authStore, (_, newVal) => {
         v-if="noUserModalSection === 'WELCOME'"
       />
     </Modal>
+    <UserDropdown />
   </div>
 </template>
 

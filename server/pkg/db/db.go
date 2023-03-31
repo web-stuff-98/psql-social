@@ -9,12 +9,15 @@ import (
 )
 
 func Init() *pgxpool.Pool {
-	pool, err := pgxpool.New(context.Background(), os.Getenv("DB_URL"))
+	config, err := pgxpool.ParseConfig(os.Getenv("DB_URL"))
+	if err != nil {
+		log.Fatalln("Failed to parse DB URL config")
+	}
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		log.Fatalln("Unable to create pool:", err)
 		return nil
-	} else {
-		log.Println("Created pool")
-		return pool
 	}
+	log.Println("Created pool")
+	return pool
 }

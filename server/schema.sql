@@ -22,6 +22,12 @@ CREATE TABLE bios (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE blocks (
+    blocked_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    blocker_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (blocked_id, blocker_id)
+);
+
 CREATE TABLE room_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content TEXT NOT NULL,

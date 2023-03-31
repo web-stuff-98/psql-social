@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 
 	"github.com/fasthttp/websocket"
 	"github.com/valyala/fasthttp"
@@ -14,13 +15,19 @@ var upgrader = websocket.FastHTTPUpgrader{
 	ReadBufferSize:  2048,
 	WriteBufferSize: 2048,
 	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {
-		return true
+		if os.Getenv("ENVIRONMENT") != "PRODUCTION" {
+			return true
+		} else {
+			// need to add rule here before deploying
+			return true
+		}
 	},
 }
 
 /*
 	Messages come in like this, different to my last go projects:
 	{ "event_type":string , "data":json }
+	They are also sent out the same way, for consistency
 */
 
 type decodedMsg struct {

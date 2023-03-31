@@ -21,6 +21,25 @@ type RoomMessageDelete struct {
 	ID string `json:"ID"`
 }
 
+// TYPE: DIRECT_MESSAGE
+type DirectMessage struct {
+	ID        string `json:"ID"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+	AuthorID  string `json:"author_id"`
+}
+
+// TYPE: DIRECT_MESSAGE_UPDATE
+type DirectMessageUpdate struct {
+	ID      string `json:"ID"`
+	Content string `json:"content"`
+}
+
+// TYPE: DIRECT_MESSAGE_DELETE
+type DirectMessageDelete struct {
+	ID string `json:"ID"`
+}
+
 // TYPE: CHANGE_EVENT
 type ChangeEvent struct {
 	// UPDATE/DELETE/INSERT/UPDATE_IMAGE

@@ -1,10 +1,10 @@
 
 not all todos, just ones I plan on doing next
 
-- Fix socket connection
+- Socket auto reconnect
 - Socket token reauthentication loop
-- Room page component
-- Join/Leave channel socket events
-- Room messaging
+- Room channel selection
+- User dropdown menu
+- Confirmation modal
 
 - Fix cookie not being removed
