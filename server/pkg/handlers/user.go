@@ -193,7 +193,7 @@ func (h handler) GetUserPfp(ctx *fasthttp.RequestCtx) {
 
 	var pictureData pgtype.Bytea
 	var mime string
-	if err = conn.QueryRow(context.Background(), selectStmt.Name, uid).Scan(&pictureData, &mime); err != nil {
+	if err = conn.QueryRow(context.Background(), selectStmt.Name, user_id).Scan(&pictureData, &mime); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
