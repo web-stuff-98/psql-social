@@ -24,7 +24,7 @@ type RoomMessageUpdateData = {
 
 type ChangeEventData = {
   data: {
-    change_type: "UPDATE" | "DELETE" | "INSERT";
+    change_type: "UPDATE" | "DELETE" | "INSERT" | "UPDATE_IMAGE";
     entity: "ROOM" | "USER" | "BIO";
     data: object & { ID: string };
   };

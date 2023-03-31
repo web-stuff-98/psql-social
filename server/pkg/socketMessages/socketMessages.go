@@ -23,7 +23,7 @@ type RoomMessageDelete struct {
 
 // TYPE: CHANGE_EVENT
 type ChangeEvent struct {
-	// UPDATE/DELETE/INSERT
+	// UPDATE/DELETE/INSERT/UPDATE_IMAGE
 	Type   string `json:"change_type"`
 	Entity string `json:"entity"`
 	// "ID" should be included in Data

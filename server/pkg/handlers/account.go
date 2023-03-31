@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -16,6 +17,8 @@ import (
 	"github.com/nfnt/resize"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
+	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -37,7 +40,6 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -45,7 +47,6 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 
 	stmt, err := conn.Conn().Prepare(rctx, "login_stmt", "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1)")
 	if err != nil {
-		log.Println("ERR B:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -55,7 +56,6 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 		if err == pgx.ErrNoRows {
 			ResponseMessage(ctx, "Account not found", fasthttp.StatusNotFound)
 		} else {
-			log.Println("ERR C:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		}
 		return
@@ -225,8 +225,34 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 				return
 			}
 		}
+
+		msgData := make(map[string]interface{})
+		msgData["ID"] = uid
+		h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+			SubName:     fmt.Sprintf("bio:%v", uid),
+			MessageType: "CHANGE",
+			Data: socketmessages.ChangeEvent{
+				Type:   "DELETE",
+				Entity: "BIO",
+				Data:   msgData,
+			},
+		}
+
 		ResponseMessage(ctx, "Bio deleted successfully.", fasthttp.StatusOK)
 	} else {
+		msgData := make(map[string]interface{})
+		msgData["ID"] = uid
+		msgData["content"] = content
+		h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+			SubName:     fmt.Sprintf("bio:%v", uid),
+			MessageType: "CHANGE",
+			Data: socketmessages.ChangeEvent{
+				Type:   "UPDATE",
+				Entity: "BIO",
+				Data:   msgData,
+			},
+		}
+
 		if !exists {
 			insertStmt, err := conn.Conn().Prepare(rctx, "insert_bio_stmt", "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id")
 			if err != nil {
@@ -258,7 +284,6 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 			ctx.WriteString(id)
 			ctx.SetStatusCode(fasthttp.StatusOK)
 		}
-
 	}
 }
 
@@ -339,6 +364,18 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
+	}
+
+	msgData := make(map[string]interface{})
+	msgData["ID"] = uid
+	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+		SubName:     fmt.Sprintf("user:%v", uid),
+		MessageType: "CHANGE",
+		Data: socketmessages.ChangeEvent{
+			Type:   "UPDATE_IMAGE",
+			Entity: "USER",
+			Data:   msgData,
+		},
 	}
 
 	ResponseMessage(ctx, "Profile picture updated successfully", fasthttp.StatusOK)

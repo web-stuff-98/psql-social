@@ -8,6 +8,7 @@ import useSocketStore from "../store/SocketStore";
 import useUserStore from "../store/UserStore";
 import useRoomStore from "../store/RoomStore";
 import { isChangeEvent } from "../socketHandling/InterpretEvent";
+import { getUserPfp } from "../services/user";
 
 /*
   This composable is for intervals that run in the background,
@@ -30,7 +31,7 @@ export default function useBackgroundProcess({
   const roomStore = useRoomStore();
 
   // Watch for change events on rooms and users (bio watch is done from component)
-  function watchForChangeEvents(e: MessageEvent) {
+  async function watchForChangeEvents(e: MessageEvent) {
     const msg = JSON.parse(e.data);
     if (!msg) return;
     if (isChangeEvent(msg)) {
@@ -54,13 +55,24 @@ export default function useBackgroundProcess({
       }
       // Watch for user update events
       if (msg.data.entity === "USER") {
-        if (msg.data.change_type === "UPDATE") {
+        if (msg.data.change_type === "UPDATE_IMAGE") {
           const i = userStore.users.findIndex((u) => u.ID === msg.data.data.ID);
-          if (i !== -1)
-            userStore.users[i] = {
-              ...userStore.users[i],
-              ...(msg.data.data as Partial<IUser>),
-            };
+          if (i !== -1) {
+            // wait a bit to make sure the new image is retrieved
+            await new Promise<void>((r) => setTimeout(r, 50));
+            try {
+              URL.revokeObjectURL(userStore.users[i].pfp!);
+              const pfp: BlobPart | undefined = await new Promise((resolve) =>
+                getUserPfp(msg.data.data.ID)
+                  .catch(() => resolve(undefined))
+                  .then((pfp) => resolve(pfp))
+              );
+              if (pfp)
+                userStore.users[i].pfp = URL.createObjectURL(
+                  new Blob([pfp], { type: "image/jpeg" })
+                );
+            } catch (e) {}
+          }
         }
         if (msg.data.change_type === "DELETE") {
           const i = userStore.users.findIndex((u) => u.ID === msg.data.data.ID);

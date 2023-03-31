@@ -38,7 +38,6 @@ const useUserStore = defineStore("users", {
         );
         if (pfp)
           u.pfp = URL.createObjectURL(new Blob([pfp], { type: "image/jpeg" }));
-        // spread operator to make sure DOM updates, not sure if necessary
         this.$state.users = [
           ...this.$state.users.filter((u) => u.ID !== id),
           u,
