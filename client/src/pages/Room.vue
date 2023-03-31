@@ -3,6 +3,8 @@ import { IResMsg } from "../interfaces/GeneralInterfaces";
 import { onBeforeUnmount, onMounted, toRef, ref } from "vue";
 import { useRoute } from "vue-router";
 import { JoinRoom, LeaveRoom, RoomMessage } from "../socketHandling/OutEvents";
+import { isRoomMsg } from "../socketHandling/InterpretEvent";
+import { IRoomMessage } from "../interfaces/GeneralInterfaces";
 import MessageForm from "../components/shared/MessageForm.vue";
 import useSocketStore from "../store/SocketStore";
 import useRoomChannelStore from "../store/RoomChannelStore";
@@ -15,6 +17,8 @@ const route = useRoute();
 const roomId = toRef(route.params, "id");
 
 const resMsg = ref<IResMsg>({});
+
+const messages = ref<IRoomMessage[]>([]);
 
 onMounted(async () => {
   socketStore.send({
@@ -29,6 +33,8 @@ onMounted(async () => {
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
+
+  socketStore.socket?.addEventListener("message", handleMessages);
 });
 
 onBeforeUnmount(() => {
@@ -36,7 +42,18 @@ onBeforeUnmount(() => {
     event_type: "LEAVE_ROOM",
     data: { room_id: roomId.value },
   } as LeaveRoom);
+
+  socketStore.socket?.removeEventListener("message", handleMessages);
 });
+
+function handleMessages(e: MessageEvent) {
+  const msg = JSON.parse(e.data);
+  if (!msg) return;
+
+  if (isRoomMsg(msg)) {
+    messages.value = [...messages.value, msg];
+  }
+}
 
 function handleSubmit(values: any) {
   if (!roomChannelStore.current) return;
@@ -51,7 +68,7 @@ function handleSubmit(values: any) {
 <template>
   <div class="room">
     <div v-if="!resMsg.pen && !resMsg.err" class="messages">
-      {{ roomChannelStore.current }}
+      {{ messages }}
     </div>
     <div v-else class="res-msg-container">
       <ResMsg :resMsg="resMsg" />

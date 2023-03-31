@@ -22,6 +22,12 @@ export interface IRoomChannel {
   name: string;
   main: boolean;
 }
+export interface IRoomMessage {
+  ID: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+}
 export interface IMediaOptions {
   userMedia: {
     video: boolean;

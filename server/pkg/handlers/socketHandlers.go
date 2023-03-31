@@ -238,6 +238,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 			ID:        id,
 			Content:   content,
 			CreatedAt: time.Now().Format(time.RFC3339),
+			AuthorID:  uid,
 		},
 		MessageType: "ROOM_MESSAGE",
 	}
