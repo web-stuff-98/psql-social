@@ -1,6 +1,7 @@
 package socketServer
 
 import (
+	"encoding/json"
 	"log"
 	"sync"
 
@@ -10,12 +11,13 @@ import (
 /*
 This works differently to my last 2 projects.
 
+It can only send JSON messages, in this form:
+{ event_type, data }
+
 There are loads more channels because I am trying to avoid ranging
 through maps as often this time. It means more code and memory usage
 but should improve performance since ranging through a map is slower
 than accessing by key.
-
-Also using unidirectional channels for performance.
 
 I haven't tested performance but it's probably better than the previous
 versions I used in my other projects.
@@ -94,27 +96,27 @@ type ConnnectionData struct {
 }
 
 type UserMessageData struct {
-	Bytes       []byte
+	Data        interface{}
 	Uid         string
-	MessageType int
+	MessageType string
 }
 
 type UsersMessageData struct {
-	Bytes       []byte
+	Data        interface{}
 	Uids        []string
-	MessageType int
+	MessageType string
 }
 
 type ConnMessageData struct {
-	Bytes       []byte
+	Data        interface{}
 	Conn        *websocket.Conn
-	MessageType int
+	MessageType string
 }
 
 type ConnsMessageData struct {
-	Bytes       []byte
+	Data        interface{}
 	Conns       []*websocket.Conn
-	MessageType int
+	MessageType string
 }
 
 type RegisterUnregisterSubsConnWs struct {
@@ -129,41 +131,41 @@ type RegisterUnregisterSubsConnID struct {
 
 type SubscriptionMessageData struct {
 	SubName     string
-	MessageType int
-	Bytes       []byte
+	MessageType string
+	Data        interface{}
 }
 
 type SubscriptionsMessageData struct {
 	SubNames    []string
-	MessageType int
-	Bytes       []byte
+	MessageType string
+	Data        interface{}
 }
 
 type SubscriptionMessageDataExcludeByWss struct {
 	SubName      string
-	MessageType  int
-	Bytes        []byte
+	MessageType  string
+	Data         interface{}
 	ExcludeConns map[*websocket.Conn]struct{}
 }
 
 type SubscriptionMessageDataExcludeByIDs struct {
 	SubName     string
-	MessageType int
-	Bytes       []byte
+	MessageType string
+	Data        interface{}
 	ExcludeUids map[string]struct{}
 }
 
 type SubscriptionsMessageDataExcludeByWss struct {
 	SubNames     []string
-	MessageType  int
-	Bytes        []byte
+	MessageType  string
+	Data         interface{}
 	ExcludeConns map[*websocket.Conn]struct{}
 }
 
 type SubscriptionsMessageDataExcludeByIDs struct {
 	SubNames    []string
-	MessageType int
-	Bytes       []byte
+	MessageType string
+	Data        interface{}
 	ExcludeUids map[string]struct{}
 }
 
@@ -248,6 +250,17 @@ func runServer(ss *SocketServer) {
 	go getConnSubscriptions(ss)
 }
 
+func WriteMessage(t string, m interface{}, c *websocket.Conn) {
+	withType := make(map[string]interface{})
+	withType["event_type"] = t
+	withType["data"] = m
+	if b, err := json.Marshal(withType); err == nil {
+		c.WriteMessage(1, b)
+	} else {
+		log.Println("Error marshalling message:", err)
+	}
+}
+
 func connection(ss *SocketServer) {
 	var failCount uint8
 	for {
@@ -328,7 +341,7 @@ func sendUserData(ss *SocketServer) {
 		ss.ConnectionsByID.mutex.RLock()
 		// Lock mutex is used to prevent multiple messages being sent to the same connection concurrently
 		if conn, ok := ss.ConnectionsByID.data[data.Uid]; ok {
-			conn.WriteMessage(data.MessageType, data.Bytes)
+			WriteMessage(data.MessageType, data.Data, conn)
 		}
 		ss.ConnectionsByID.mutex.RUnlock()
 	}
@@ -354,7 +367,7 @@ func sendUsersData(ss *SocketServer) {
 		ss.ConnectionsByID.mutex.RLock()
 		for _, v := range data.Uids {
 			if conn, ok := ss.ConnectionsByID.data[v]; ok {
-				conn.WriteMessage(data.MessageType, data.Bytes)
+				WriteMessage(data.MessageType, data.Data, conn)
 			}
 		}
 		ss.ConnectionsByID.mutex.RUnlock()
@@ -381,7 +394,7 @@ func sendConnData(ss *SocketServer) {
 		// Lock mutex is used to prevent multiple messages being sent to the same connection concurrently
 		ss.ConnectionsByWs.mutex.Lock()
 		if _, ok := ss.ConnectionsByWs.data[data.Conn]; ok {
-			data.Conn.WriteMessage(data.MessageType, data.Bytes)
+			WriteMessage(data.MessageType, data.Data, data.Conn)
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
 	}
@@ -407,7 +420,7 @@ func sendConnsData(ss *SocketServer) {
 		ss.ConnectionsByWs.mutex.RLock()
 		for _, conn := range data.Conns {
 			if _, ok := ss.ConnectionsByWs.data[conn]; ok {
-				conn.WriteMessage(data.MessageType, data.Bytes)
+				WriteMessage(data.MessageType, data.Data, conn)
 			}
 		}
 		ss.ConnectionsByWs.mutex.RUnlock()
@@ -594,9 +607,7 @@ func sendSubData(ss *SocketServer) {
 		ss.Subscriptions.mutex.RLock()
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
-				if err := c.WriteMessage(data.MessageType, data.Bytes); err != nil {
-					log.Println(err)
-				}
+				WriteMessage(data.MessageType, data.Data, c)
 			}
 		}
 		ss.Subscriptions.mutex.RUnlock()
@@ -625,9 +636,7 @@ func sendSubsData(ss *SocketServer) {
 			if _, ok := ss.Subscriptions.data[v]; ok {
 				if conns, ok := ss.Subscriptions.data[v]; ok {
 					for c := range conns {
-						if err := c.WriteMessage(data.MessageType, data.Bytes); err != nil {
-							log.Println(err)
-						}
+						WriteMessage(data.MessageType, data.Data, c)
 					}
 				}
 			}
@@ -657,9 +666,7 @@ func sendDataToSubExcludeWss(ss *SocketServer) {
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
 				if _, ok := data.ExcludeConns[c]; !ok {
-					if err := c.WriteMessage(data.MessageType, data.Bytes); err != nil {
-						log.Println(err)
-					}
+					WriteMessage(data.MessageType, data.Data, c)
 				}
 			}
 		}
@@ -690,9 +697,7 @@ func sendDataToSubExcludeIDs(ss *SocketServer) {
 			for c := range conns {
 				if id, ok := ss.ConnectionsByWs.data[c]; ok {
 					if _, ok := data.ExcludeUids[id]; !ok {
-						if err := c.WriteMessage(data.MessageType, data.Bytes); err != nil {
-							log.Println(err)
-						}
+						WriteMessage(data.MessageType, data.Data, c)
 					}
 				}
 			}
@@ -726,9 +731,7 @@ func sendDataToSubsExcludeIDs(ss *SocketServer) {
 				for c := range conns {
 					if id, ok := ss.ConnectionsByWs.data[c]; ok {
 						if _, ok := data.ExcludeUids[id]; !ok {
-							if err := c.WriteMessage(data.MessageType, data.Bytes); err != nil {
-								log.Println(err)
-							}
+							WriteMessage(data.MessageType, data.Data, c)
 						}
 					}
 				}
@@ -761,9 +764,7 @@ func sendDataToSubsExcludeWss(ss *SocketServer) {
 			if conns, ok := ss.Subscriptions.data[subName]; ok {
 				for c := range conns {
 					if _, ok := data.ExcludeConns[c]; !ok {
-						if err := c.WriteMessage(data.MessageType, data.Bytes); err != nil {
-							log.Println(err)
-						}
+						WriteMessage(data.MessageType, data.Data, c)
 					}
 				}
 			}

@@ -1,5 +1,7 @@
 package responses
 
+/* ----------------- HTTP RESPONSES ----------------- */
+
 type User struct {
 	ID       string `json:"ID"`
 	Username string `json:"username"`
@@ -20,4 +22,10 @@ type RoomMessage struct {
 	Content   string `json:"content"`
 	AuthorID  string `json:"author_id"`
 	CreatedAt string `json:"created_at"`
+}
+
+type RoomChannelBase struct {
+	ID   string `json:"ID"`
+	Name string `json:"name"`
+	Main bool   `json:"main"`
 }

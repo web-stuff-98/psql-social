@@ -1,4 +1,4 @@
-import { IRoom } from "../interfaces/GeneralInterfaces";
+import { IRoom, IRoomChannel } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "./makeRequest";
 
 export const createRoom = ({
@@ -21,3 +21,6 @@ export const getRoom = (id: string): Promise<IRoom> =>
 
 export const deleteRoom = (id: string) =>
   makeRequest(`/api/room/${id}`, { method: "DELETE" });
+
+export const getRoomChannels = (id: string): Promise<IRoomChannel[] | null> =>
+  makeRequest(`/api/room/channels/${id}`);

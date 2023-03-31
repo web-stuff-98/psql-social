@@ -16,6 +16,7 @@ import {
   MdSensordoorRound,
   MdModeeditoutline,
   MdDeleteRound,
+  BiPaperclip,
 } from "oh-vue-icons/icons";
 
 addIcons(
@@ -29,7 +30,8 @@ addIcons(
   IoAddCircleSharp,
   MdSensordoorRound,
   MdModeeditoutline,
-  MdDeleteRound
+  MdDeleteRound,
+  BiPaperclip
 );
 
 const pinia = createPinia();

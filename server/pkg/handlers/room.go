@@ -498,3 +498,114 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	}
 }
+
+// Retrieves the channels for a room, excluding messages
+func (h handler) GetRoomChannels(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	room_id := ctx.UserValue("id").(string)
+	if room_id == "" {
+		ResponseMessage(ctx, "Provide a room ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	banExistsStmt, err := h.DB.Prepare(rctx, "get_room_channel_ban_exists_stmt", "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2)")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	banExists := false
+	if err := h.DB.QueryRow(rctx, banExistsStmt.Name, uid, room_id).Scan(&banExists); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	}
+	if banExists {
+		ResponseMessage(ctx, "You are banned from this room", fasthttp.StatusBadRequest)
+		return
+	}
+
+	selectRoomStmt, err := h.DB.Prepare(rctx, "get_room_channel_select_room_stmt", "SELECT private, author_id FROM rooms WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	var private bool
+	var author_id string
+	if err := h.DB.QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&private, &author_id); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "Room not found", fasthttp.StatusNotFound)
+		}
+		return
+	}
+
+	if private && uid != author_id {
+		membershipExists, err := h.DB.Prepare(rctx, "get_room_channel_member_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2)")
+		if err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+
+		isMember := false
+		if err := h.DB.QueryRow(rctx, membershipExists.Name, uid, room_id).Scan(&isMember); err != nil {
+			if err != pgx.ErrNoRows {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+		}
+		if !isMember {
+			ResponseMessage(ctx, "You are not a member of this room", fasthttp.StatusBadRequest)
+			return
+		}
+	}
+
+	selectChannelsStatement, err := h.DB.Prepare(rctx, "get_room_channels_select_stmt", "SELECT id,name,main FROM room_channels WHERE room_id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	channels := []responses.RoomChannelBase{}
+
+	if rows, err := h.DB.Query(rctx, selectChannelsStatement.Name, room_id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var id, name string
+			var main bool
+			if err = rows.Scan(&id, &name, &main); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			channels = append(channels, responses.RoomChannelBase{
+				ID:   id,
+				Name: name,
+				Main: main,
+			})
+		}
+
+		if data, err := json.Marshal(channels); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		} else {
+			ctx.Response.Header.Add("Content-Type", "application/json")
+			ctx.SetStatusCode(fasthttp.StatusOK)
+			ctx.Write(data)
+		}
+	}
+}

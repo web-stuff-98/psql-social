@@ -10,6 +10,7 @@ import (
 	"github.com/fasthttp/websocket"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
+	"github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	socketvalidation "github.com/web-stuff-98/psql-social/socketValidation"
 )
@@ -22,6 +23,8 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = joinRoom(data, h, uid, c)
 	case "LEAVE_ROOM":
 		err = leaveRoom(data, h, uid, c)
+	case "ROOM_MESSAGE":
+		err = roomMessage(data, h, uid, c)
 	default:
 		return fmt.Errorf("Unrecognized event type")
 	}
@@ -162,6 +165,76 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 				Conn:    c,
 			}
 		}
+	}
+
+	return nil
+}
+
+func roomMessage(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.RoomMessage{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	selectChannelStmt, err := h.DB.Prepare(ctx, "room_message_select_room_channel_stmt", "SELECT room_id,private,author_id FROM room_channels WHERE id = $1")
+	if err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		}
+		return fmt.Errorf("Channel not found")
+	}
+
+	var room_id, author_id string
+	var private bool
+	if err := h.DB.QueryRow(ctx, selectChannelStmt.Name, data.ChannelID).Scan(&room_id, &private, &author_id); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		}
+		return fmt.Errorf("Room not found")
+	}
+
+	banExists := false
+	if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&banExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if banExists {
+		return fmt.Errorf("You are banned from this room")
+	}
+
+	if private && author_id != uid {
+		var membershipExists bool
+		if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM memebers WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&membershipExists); err != nil {
+			return fmt.Errorf("Internal error")
+		}
+		if !membershipExists {
+			return fmt.Errorf("You are not a member of this room")
+		}
+	}
+
+	insertStmt, err := h.DB.Prepare(ctx, "insert_room_message_stmt", "INSERT INTO room_messages (content,author_id,room_channel_id) VALUES($1, $2, $2) RETURNING id")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	content := strings.TrimSpace(data.Content)
+
+	var id string
+	if err := h.DB.QueryRow(ctx, insertStmt.Name, content, uid, data.ChannelID).Scan(&id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+		SubName: fmt.Sprintf("channel:%v", data.ChannelID),
+		Data: socketMessages.RoomMessage{
+			ID:        id,
+			Content:   content,
+			CreatedAt: time.Now().Format(time.RFC3339),
+		},
+		MessageType: "ROOM_MESSAGE",
 	}
 
 	return nil

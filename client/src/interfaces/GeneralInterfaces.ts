@@ -17,6 +17,11 @@ export interface IRoom {
   is_private: boolean;
   created_at: string;
 }
+export interface IRoomChannel {
+  ID: string;
+  name: string;
+  main: boolean;
+}
 export interface IMediaOptions {
   userMedia: {
     video: boolean;
