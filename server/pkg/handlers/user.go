@@ -166,7 +166,7 @@ func (h handler) GetUserPfp(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
 		return

@@ -39,11 +39,16 @@ export default function useBackgroundProcess({
       if (msg.data.entity === "ROOM") {
         if (msg.data.change_type === "UPDATE") {
           const i = roomStore.rooms.findIndex((r) => r.ID === msg.data.data.ID);
-          if (i !== -1)
-            roomStore.rooms[i] = {
+          if (i !== -1) {
+            const newRoom = {
               ...roomStore.rooms[i],
               ...(msg.data.data as Partial<IRoom>),
             };
+            roomStore.rooms = [
+              ...roomStore.rooms.filter((r) => r.ID !== msg.data.data.ID),
+              newRoom,
+            ];
+          }
         }
         if (msg.data.change_type === "INSERT") {
           roomStore.addRoomsData([msg.data.data as IRoom]);
@@ -67,11 +72,24 @@ export default function useBackgroundProcess({
                   .catch(() => resolve(undefined))
                   .then((pfp) => resolve(pfp))
               );
-              if (pfp)
-                userStore.users[i].pfp = URL.createObjectURL(
-                  new Blob([pfp], { type: "image/jpeg" })
-                );
-            } catch (e) {}
+              if (pfp) {
+                const newUser = {
+                  ...userStore.users[i],
+                  pfp: URL.createObjectURL(
+                    new Blob([pfp], { type: "image/jpeg" })
+                  ),
+                };
+                userStore.users = [
+                  ...userStore.users.filter((u) => u.ID !== msg.data.data.ID),
+                  newUser,
+                ];
+              }
+            } catch (e) {
+              console.warn(
+                "Error retrieving image for user:",
+                msg.data.data.ID
+              );
+            }
           }
         }
         if (msg.data.change_type === "DELETE") {

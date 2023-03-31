@@ -16,15 +16,17 @@ import {
 import { IRoomMessage } from "../../interfaces/GeneralInterfaces";
 import MessageForm from "../../components/shared/MessageForm.vue";
 import useSocketStore from "../../store/SocketStore";
+import useRoomStore from "../../store/RoomStore";
+import useUserStore from "../../store/UserStore";
 import useRoomChannelStore from "../../store/RoomChannelStore";
 import ResMsg from "../../components/shared/ResMsg.vue";
 import RoomMessage from "../../components/shared/Message.vue";
 import Channel from "./Channel.vue";
-import useRoomStore from "../../store/RoomStore";
 
 const roomChannelStore = useRoomChannelStore();
 const roomStore = useRoomStore();
 const socketStore = useSocketStore();
+const userStore = useUserStore();
 
 const route = useRoute();
 const roomId = toRef(route.params, "id");
@@ -70,6 +72,7 @@ function handleMessages(e: MessageEvent) {
   if (!msg) return;
 
   if (isRoomMsg(msg)) {
+    userStore.cacheUser(msg.data.ID);
     messages.value = [...messages.value, msg.data];
   }
 
