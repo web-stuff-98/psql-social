@@ -32,7 +32,14 @@ func (h handler) GetUser(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	selectUserStmt, err := h.DB.Prepare(rctx, "get_user_select_stmt", "SELECT id,username,role FROM users WHERE id = $1")
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectUserStmt, err := conn.Conn().Prepare(rctx, "get_user_select_stmt", "SELECT id,username,role FROM users WHERE id = $1")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
@@ -83,7 +90,14 @@ func (h handler) GetUserByName(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	selectUserStmt, err := h.DB.Prepare(rctx, "get_user_by_name_select_stmt", "SELECT id FROM users WHERE LOWER(username) = LOWER($1)")
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectUserStmt, err := conn.Conn().Prepare(rctx, "get_user_by_name_select_stmt", "SELECT id FROM users WHERE LOWER(username) = LOWER($1)")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
@@ -120,7 +134,14 @@ func (h handler) GetUserBio(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	selectStmt, err := h.DB.Prepare(rctx, "get_user_bio_select_stmt", "SELECT content FROM bios WHERE user_id = $1")
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectStmt, err := conn.Conn().Prepare(rctx, "get_user_bio_select_stmt", "SELECT content FROM bios WHERE user_id = $1")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
@@ -157,7 +178,14 @@ func (h handler) GetUserPfp(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	selectStmt, err := h.DB.Prepare(rctx, "get_user_pfp_select_stmt", "SELECT picture_data,mime FROM profile_pictures WHERE user_id = $1")
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectStmt, err := conn.Conn().Prepare(rctx, "get_user_pfp_select_stmt", "SELECT picture_data,mime FROM profile_pictures WHERE user_id = $1")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return

@@ -30,3 +30,9 @@ export const validateRoomName = (name: string) => {
   if (name.length > 16) return "Maximum 16 characters";
   return true;
 };
+
+export const validateMessage = (msg: string) => {
+  if (!msg) return "Message is required";
+  if (msg.length > 200) return "Maximum 200 characters";
+  return true;
+};

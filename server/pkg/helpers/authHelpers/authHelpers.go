@@ -10,7 +10,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/valyala/fasthttp"
 )
@@ -84,7 +84,7 @@ func GenerateCookieAndSession(redisClient *redis.Client, ctx context.Context, ui
 	return cookie, nil
 }
 
-func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx context.Context, db *pgx.Conn) (uid string, sid string, err error) {
+func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx context.Context, db *pgxpool.Pool) (uid string, sid string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic in get user ID from session token helper function")
@@ -110,7 +110,7 @@ func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fasthttp.RequestCtx,
 	return val, sessionID, nil
 }
 
-func RefreshToken(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx context.Context, db *pgx.Conn) (*fasthttp.Cookie, error) {
+func RefreshToken(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx context.Context, db *pgxpool.Pool) (*fasthttp.Cookie, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic in refresh session token helper function")

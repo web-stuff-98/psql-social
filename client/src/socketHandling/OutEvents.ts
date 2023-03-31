@@ -21,12 +21,13 @@ export type DirectMessage = {
 export type DirectMessageUpdate = {
   event_type: "DIRECT_MESSAGE_UPDATE";
   data: {
+    msg_id: string;
     content: string;
   };
 };
 export type DirectMessageDelete = {
   event_type: "DIRECT_MESSAGE_DELETE";
-  data: { id: string };
+  data: { msg_id: string };
 };
 
 /* Room events */
@@ -38,17 +39,16 @@ export type RoomMessage = {
   };
 };
 export type RoomMessageUpdate = {
-  event_type: "ROOM_MESSAGE";
+  event_type: "ROOM_MESSAGE_UPDATE";
   data: {
+    msg_id: string;
     content: string;
-    channel_id: string;
   };
 };
 export type RoomMessageDelete = {
   event_type: "ROOM_MESSAGE_DELETE";
   data: {
-    id: string;
-    channel_id: string;
+    msg_id: string;
   };
 };
 export type JoinRoom = {

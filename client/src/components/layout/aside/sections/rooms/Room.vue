@@ -32,14 +32,14 @@ onBeforeUnmount(() => {
       <button name="edit room" type="button">
         <v-icon name="md-modeeditoutline" />
       </button>
-      <button name="delete room" type="button">
-        <v-icon name="md-delete-round" />
-      </button>
       <router-link :to="`/room/${rid}`">
         <button name="enter room" type="button">
           <v-icon name="md-sensordoor-round" />
         </button>
       </router-link>
+      <button class="delete-button" name="delete room" type="button">
+        <v-icon name="md-delete-round" />
+      </button>
     </div>
   </div>
 </template>
@@ -75,6 +75,9 @@ onBeforeUnmount(() => {
         width: var(--sm);
         height: var(--sm);
       }
+    }
+    .delete-button {
+      background: red;
     }
   }
 }

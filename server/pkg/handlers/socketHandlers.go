@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -27,6 +28,8 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = roomMessage(data, h, uid, c)
 	case "ROOM_MESSAGE_UPDATE":
 		err = roomMessageUpdate(data, h, uid, c)
+	case "ROOM_MESSAGE_DELETE":
+		err = roomMessageDelete(data, h, uid, c)
 	default:
 		return fmt.Errorf("Unrecognized event type")
 	}
@@ -60,7 +63,13 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	selectRoomExistsStmt, err := h.DB.Prepare(ctx, "join_room_select_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE id = $1)")
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectRoomExistsStmt, err := conn.Conn().Prepare(ctx, "join_room_select_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE id = $1)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -81,7 +90,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 		return fmt.Errorf("You are banned from this room")
 	}
 
-	selectRoomStmt, err := h.DB.Prepare(ctx, "join_room_select_room_stmt", "SELECT private,author_id FROM rooms WHERE id = $1")
+	selectRoomStmt, err := conn.Conn().Prepare(ctx, "join_room_select_room_stmt", "SELECT private,author_id FROM rooms WHERE id = $1")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -93,7 +102,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	}
 
 	if private && author_id != uid {
-		membershipExistsStmt, err := h.DB.Prepare(ctx, "join_room_select_room_membership_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE LOWER(user_id) = LOWER($1))")
+		membershipExistsStmt, err := conn.Conn().Prepare(ctx, "join_room_select_room_membership_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE LOWER(user_id) = LOWER($1))")
 		if err != nil {
 			return fmt.Errorf("Internal error")
 		}
@@ -107,7 +116,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 		}
 	}
 
-	selectChannelStmt, err := h.DB.Prepare(ctx, "join_room_select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
+	selectChannelStmt, err := conn.Conn().Prepare(ctx, "join_room_select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -139,7 +148,13 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	selectChannelStmt, err := h.DB.Prepare(ctx, "leave_room_select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectChannelStmt, err := conn.Conn().Prepare(ctx, "leave_room_select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -182,7 +197,13 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	selectChannelStmt, err := h.DB.Prepare(ctx, "room_message_select_room_channel_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectChannelStmt, err := conn.Conn().Prepare(ctx, "room_message_select_room_channel_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
 	if err != nil {
 		if err != pgx.ErrNoRows {
 			return fmt.Errorf("Internal error")
@@ -222,7 +243,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 		}
 	}
 
-	insertStmt, err := h.DB.Prepare(ctx, "insert_room_message_stmt", "INSERT INTO room_messages (content,author_id,room_channel_id) VALUES($1, $2, $3) RETURNING id")
+	insertStmt, err := conn.Conn().Prepare(ctx, "insert_room_message_stmt", "INSERT INTO room_messages (content,author_id,room_channel_id) VALUES($1, $2, $3) RETURNING id")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -258,8 +279,15 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	stmt, err := h.DB.Prepare(ctx, "room_message_update_stmt", "UPDATE room_messages SET content = $1 WHERE user_id = $2 AND id = $3")
+	conn, err := h.DB.Acquire(ctx)
 	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	stmt, err := conn.Conn().Prepare(ctx, "room_message_update_stmt", "UPDATE room_messages SET content = $1 WHERE author_id = $2 AND id = $3")
+	if err != nil {
+		log.Println("ERR A:", err)
 		return fmt.Errorf("Internal error")
 	}
 
@@ -267,6 +295,7 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 
 	if h.DB.QueryRow(ctx, stmt.Name, content, uid, data.MsgID); err != nil {
 		if err != pgx.ErrNoRows {
+			log.Println("ERR B:", err)
 			return fmt.Errorf("Internal error")
 		} else {
 			return fmt.Errorf("Message not found")
@@ -309,13 +338,21 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	stmt, err := h.DB.Prepare(ctx, "room_message_delete_stmt", "DELETE FROM room_messages WHERE user_id = $1 AND id = $2")
+	conn, err := h.DB.Acquire(ctx)
 	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	stmt, err := conn.Conn().Prepare(ctx, "room_message_delete_stmt", "DELETE FROM room_messages WHERE author_id = $1 AND id = $2")
+	if err != nil {
+		log.Println("ERR A:", err)
 		return fmt.Errorf("Internal error")
 	}
 
 	if h.DB.QueryRow(ctx, stmt.Name, uid, data.MsgID); err != nil {
 		if err != pgx.ErrNoRows {
+			log.Println("ERR B:", err)
 			return fmt.Errorf("Internal error")
 		} else {
 			return fmt.Errorf("Message not found")

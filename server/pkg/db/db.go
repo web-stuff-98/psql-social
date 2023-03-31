@@ -5,15 +5,16 @@ import (
 	"log"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Init() *pgx.Conn {
-	if conn, err := pgx.Connect(context.Background(), os.Getenv("DB_URL")); err != nil {
-		log.Fatalf("Unable to connect to database: %v\n", err)
+func Init() *pgxpool.Pool {
+	pool, err := pgxpool.New(context.Background(), os.Getenv("DB_URL"))
+	if err != nil {
+		log.Fatalln("Unable to create pool:", err)
 		return nil
 	} else {
-		log.Println("Connected to postgres")
-		return conn
+		log.Println("Created pool")
+		return pool
 	}
 }

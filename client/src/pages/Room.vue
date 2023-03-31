@@ -8,7 +8,11 @@ import {
   RoomMessage as RoomMessageEvent,
 } from "../socketHandling/OutEvents";
 import { getRoomChannel } from "../services/room";
-import { isRoomMsg } from "../socketHandling/InterpretEvent";
+import {
+  isRoomMsg,
+  isRoomMsgDelete,
+  isRoomMsgUpdate,
+} from "../socketHandling/InterpretEvent";
 import { IRoomMessage } from "../interfaces/GeneralInterfaces";
 import MessageForm from "../components/shared/MessageForm.vue";
 import useSocketStore from "../store/SocketStore";
@@ -60,6 +64,16 @@ function handleMessages(e: MessageEvent) {
 
   if (isRoomMsg(msg)) {
     messages.value = [...messages.value, msg.data];
+  }
+
+  if (isRoomMsgDelete(msg)) {
+    const i = messages.value.findIndex((m) => m.ID === msg.data.ID);
+    if (i !== -1) messages.value.splice(i, 1);
+  }
+
+  if (isRoomMsgUpdate(msg)) {
+    const i = messages.value.findIndex((m) => m.ID === msg.data.ID);
+    if (i !== -1) messages.value[i].content = msg.data.content;
   }
 }
 
