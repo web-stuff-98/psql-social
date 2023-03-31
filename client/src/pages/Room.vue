@@ -2,13 +2,19 @@
 import { IResMsg } from "../interfaces/GeneralInterfaces";
 import { onBeforeUnmount, onMounted, toRef, ref } from "vue";
 import { useRoute } from "vue-router";
-import { JoinRoom, LeaveRoom, RoomMessage } from "../socketHandling/OutEvents";
+import {
+  JoinRoom,
+  LeaveRoom,
+  RoomMessage as RoomMessageEvent,
+} from "../socketHandling/OutEvents";
+import { getRoomChannel } from "../services/room";
 import { isRoomMsg } from "../socketHandling/InterpretEvent";
 import { IRoomMessage } from "../interfaces/GeneralInterfaces";
 import MessageForm from "../components/shared/MessageForm.vue";
 import useSocketStore from "../store/SocketStore";
 import useRoomChannelStore from "../store/RoomChannelStore";
 import ResMsg from "../components/shared/ResMsg.vue";
+import RoomMessage from "../components/messages/RoomMessage.vue";
 
 const roomChannelStore = useRoomChannelStore();
 const socketStore = useSocketStore();
@@ -28,7 +34,9 @@ onMounted(async () => {
 
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    await roomChannelStore.getRoomChannels(roomId.value as string);
+    const main = await roomChannelStore.getRoomChannels(roomId.value as string);
+    const msgs = await getRoomChannel(main);
+    messages.value = msgs || [];
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
@@ -51,7 +59,7 @@ function handleMessages(e: MessageEvent) {
   if (!msg) return;
 
   if (isRoomMsg(msg)) {
-    messages.value = [...messages.value, msg];
+    messages.value = [...messages.value, msg.data];
   }
 }
 
@@ -61,14 +69,16 @@ function handleSubmit(values: any) {
   socketStore.send({
     event_type: "ROOM_MESSAGE",
     data: { content, channel_id: roomChannelStore.current },
-  } as RoomMessage);
+  } as RoomMessageEvent);
 }
 </script>
 
 <template>
   <div class="room">
     <div v-if="!resMsg.pen && !resMsg.err" class="messages">
-      {{ messages }}
+      <div class="list">
+        <RoomMessage :msg="msg" v-for="msg in messages" />
+      </div>
     </div>
     <div v-else class="res-msg-container">
       <ResMsg :resMsg="resMsg" />
@@ -103,6 +113,20 @@ function handleSubmit(values: any) {
     height: 100%;
     border: 2px solid var(--border-pale);
     border-radius: var(--border-radius-md);
+    position: relative;
+    overflow: hidden;
+    .list {
+      display: flex;
+      flex-direction: column;
+      padding: var(--gap-md);
+      gap: var(--gap-md);
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      left: 0;
+      top: 0;
+      overflow-y: auto;
+    }
   }
   .form-container {
     width: 100%;

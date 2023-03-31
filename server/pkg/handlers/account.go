@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/nfnt/resize"
 	"github.com/valyala/fasthttp"
@@ -298,8 +297,6 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 	}
 	pfpBytes := buf.Bytes()
 
-	pictureData := pgtype.Bytea{Bytes: pfpBytes, Status: pgtype.Present}
-
 	exists := false
 	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM profile_pictures WHERE user_id = $1);", uid).Scan(&exists)
 	if err != nil {
@@ -308,16 +305,16 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 	}
 
 	if exists {
-		if _, err := h.DB.Exec(rctx, "UPDATE profile_pictures SET picture_data = $1 WHERE user_id = $2;", pictureData, uid); err != nil {
+		if _, err := h.DB.Exec(rctx, "UPDATE profile_pictures SET picture_data = $1 WHERE user_id = $2;", pfpBytes, uid); err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
 	} else {
-		if _, err := h.DB.Exec(rctx, "INSERT INTO profile_pictures (user_id,picture_data) VALUES ($1,$2);", uid, pictureData); err != nil {
+		if _, err := h.DB.Exec(rctx, `INSERT INTO profile_pictures (user_id,picture_data,mime) VALUES ($1,$2,'image/jpeg');`, uid, pfpBytes); err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
 	}
 
-	ResponseMessage(ctx, "Profile picture updated successfully.", fasthttp.StatusOK)
+	ResponseMessage(ctx, "Profile picture updated successfully", fasthttp.StatusOK)
 }

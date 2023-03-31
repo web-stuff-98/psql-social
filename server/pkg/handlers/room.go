@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
@@ -473,7 +473,8 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 	messages := []responses.RoomMessage{}
 
 	for rows.Next() {
-		var id, content, author_id, created_at string
+		var id, content, author_id string
+		var created_at pgtype.Timestamptz
 
 		err = rows.Scan(&id, &content, &author_id, &created_at)
 
@@ -483,9 +484,10 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 		}
 
 		messages = append(messages, responses.RoomMessage{
-			ID:       id,
-			Content:  content,
-			AuthorID: author_id,
+			ID:        id,
+			Content:   content,
+			AuthorID:  author_id,
+			CreatedAt: created_at.Time.Format(time.RFC3339),
 		})
 	}
 

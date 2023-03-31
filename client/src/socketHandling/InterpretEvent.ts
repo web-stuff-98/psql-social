@@ -1,10 +1,12 @@
 /* Used to get types for data sent through the socket by the server */
 
 type RoomMessageData = {
-  ID: string;
-  content: string;
-  created_at: string;
-  author_id: string;
+  data: {
+    ID: string;
+    content: string;
+    created_at: string;
+    author_id: string;
+  };
 };
 
 export function isRoomMsg(object: any): object is RoomMessageData {

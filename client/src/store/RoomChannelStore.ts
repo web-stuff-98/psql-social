@@ -15,10 +15,15 @@ const useRoomChannelStore = defineStore("channels", {
       main: "",
     } as RoomChannelStore),
   actions: {
-    async getRoomChannels(id: string) {
+    async getRoomChannels(id: string): Promise<string> {
       const channels = await getRoomChannels(id);
       this.$state.channels = channels || [];
-      if (channels) this.$state.current = channels.find((c) => c.main)?.ID!;
+      if (channels) {
+        const main = channels.find((c) => c.main)?.ID!;
+        this.$state.current = main;
+        return main;
+      }
+      return "";
     },
   },
 });
