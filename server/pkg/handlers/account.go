@@ -36,7 +36,6 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	// Prepare the SQL statement once and reuse it
 	stmt, err := h.DB.Prepare(rctx, "login_stmt", "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1)")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
@@ -44,7 +43,6 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 	}
 
 	var id, hash string
-	// Execute the prepared statement with the parameter
 	if err := h.DB.QueryRow(rctx, stmt.Name, strings.TrimSpace(body.Username)).Scan(&id, &hash); err != nil {
 		if err == pgx.ErrNoRows {
 			ResponseMessage(ctx, "Account not found", fasthttp.StatusNotFound)
@@ -93,8 +91,14 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	existsStmt, err := h.DB.Prepare(rctx, "exists_stmt", "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	exists := false
-	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))", strings.TrimSpace(body.Username)).Scan(&exists); err != nil {
+	if err := h.DB.QueryRow(rctx, existsStmt.Name, strings.TrimSpace(body.Username)).Scan(&exists); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
@@ -110,7 +114,13 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
-		if err := h.DB.QueryRow(rctx, "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id;", body.Username, string(hash)).Scan(&id); err != nil {
+		insertStmt, err := h.DB.Prepare(rctx, "insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
+		if err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+
+		if err := h.DB.QueryRow(rctx, insertStmt.Name, body.Username, string(hash)).Scan(&id); err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -179,7 +189,6 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 
 	exists := false
 	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bios WHERE user_id = $1);", uid).Scan(&exists); err != nil {
-		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -187,7 +196,6 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 	if content == "" {
 		if exists {
 			if _, err := h.DB.Exec(rctx, "DELETE FROM bios WHERE user_id = $1;", uid); err != nil {
-				log.Println("ERR B:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -195,8 +203,13 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 	} else {
 		if !exists {
-			if err := h.DB.QueryRow(rctx, "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id;", content, uid).Scan(&id); err != nil {
-				log.Println("ERR C:", err)
+			insertStmt, err := h.DB.Prepare(rctx, "insert_stmt", "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id")
+			if err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			if err := h.DB.QueryRow(rctx, insertStmt.Name, content, uid).Scan(&id); err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -204,8 +217,13 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 			ctx.WriteString(id)
 			ctx.SetStatusCode(fasthttp.StatusCreated)
 		} else {
-			if err := h.DB.QueryRow(rctx, "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id;", content, uid).Scan(&id); err != nil {
-				log.Println("ERR D:", err)
+			updateStmt, err := h.DB.Prepare(rctx, "update_stmt", "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id")
+			if err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			if err := h.DB.QueryRow(rctx, updateStmt.Name, content, uid).Scan(&id); err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
