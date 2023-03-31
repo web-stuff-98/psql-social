@@ -22,12 +22,14 @@ export interface IRoomChannel {
   name: string;
   main: boolean;
 }
-export interface IRoomMessage {
+export interface IMessage {
   ID: string;
   content: string;
   created_at: string;
   author_id: string;
 }
+export interface IRoomMessage extends IMessage {}
+export interface IDirectMessage extends IMessage {}
 export interface IMediaOptions {
   userMedia: {
     video: boolean;

@@ -7,13 +7,19 @@ import useAuthStore from "../store/AuthStore";
 import useSocketStore from "../store/SocketStore";
 import useUserStore from "../store/UserStore";
 import useRoomStore from "../store/RoomStore";
-import { isChangeEvent } from "../socketHandling/InterpretEvent";
+import {
+  isChangeEvent,
+  isDirectMsg,
+  isDirectMsgDelete,
+  isDirectMsgUpdate,
+} from "../socketHandling/InterpretEvent";
 import { getUserPfp } from "../services/user";
+import useInboxStore from "../store/InboxStore";
 
-/*
-  This composable is for intervals that run in the background,
-  and socket event listeners that need to run constantly
-*/
+/**
+ * This composable is for intervals that run in the background
+ * and socket event listeners that aren't tied to components
+ */
 
 export default function useBackgroundProcess({
   resMsg,
@@ -29,8 +35,8 @@ export default function useBackgroundProcess({
   const socketStore = useSocketStore();
   const userStore = useUserStore();
   const roomStore = useRoomStore();
+  const inboxStore = useInboxStore();
 
-  // Watch for change events on rooms and users (bio watch is done from component)
   async function watchForChangeEvents(e: MessageEvent) {
     const msg = JSON.parse(e.data);
     if (!msg) return;
@@ -101,6 +107,29 @@ export default function useBackgroundProcess({
           if (i !== -1) userStore.users.splice(i, 1);
         }
       }
+    }
+  }
+
+  function watchForDirectMessages(e: MessageEvent) {
+    const msg = JSON.parse(e.data);
+    if (!msg) return;
+    if (isDirectMsg(msg)) {
+      inboxStore.messages = [...inboxStore.messages, msg.data];
+    }
+    if (isDirectMsgUpdate(msg)) {
+      const i = inboxStore.messages.findIndex((m) => m.ID === msg.data.ID);
+      if (i !== -1) {
+        const newMsg = { ...inboxStore.messages[i], ...msg.data };
+        inboxStore.messages = [
+          ...inboxStore.messages.filter((m) => m.ID !== msg.data.ID),
+          newMsg,
+        ];
+      }
+    }
+    if (isDirectMsgDelete(msg)) {
+      inboxStore.messages = [
+        ...inboxStore.messages.filter((m) => m.ID !== msg.data.ID),
+      ];
     }
   }
 
@@ -201,6 +230,7 @@ export default function useBackgroundProcess({
 
   watchEffect(() => {
     socketStore.socket?.addEventListener("message", watchForChangeEvents);
+    socketStore.socket?.addEventListener("message", watchForDirectMessages);
   });
 
   onBeforeUnmount(() => {
@@ -210,6 +240,7 @@ export default function useBackgroundProcess({
     clearInterval(clearRoomCacheInterval.value);
 
     socketStore.socket?.removeEventListener("message", watchForChangeEvents);
+    socketStore.socket?.removeEventListener("message", watchForDirectMessages);
   });
 
   return undefined;
