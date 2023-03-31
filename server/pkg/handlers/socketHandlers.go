@@ -749,11 +749,11 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
-	var friendRequestExists bool
-	if err = h.DB.QueryRow(ctx, selectInvitationExistsStmt.Name, uid, data.Uid, data.RoomID).Scan(&selectInvitationExistsStmt); err != nil {
+	var invitationExists bool
+	if err = h.DB.QueryRow(ctx, selectInvitationExistsStmt.Name, uid, data.Uid, data.RoomID).Scan(&invitationExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
-	if friendRequestExists {
+	if invitationExists {
 		return fmt.Errorf("You have already sent an invitation to this user")
 	}
 
