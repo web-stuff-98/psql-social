@@ -563,8 +563,7 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 
 func friendRequest(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
 	data := &socketvalidation.FriendRequest{}
-	var err error
-	if err = UnmarshalMap(inData, data); err != nil {
+	if err := UnmarshalMap(inData, data); err != nil {
 		return err
 	}
 
@@ -577,16 +576,16 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	}
 	defer conn.Release()
 
-	selectFriendRequestExistsStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_friends_stmt", "SELECT EXISTS(SELECT 1 FROM friend_requests WHERE friender = $1 AND friended = $2 OR (friender = $2 AND friended = $1))")
+	selectFriendRequestExistsStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_friends_stmt", "SELECT EXISTS(SELECT 1 FROM friend_requests WHERE (friender = $1 AND friended = $2) OR (friender = $2 AND friended = $1))")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	var friendRequestExists bool
-	if err = h.DB.QueryRow(ctx, selectFriendRequestExistsStmt.Name, data.Uid, uid).Scan(&selectFriendRequestExistsStmt); err != nil {
+	if err = h.DB.QueryRow(ctx, selectFriendRequestExistsStmt.Name, uid, data.Uid).Scan(&friendRequestExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if friendRequestExists {
-		return fmt.Errorf("You have already sent or recieved a friend request from this user")
+		return fmt.Errorf("You have already sent or received a friend request from this user")
 	}
 
 	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
@@ -595,7 +594,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	}
 
 	var blockedExists bool
-	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blockedExists); err != nil {
+	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, data.Uid, uid).Scan(&blockedExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blockedExists {
