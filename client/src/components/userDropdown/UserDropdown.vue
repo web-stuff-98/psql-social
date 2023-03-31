@@ -7,6 +7,10 @@ import ResMsg from "../shared/ResMsg.vue";
 import InviteToRoomCard from "./InviteToRoomCard.vue";
 import useSocketStore from "../../store/SocketStore";
 import useAuthStore from "../../store/AuthStore";
+import { Field, Form } from "vee-validate";
+import { validateMessage } from "../../validators/validators";
+import ErrorMessage from "../shared/ErrorMessage.vue";
+import { DirectMessage } from "../../socketHandling/OutEvents";
 
 enum EUserdropdownMenuSection {
   "MENU" = "Menu",
@@ -109,17 +113,15 @@ function callClicked() {
 }
 
 const msgInputRef = ref<HTMLElement | null>();
-const msgInput = ref("");
-function handleMsgInput(e: Event) {
-  const target = e.target as HTMLInputElement;
-  if (!target || !target.value || target.value.length > 200) return;
-  msgInput.value = target.value;
-}
-function submitDirectMessage() {
-  if (msgInput.value == "" || msgInput.value.length > 200) return;
-  // @ts-ignore
+function submitDirectMessage(values: any) {
+  //@ts-ignore
   msgInputRef.value = "";
-  msgInput.value = "";
+  socketStore.send({
+    event_type: "DIRECT_MESSAGE",
+    data: {
+      content: values.content,
+    },
+  } as DirectMessage);
   userdropdownStore.open = false;
 }
 </script>
@@ -143,16 +145,23 @@ function submitDirectMessage() {
       <button v-if="userdropdownStore.roomId" @click="banClicked">Ban</button>
     </div>
     <!-- Direct message section -->
-    <form
-      @submit.prevent="submitDirectMessage"
+    <Form
+      @submit="submitDirectMessage"
       v-if="section === EUserdropdownMenuSection.DIRECT_MESSAGE"
       class="direct-message"
     >
-      <input maxlength="300" @input="handleMsgInput" ref="msgInputRef" />
-      <button type="submit">
-        <v-icon name="io-send" />
-      </button>
-    </form>
+      <div class="hor">
+        <Field
+          name="content"
+          @input="validateMessage as any"
+          ref="msgInputRef"
+        />
+        <button type="submit">
+          <v-icon name="io-send" />
+        </button>
+      </div>
+      <ErrorMessage name="content" />
+    </Form>
     <!-- Invite to room section -->
     <div
       v-if="section === EUserdropdownMenuSection.INVITE_TO_ROOM"
@@ -201,19 +210,25 @@ function submitDirectMessage() {
   }
   .direct-message {
     display: flex;
-    gap: 2px;
+    flex-direction: column;
     align-items: center;
-    width: 100%;
-    input {
-      min-width: calc(100% - 1.5rem);
-    }
-    button {
-      padding: 0;
+    justify-content: center;
+    .hor {
       display: flex;
-      border: none;
-      box-shadow: none;
-      background: none;
-      width: 2rem;
+      gap: 2px;
+      align-items: center;
+      width: 100%;
+      input {
+        min-width: calc(100% - 1.5rem);
+      }
+      button {
+        padding: 0;
+        display: flex;
+        border: none;
+        box-shadow: none;
+        background: none;
+        width: 2rem;
+      }
     }
   }
   .invite-to-room {
