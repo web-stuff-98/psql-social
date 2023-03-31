@@ -273,10 +273,6 @@ func connection(ss *SocketServer) {
 			ss.ConnectionsByID.mutex.Unlock()
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
-
-		ss.ConnectionSubscriptions.mutex.Lock()
-		ss.ConnectionSubscriptions.data[data.Conn] = make(map[string]struct{})
-		ss.ConnectionSubscriptions.mutex.Unlock()
 	}
 }
 
@@ -446,7 +442,13 @@ func joinSubsByWs(ss *SocketServer) {
 		ss.Subscriptions.mutex.Unlock()
 
 		ss.ConnectionSubscriptions.mutex.Lock()
-		ss.ConnectionSubscriptions.data[data.Conn][data.SubName] = struct{}{}
+		if _, ok := ss.ConnectionSubscriptions.data[data.Conn]; ok {
+			ss.ConnectionSubscriptions.data[data.Conn][data.SubName] = struct{}{}
+		} else {
+			subs := make(map[string]struct{})
+			subs[data.SubName] = struct{}{}
+			ss.ConnectionSubscriptions.data[data.Conn] = subs
+		}
 		ss.ConnectionSubscriptions.mutex.Unlock()
 	}
 }
@@ -480,7 +482,13 @@ func joinSubsByID(ss *SocketServer) {
 			}
 
 			ss.ConnectionSubscriptions.mutex.Lock()
-			ss.ConnectionSubscriptions.data[conn][data.SubName] = struct{}{}
+			if _, ok := ss.ConnectionSubscriptions.data[conn]; ok {
+				ss.ConnectionSubscriptions.data[conn][data.SubName] = struct{}{}
+			} else {
+				subs := make(map[string]struct{})
+				subs[data.SubName] = struct{}{}
+				ss.ConnectionSubscriptions.data[conn] = subs
+			}
 			ss.ConnectionSubscriptions.mutex.Unlock()
 		} else {
 			log.Println("Could not register user ID to subscription - connection information not found in memory")

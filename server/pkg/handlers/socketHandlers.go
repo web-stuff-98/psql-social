@@ -30,16 +30,16 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 }
 
 func UnmarshalMap(m map[string]interface{}, s interface{}) error {
-	v := validator.New()
-	if err := v.Struct(s); err != nil {
-		return fmt.Errorf("Bad request")
-	}
 	b, err := json.Marshal(m)
 	if err != nil {
 		return fmt.Errorf("Bad request")
 	}
 	err = json.Unmarshal(b, s)
 	if err != nil {
+		return fmt.Errorf("Bad request")
+	}
+	v := validator.New()
+	if err := v.Struct(s); err != nil {
 		return fmt.Errorf("Bad request")
 	}
 	return nil
@@ -55,7 +55,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	selectRoomExistsStmt, err := h.DB.Prepare(ctx, "join_room_select_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(id) = LOWER($1))")
+	selectRoomExistsStmt, err := h.DB.Prepare(ctx, "join_room_select_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE id = $1)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -69,7 +69,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	}
 
 	banExists := false
-	if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE LOWER(user_id) = LOWER($1));", uid).Scan(&banExists); err != nil {
+	if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1);", uid).Scan(&banExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if banExists {
