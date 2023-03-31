@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -184,7 +183,6 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	selectChannelStmt, err := h.DB.Prepare(ctx, "room_message_select_room_channel_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
 	if err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR A:", err)
 			return fmt.Errorf("Internal error")
 		}
 		return fmt.Errorf("Channel not found")
@@ -193,7 +191,6 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	var room_id string
 	if err = h.DB.QueryRow(ctx, selectChannelStmt.Name, data.ChannelID).Scan(&room_id); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR B:", err)
 			return fmt.Errorf("Internal error")
 		}
 		return fmt.Errorf("Room not found")
@@ -201,7 +198,6 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 
 	banExists := false
 	if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&banExists); err != nil {
-		log.Println("ERR C:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if banExists {
@@ -217,7 +213,6 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	if private && author_id != uid {
 		var membershipExists bool
 		if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&membershipExists); err != nil {
-			log.Println("ERR D:", err)
 			return fmt.Errorf("Internal error")
 		}
 		if !membershipExists {
@@ -227,7 +222,6 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 
 	insertStmt, err := h.DB.Prepare(ctx, "insert_room_message_stmt", "INSERT INTO room_messages (content,author_id,room_channel_id) VALUES($1, $2, $3) RETURNING id")
 	if err != nil {
-		log.Println("ERR E:", err)
 		return fmt.Errorf("Internal error")
 	}
 
@@ -235,7 +229,6 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 
 	var id string
 	if err := h.DB.QueryRow(ctx, insertStmt.Name, content, uid, data.ChannelID).Scan(&id); err != nil {
-		log.Println("ERR F:", err)
 		return fmt.Errorf("Internal error")
 	}
 
