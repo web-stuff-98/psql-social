@@ -46,7 +46,7 @@ func (h handler) GetUser(ctx *fasthttp.RequestCtx) {
 	}
 
 	var id, username, role string
-	if err := h.DB.QueryRow(rctx, selectUserStmt.Name, user_id).Scan(&id, &username, &role); err != nil {
+	if err := conn.QueryRow(rctx, selectUserStmt.Name, user_id).Scan(&id, &username, &role); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -104,7 +104,7 @@ func (h handler) GetUserByName(ctx *fasthttp.RequestCtx) {
 	}
 
 	var id string
-	if err := h.DB.QueryRow(rctx, selectUserStmt.Name, strings.TrimSpace(body.Username)).Scan(&id); err != nil {
+	if err := conn.QueryRow(rctx, selectUserStmt.Name, strings.TrimSpace(body.Username)).Scan(&id); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -148,7 +148,7 @@ func (h handler) GetUserBio(ctx *fasthttp.RequestCtx) {
 	}
 
 	var content string
-	if err := h.DB.QueryRow(rctx, selectStmt.Name, user_id).Scan(&content); err != nil {
+	if err := conn.QueryRow(rctx, selectStmt.Name, user_id).Scan(&content); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -193,7 +193,7 @@ func (h handler) GetUserPfp(ctx *fasthttp.RequestCtx) {
 
 	var pictureData pgtype.Bytea
 	var mime string
-	if err = h.DB.QueryRow(context.Background(), selectStmt.Name, uid).Scan(&pictureData, &mime); err != nil {
+	if err = conn.QueryRow(context.Background(), selectStmt.Name, uid).Scan(&pictureData, &mime); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {

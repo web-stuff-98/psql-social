@@ -75,7 +75,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	}
 
 	roomExists := false
-	if err = h.DB.QueryRow(ctx, selectRoomExistsStmt.Name, data.RoomID).Scan(&roomExists); err != nil {
+	if err = conn.QueryRow(ctx, selectRoomExistsStmt.Name, data.RoomID).Scan(&roomExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if !roomExists {
@@ -97,7 +97,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 
 	var private bool
 	var author_id string
-	if err = h.DB.QueryRow(ctx, selectRoomStmt.Name, data.RoomID).Scan(&private, &author_id); err != nil {
+	if err = conn.QueryRow(ctx, selectRoomStmt.Name, data.RoomID).Scan(&private, &author_id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
@@ -108,7 +108,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 		}
 
 		membershipExists := false
-		if err = h.DB.QueryRow(ctx, membershipExistsStmt.Name, uid).Scan(&membershipExists); err != nil {
+		if err = conn.QueryRow(ctx, membershipExistsStmt.Name, uid).Scan(&membershipExists); err != nil {
 			return fmt.Errorf("Internal error")
 		}
 		if !membershipExists {
@@ -122,7 +122,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	}
 
 	var mainChannelId, mainChannelName string
-	if err = h.DB.QueryRow(ctx, selectChannelStmt.Name, data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
+	if err = conn.QueryRow(ctx, selectChannelStmt.Name, data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
 		if err != pgx.ErrNoRows {
 			return fmt.Errorf("Internal error")
 		} else {
@@ -160,7 +160,7 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 	}
 
 	var mainChannelId, mainChannelName string
-	if err = h.DB.QueryRow(ctx, selectChannelStmt.Name, data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
+	if err = conn.QueryRow(ctx, selectChannelStmt.Name, data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
 		if err != pgx.ErrNoRows {
 			return fmt.Errorf("Internal error")
 		} else {
@@ -212,7 +212,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	}
 
 	var room_id string
-	if err = h.DB.QueryRow(ctx, selectChannelStmt.Name, data.ChannelID).Scan(&room_id); err != nil {
+	if err = conn.QueryRow(ctx, selectChannelStmt.Name, data.ChannelID).Scan(&room_id); err != nil {
 		if err != pgx.ErrNoRows {
 			return fmt.Errorf("Internal error")
 		}
@@ -251,7 +251,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	content := strings.TrimSpace(data.Content)
 
 	var id string
-	if err := h.DB.QueryRow(ctx, insertStmt.Name, content, uid, data.ChannelID).Scan(&id); err != nil {
+	if err := conn.QueryRow(ctx, insertStmt.Name, content, uid, data.ChannelID).Scan(&id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
@@ -293,7 +293,7 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 
 	content := strings.TrimSpace(data.Content)
 
-	if h.DB.QueryRow(ctx, stmt.Name, content, uid, data.MsgID); err != nil {
+	if _, err := conn.Exec(ctx, stmt.Name, content, uid, data.MsgID); err != nil {
 		if err != pgx.ErrNoRows {
 			log.Println("ERR B:", err)
 			return fmt.Errorf("Internal error")
@@ -350,7 +350,7 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 		return fmt.Errorf("Internal error")
 	}
 
-	if h.DB.QueryRow(ctx, stmt.Name, uid, data.MsgID); err != nil {
+	if _, err = conn.Exec(ctx, stmt.Name, uid, data.MsgID); err != nil {
 		if err != pgx.ErrNoRows {
 			log.Println("ERR B:", err)
 			return fmt.Errorf("Internal error")

@@ -37,6 +37,7 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
+		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -44,15 +45,17 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 
 	stmt, err := conn.Conn().Prepare(rctx, "login_stmt", "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1)")
 	if err != nil {
+		log.Println("ERR B:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 
 	var id, hash string
-	if err := h.DB.QueryRow(rctx, stmt.Name, strings.TrimSpace(body.Username)).Scan(&id, &hash); err != nil {
+	if err := conn.QueryRow(rctx, stmt.Name, strings.TrimSpace(body.Username)).Scan(&id, &hash); err != nil {
 		if err == pgx.ErrNoRows {
 			ResponseMessage(ctx, "Account not found", fasthttp.StatusNotFound)
 		} else {
+			log.Println("ERR C:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		}
 		return
@@ -62,6 +65,7 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 		if err == bcrypt.ErrMismatchedHashAndPassword {
 			ResponseMessage(ctx, "Invalid credentials", fasthttp.StatusUnauthorized)
 		} else {
+			log.Println("ERR D:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		}
 		return
@@ -111,7 +115,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	}
 
 	exists := false
-	if err := h.DB.QueryRow(rctx, existsStmt.Name, strings.TrimSpace(body.Username)).Scan(&exists); err != nil {
+	if err := conn.QueryRow(rctx, existsStmt.Name, strings.TrimSpace(body.Username)).Scan(&exists); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
@@ -133,7 +137,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 			return
 		}
 
-		if err := h.DB.QueryRow(rctx, insertStmt.Name, body.Username, string(hash)).Scan(&id); err != nil {
+		if err := conn.QueryRow(rctx, insertStmt.Name, body.Username, string(hash)).Scan(&id); err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -230,7 +234,7 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 				return
 			}
 
-			err = h.DB.QueryRow(rctx, insertStmt.Name, content, uid).Scan(&id)
+			err = conn.QueryRow(rctx, insertStmt.Name, content, uid).Scan(&id)
 			if err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
@@ -245,7 +249,7 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 				return
 			}
 
-			err = h.DB.QueryRow(rctx, updateStmt.Name, content, uid).Scan(&id)
+			err = conn.QueryRow(rctx, updateStmt.Name, content, uid).Scan(&id)
 			if err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
