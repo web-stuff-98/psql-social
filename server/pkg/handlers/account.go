@@ -300,13 +300,25 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 			return
 		}
 		if !exists {
-			if _, err := h.DB.Exec(rctx, "INSERT INTO profile_pictures (user_id, picture_data, mime) VALUES ($1, $2, $3) RETURNING id;", uid, pictureData.Bytes, mime); err != nil {
+			insertStmt, err := h.DB.Prepare(rctx, "insert_stmt", "INSERT INTO profile_pictures (user_id, picture_data, mime) VALUES ($1, $2, $3) RETURNING id")
+			if err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			if _, err := h.DB.Exec(rctx, insertStmt.Name, uid, pictureData.Bytes, mime); err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
 			ResponseMessage(ctx, "Pfp created", fasthttp.StatusCreated)
 		} else {
-			if _, err := h.DB.Exec(rctx, "UPDATE profile_pictures SET picture_data = $1, mime = $2 WHERE user_id = $3;", pictureData.Bytes, mime, uid); err != nil {
+			updateStmt, err := h.DB.Prepare(rctx, "update_stmt", "UPDATE profile_pictures SET picture_data = $1, mime = $2 WHERE user_id = $3")
+			if err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			if _, err := h.DB.Exec(rctx, updateStmt.Name, pictureData.Bytes, mime, uid); err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}

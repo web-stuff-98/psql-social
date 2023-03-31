@@ -39,8 +39,14 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 
 	name := strings.TrimSpace(body.Name)
 
+	existsStmt, err := h.DB.Prepare(rctx, "exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(name) = LOWER($1))")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	exists := false
-	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(name) = LOWER($1));", name).Scan(&exists); err != nil {
+	if err := h.DB.QueryRow(rctx, existsStmt.Name, name).Scan(&exists); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -49,13 +55,25 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	var id string
-	if err := h.DB.QueryRow(rctx, "INSERT INTO rooms (name, author_id, private) VALUES ($1, $2, $3) RETURNING id;", name, uid, body.Private).Scan(&id); err != nil {
+	insertRoomStmt, err := h.DB.Prepare(rctx, "insert_room_stmt", "INSERT INTO rooms (name, author_id, private) VALUES ($1, $2, $3) RETURNING id")
+	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 
-	if _, err := h.DB.Exec(rctx, "INSERT INTO room_channels (name, main, room_id) VALUES ($1, $2, $3);", "Main channel", true, id); err != nil {
+	var id string
+	if err := h.DB.QueryRow(rctx, insertRoomStmt.Name, name, uid, body.Private).Scan(&id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	insertChannelStmt, err := h.DB.Prepare(rctx, "insert_channel_stmt", "INSERT INTO room_channels (name, main, room_id) VALUES ($1, $2, $3)")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if _, err := h.DB.Exec(rctx, insertChannelStmt.Name, "Main channel", true, id); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -92,8 +110,14 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	selectStmt, err := h.DB.Prepare(rctx, "select_stmt", "SELECT author_id FROM rooms WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	var author_id string
-	if err := h.DB.QueryRow(rctx, "SELECT author_id FROM rooms WHERE id = $1;", room_id).Scan(&author_id); err != nil {
+	if err := h.DB.QueryRow(rctx, selectStmt.Name, room_id).Scan(&author_id); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -107,8 +131,14 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	updateStmt, err := h.DB.Prepare(rctx, "update_stmt", "UPDATE rooms SET name = $1 WHERE id = $2 RETURNING id")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	name := strings.TrimSpace(body.Name)
-	if err := h.DB.QueryRow(rctx, "UPDATE rooms SET name = $1 WHERE id = $2 RETURNING id;", name, room_id).Scan(); err != nil {
+	if err := h.DB.QueryRow(rctx, updateStmt.Name, name, room_id).Scan(); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -132,8 +162,14 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	existsStmt, err := h.DB.Prepare(rctx, "exists_stmt", "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2)")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	banExists := false
-	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&banExists); err != nil {
+	if err := h.DB.QueryRow(rctx, existsStmt.Name, uid, room_id).Scan(&banExists); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
@@ -144,9 +180,15 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	selectStmt, err := h.DB.Prepare(rctx, "select_stmt", "SELECT id,name,author_id,private FROM rooms WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	var id, name, author_id string
 	var private bool
-	if err := h.DB.QueryRow(rctx, "SELECT id,name,author_id,private FROM rooms WHERE id = $1;", room_id).Scan(&id, &name, &author_id, &private); err != nil {
+	if err := h.DB.QueryRow(rctx, selectStmt.Name, room_id).Scan(&id, &name, &author_id, &private); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -157,7 +199,13 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 
 	if private && uid != author_id {
 		isMember := false
-		if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&isMember); err != nil {
+		memberStmt, err := h.DB.Prepare(rctx, "member_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2)")
+		if err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+
+		if err := h.DB.QueryRow(rctx, memberStmt.Name, uid, room_id).Scan(&isMember); err != nil {
 			if err != pgx.ErrNoRows {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
@@ -304,7 +352,13 @@ func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if _, err := h.DB.Exec(rctx, "DELETE FROM rooms WHERE room_id = $1 AND author_id = $2", room_id, uid); err != nil {
+	deleteStmt, err := h.DB.Prepare(rctx, "delete_stmt", "DELETE FROM rooms WHERE room_id = $1 AND author_id = $2")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if _, err := h.DB.Exec(rctx, deleteStmt.Name, room_id, uid); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
@@ -332,8 +386,14 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	selectStmt, err := h.DB.Prepare(rctx, "select_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	var room_id string
-	if err := h.DB.QueryRow(rctx, "SELECT room_id FROM room_channels WHERE id = $1;", room_channel_id).Scan(&room_id); err != nil {
+	if err := h.DB.QueryRow(rctx, selectStmt.Name, room_channel_id).Scan(&room_id); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -342,8 +402,14 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	banExistsStmt, err := h.DB.Prepare(rctx, "ban_exists_stmt", "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2)")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	banExists := false
-	if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&banExists); err != nil {
+	if err := h.DB.QueryRow(rctx, banExistsStmt.Name, uid, room_id).Scan(&banExists); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
@@ -354,9 +420,15 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	selectRoomStmt, err := h.DB.Prepare(rctx, "select_room_stmt", "SELECT private, author_id FROM rooms WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
 	var private bool
 	var author_id string
-	if err := h.DB.QueryRow(rctx, "SELECT private, author_id FROM rooms WHERE id = $1;", room_id).Scan(&private, &author_id); err != nil {
+	if err := h.DB.QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&private, &author_id); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
@@ -366,8 +438,14 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 	}
 
 	if private && uid != author_id {
+		membershipExists, err := h.DB.Prepare(rctx, "member_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2)")
+		if err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+
 		isMember := false
-		if err := h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&isMember); err != nil {
+		if err := h.DB.QueryRow(rctx, membershipExists.Name, uid, room_id).Scan(&isMember); err != nil {
 			if err != pgx.ErrNoRows {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
@@ -379,7 +457,13 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	rows, err := h.DB.Query(rctx, "SELECT id,content,author_id,created_at FROM room_messages WHERE room_channel_id = $1 ORDER BY created_at DESC LIMIT 50;", room_channel_id)
+	selectChannelStmt, err := h.DB.Prepare(rctx, "channel_stmt", "SELECT id,content,author_id,created_at FROM room_messages WHERE room_channel_id = $1 ORDER BY created_at DESC LIMIT 50")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	rows, err := h.DB.Query(rctx, selectChannelStmt.Name, room_channel_id)
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
