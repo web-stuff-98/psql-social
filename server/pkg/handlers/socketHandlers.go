@@ -55,8 +55,13 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	selectRoomExistsStmt, err := h.DB.Prepare(ctx, "select_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(id) = LOWER($1))")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
 	roomExists := false
-	if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(id) = LOWER($1));", data.RoomID).Scan(&roomExists); err != nil {
+	if err = h.DB.QueryRow(ctx, selectRoomExistsStmt.Name, data.RoomID).Scan(&roomExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if !roomExists {
@@ -71,15 +76,25 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 		return fmt.Errorf("You are banned from this room")
 	}
 
+	selectRoomStmt, err := h.DB.Prepare(ctx, "select_room_stmt", "SELECT private,author_id FROM rooms WHERE id = $1")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
 	var private bool
 	var author_id string
-	if err = h.DB.QueryRow(ctx, "SELECT private,author_id FROM rooms WHERE id = $1", data.RoomID).Scan(&private, &author_id); err != nil {
+	if err = h.DB.QueryRow(ctx, selectRoomStmt.Name, data.RoomID).Scan(&private, &author_id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
 	if private && author_id != uid {
+		membershipExistsStmt, err := h.DB.Prepare(ctx, "select_room_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE LOWER(user_id) = LOWER($1))")
+		if err != nil {
+			return fmt.Errorf("Internal error")
+		}
+
 		membershipExists := false
-		if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM members WHERE LOWER(user_id) = LOWER($1));", uid).Scan(&membershipExists); err != nil {
+		if err = h.DB.QueryRow(ctx, membershipExistsStmt.Name, uid).Scan(&membershipExists); err != nil {
 			return fmt.Errorf("Internal error")
 		}
 		if !membershipExists {
@@ -87,8 +102,13 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 		}
 	}
 
+	selectChannelStmt, err := h.DB.Prepare(ctx, "select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
 	var mainChannelId, mainChannelName string
-	if err = h.DB.QueryRow(ctx, "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE;", data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
+	if err = h.DB.QueryRow(ctx, selectChannelStmt.Name, data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
 		if err != pgx.ErrNoRows {
 			return fmt.Errorf("Internal error")
 		} else {
@@ -114,8 +134,13 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
+	selectChannelStmt, err := h.DB.Prepare(ctx, "select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
 	var mainChannelId, mainChannelName string
-	if err = h.DB.QueryRow(ctx, "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE;", data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
+	if err = h.DB.QueryRow(ctx, selectChannelStmt.Name, data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
 		if err != pgx.ErrNoRows {
 			return fmt.Errorf("Internal error")
 		} else {
