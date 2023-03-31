@@ -22,6 +22,14 @@ type RoomMessageUpdateData = {
   };
 };
 
+type ChangeEventData = {
+  data: {
+    change_type: "UPDATE" | "DELETE" | "INSERT";
+    entity: "ROOM" | "USER" | "BIO";
+    data: object & { ID: string };
+  };
+};
+
 export function isRoomMsg(object: any): object is RoomMessageData {
   return object.event_type === "ROOM_MESSAGE";
 }
@@ -32,4 +40,8 @@ export function isRoomMsgDelete(object: any): object is RoomMessageDeleteData {
 
 export function isRoomMsgUpdate(object: any): object is RoomMessageUpdateData {
   return object.event_type === "ROOM_MESSAGE_UPDATE";
+}
+
+export function isChangeEvent(object: any): object is ChangeEventData {
+  return object.event_type === "CHANGE";
 }

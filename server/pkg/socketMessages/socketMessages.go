@@ -20,3 +20,12 @@ type RoomMessageUpdate struct {
 type RoomMessageDelete struct {
 	ID string `json:"ID"`
 }
+
+// TYPE: CHANGE_EVENT
+type ChangeEvent struct {
+	// UPDATE/DELETE/INSERT
+	Type   string `json:"change_type"`
+	Entity string `json:"entity"`
+	// "ID" should be included in Data
+	Data map[string]interface{} `json:"data"`
+}

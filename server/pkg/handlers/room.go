@@ -13,6 +13,8 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
+	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
 )
 
@@ -85,6 +87,20 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	outChangeData := make(map[string]interface{})
+	outChangeData["ID"] = id
+	outChangeData["name"] = name
+	outChangeData["is_private"] = body.Private
+
+	h.SocketServer.SendDataToUser <- socketServer.UserMessageData{
+		Uid: uid,
+		Data: socketmessages.ChangeEvent{
+			Type:   "INSERT",
+			Entity: "ROOM",
+			Data:   outChangeData,
+		},
+	}
+
 	ctx.Response.Header.Add("Content-Type", "text/plain")
 	ctx.WriteString(id)
 	ctx.SetStatusCode(fasthttp.StatusCreated)
@@ -155,6 +171,20 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 	if err := conn.QueryRow(rctx, updateStmt.Name, name, room_id).Scan(); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
+	}
+
+	outChangeData := make(map[string]interface{})
+	outChangeData["ID"] = room_id
+	outChangeData["name"] = name
+	outChangeData["is_private"] = body.Private
+
+	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+		SubName: fmt.Sprintf("room:%v", room_id),
+		Data: socketmessages.ChangeEvent{
+			Type:   "UPDATE",
+			Entity: "ROOM",
+			Data:   outChangeData,
+		},
 	}
 
 	ctx.SetStatusCode(fasthttp.StatusOK)
@@ -393,6 +423,18 @@ func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
 		}
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		return
+	}
+
+	outChangeData := make(map[string]interface{})
+	outChangeData["ID"] = room_id
+
+	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+		SubName: fmt.Sprintf("room:%v", room_id),
+		Data: socketmessages.ChangeEvent{
+			Data:   outChangeData,
+			Entity: "ROOM",
+			Type:   "DELETE",
+		},
 	}
 
 	ctx.SetStatusCode(fasthttp.StatusOK)

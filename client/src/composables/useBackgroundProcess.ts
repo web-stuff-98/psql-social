@@ -1,15 +1,17 @@
-import { onBeforeUnmount, onMounted, Ref, ref } from "vue";
-import { IResMsg } from "../interfaces/GeneralInterfaces";
+import { onBeforeUnmount, onMounted, Ref, ref, watchEffect } from "vue";
+import { IResMsg, IRoom, IUser } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "../services/makeRequest";
-import { StopWatching } from "../socketHandling/OutEvents";
+import { StartWatching, StopWatching } from "../socketHandling/OutEvents";
 
 import useAuthStore from "../store/AuthStore";
 import useSocketStore from "../store/SocketStore";
 import useUserStore from "../store/UserStore";
 import useRoomStore from "../store/RoomStore";
+import { isChangeEvent } from "../socketHandling/InterpretEvent";
 
 /*
-  This composable is for intervals that run in the background
+  This composable is for intervals that run in the background,
+  and socket event listeners that need to run constantly
 */
 
 export default function useBackgroundProcess({
@@ -26,6 +28,47 @@ export default function useBackgroundProcess({
   const socketStore = useSocketStore();
   const userStore = useUserStore();
   const roomStore = useRoomStore();
+
+  // Watch for change events on rooms and users (bio watch is done from component)
+  function watchForChangeEvents(e: MessageEvent) {
+    const msg = JSON.parse(e.data);
+    if (!msg) return;
+    if (isChangeEvent(msg)) {
+      // Watch for room update events
+      if (msg.data.entity === "ROOM") {
+        if (msg.data.change_type === "UPDATE") {
+          const i = roomStore.rooms.findIndex((r) => r.ID === msg.data.data.ID);
+          if (i !== -1)
+            roomStore.rooms[i] = {
+              ...roomStore.rooms[i],
+              ...(msg.data.data as Partial<IRoom>),
+            };
+        }
+        if (msg.data.change_type === "INSERT") {
+          roomStore.addRoomsData([msg.data.data as IRoom]);
+        }
+        if (msg.data.change_type === "DELETE") {
+          const i = roomStore.rooms.findIndex((r) => r.ID === msg.data.data.ID);
+          if (i !== -1) roomStore.rooms.splice(i, 1);
+        }
+      }
+      // Watch for user update events
+      if (msg.data.entity === "USER") {
+        if (msg.data.change_type === "UPDATE") {
+          const i = userStore.users.findIndex((u) => u.ID === msg.data.data.ID);
+          if (i !== -1)
+            userStore.users[i] = {
+              ...userStore.users[i],
+              ...(msg.data.data as Partial<IUser>),
+            };
+        }
+        if (msg.data.change_type === "DELETE") {
+          const i = userStore.users.findIndex((u) => u.ID === msg.data.data.ID);
+          if (i !== -1) userStore.users.splice(i, 1);
+        }
+      }
+    }
+  }
 
   onMounted(() => {
     /* Refresh the token */
@@ -94,6 +137,34 @@ export default function useBackgroundProcess({
         } as StopWatching)
       );
     }, 30000);
+
+    /* Automatically start watching users */
+    watchEffect(() => {
+      userStore.visibleUsers.forEach((id) =>
+        socketStore.send({
+          event_type: "START_WATCHING",
+          data: {
+            entity: "USER",
+            id,
+          },
+        } as StartWatching)
+      );
+    });
+
+    /* Automatically start watching rooms */
+    watchEffect(() => {
+      roomStore.visibleRooms.forEach((id) =>
+        socketStore.send({
+          event_type: "START_WATCHING",
+          data: {
+            entity: "ROOM",
+            id,
+          },
+        } as StartWatching)
+      );
+    });
+
+    socketStore.socket?.addEventListener("message", watchForChangeEvents);
   });
 
   onBeforeUnmount(() => {
@@ -101,6 +172,8 @@ export default function useBackgroundProcess({
     clearInterval(pingSocketInterval.value);
     clearInterval(clearUserCacheInterval.value);
     clearInterval(clearRoomCacheInterval.value);
+
+    socketStore.socket?.removeEventListener("message", watchForChangeEvents);
   });
 
   return undefined;
