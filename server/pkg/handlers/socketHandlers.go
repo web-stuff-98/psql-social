@@ -53,6 +53,7 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = startWatching(data, h, uid, c)
 	case "STOP_WATCHING":
 		err = stopWatching(data, h, uid, c)
+
 	default:
 		return fmt.Errorf("Unrecognized event type")
 	}
@@ -572,6 +573,18 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	}
 	defer conn.Release()
 
+	selectFriendRequestExistsStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_friends_stmt", "SELECT EXISTS(SELECT 1 FROM friend_requests WHERE friender = $1 AND friended = $2 OR (friender = $2 AND friended = $1))")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var friendRequestExists bool
+	if err = h.DB.QueryRow(ctx, selectFriendRequestExistsStmt.Name, data.Uid, uid).Scan(&selectFriendRequestExistsStmt); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if friendRequestExists {
+		return fmt.Errorf("You have already sent or recieved a friend request from this user")
+	}
+
 	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
@@ -639,13 +652,24 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
-
 	var friendRequestExists bool
 	if err = h.DB.QueryRow(ctx, selectExistsStmt.Name, data.Friender, uid).Scan(&friendRequestExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if !friendRequestExists {
 		return fmt.Errorf("This user did not send you a friend request")
+	}
+
+	selectFriendsExistsStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_select_friends_stmt", "SELECT EXISTS(SELECT 1 FROM friends WHERE friender = $1 AND friended = $2 OR (friender = $2 AND friended = $1))")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var friendsExists bool
+	if err = h.DB.QueryRow(ctx, selectFriendsExistsStmt.Name, data.Friender, uid).Scan(&friendsExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if friendsExists {
+		return fmt.Errorf("You are already friends with this user")
 	}
 
 	deleteStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_delete_stmt", "DELETE FROM friend_requests WHERE friender = $1 AND friended = $2")
@@ -720,6 +744,44 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 		return fmt.Errorf("Internal error")
 	}
 	defer conn.Release()
+
+	selectInvitationExistsStmt, err := conn.Conn().Prepare(ctx, "invitation_select_invitation_stmt", "SELECT EXISTS(SELECT 1 FROM invitations WHERE inviter = $1 AND invited = $2 OR (inviter = $2 AND inviter = $1))")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var friendRequestExists bool
+	if err = h.DB.QueryRow(ctx, selectInvitationExistsStmt.Name, data.Uid, uid).Scan(&selectInvitationExistsStmt); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if friendRequestExists {
+		return fmt.Errorf("You have already sent or recieved an invitation from this user")
+	}
+
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var blockedExists bool
+	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blockedExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blockedExists {
+		return fmt.Errorf("This user has blocked your account")
+	}
+
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var blockerExists bool
+	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blockedExists {
+		return fmt.Errorf("You have blocked this user, you must unblock them first")
+	}
 
 	return nil
 }
