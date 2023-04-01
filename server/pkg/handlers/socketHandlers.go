@@ -442,7 +442,7 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 	defer conn.Release()
 
 	var blocked bool
-	selectBlockedStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)"
+	selectBlockedStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)"
 	if err := conn.QueryRow(ctx, selectBlockedStmt, data.Uid, uid).Scan(&blocked); err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -451,8 +451,8 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 	}
 
 	var blocker bool
-	selectBlockerStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)"
-	if err := conn.QueryRow(ctx, selectBlockerStmt, uid, data.Uid).Scan(&blocker); err != nil {
+	selectBlockerStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker = $1 AND blocked = $2)"
+	if err := conn.QueryRow(ctx, selectBlockerStmt, data.Uid, uid).Scan(&blocker); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blocker {
@@ -607,7 +607,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 		return fmt.Errorf("You have already sent or received a friend request from this user")
 	}
 
-	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -619,7 +619,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 		return fmt.Errorf("This user has blocked your account")
 	}
 
-	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker = $1 AND blocked = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -714,7 +714,7 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 		return fmt.Errorf("Internal error")
 	}
 
-	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -727,7 +727,7 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 		return fmt.Errorf("This user has blocked your account")
 	}
 
-	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "friend_request_response_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker = $1 AND blocked = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -791,7 +791,7 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 		return fmt.Errorf("You have already sent an invitation to this user")
 	}
 
-	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -803,7 +803,7 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 		return fmt.Errorf("This user has blocked your account")
 	}
 
-	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker = $1 AND blocked = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -899,7 +899,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		return fmt.Errorf("Internal error")
 	}
 
-	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "invitation_response_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "invitation_response_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -912,7 +912,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		return fmt.Errorf("This user has blocked your account")
 	}
 
-	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "invitation_response_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "invitation_response_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker = $1 AND blocked = $2)")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
