@@ -8,12 +8,16 @@ import {
   IResMsg,
 } from "../../../../../interfaces/GeneralInterfaces";
 import useInboxStore from "../../../../../store/InboxStore";
-import User from "../../../../shared/User.vue";
 import useUserStore from "../../../../../store/UserStore";
+import useSocketStore from "../../../../../store/SocketStore";
+import User from "../../../../shared/User.vue";
 import MessagesItem from "./MessagesItem.vue";
+import MessageForm from "../../../../shared/MessageForm.vue";
+import { DirectMessage } from "../../../../../socketHandling/OutEvents";
 
 const inboxStore = useInboxStore();
 const userStore = useUserStore();
+const socketStore = useSocketStore();
 
 const section = ref<"USERS" | "MESSAGES">("USERS");
 const resMsg = ref<IResMsg>({});
@@ -57,6 +61,16 @@ async function getConversation(uid: string) {
     resMsg.value = { msg: `${e}`, pen: false, err: true };
   }
 }
+
+function handleSubmit(values: any) {
+  socketStore.send({
+    event_type: "DIRECT_MESSAGE",
+    data: {
+      content: values.content,
+      uid: currentUid.value,
+    },
+  } as DirectMessage);
+}
 </script>
 
 <template>
@@ -70,7 +84,8 @@ async function getConversation(uid: string) {
           />
         </div>
       </div>
-      <div class="messages-section-back-button-container">
+      <div class="messages-section-bottom-container">
+        <MessageForm :handleSubmit="handleSubmit" />
         <button @click="section = 'USERS'" type="button">Back</button>
       </div>
     </div>
@@ -136,8 +151,11 @@ async function getConversation(uid: string) {
       flex-grow: 1;
       width: 100%;
     }
-    .messages-section-back-button-container {
+    .messages-section-bottom-container {
+      display: flex;
+      flex-direction: column;
       padding: var(--gap-sm);
+      gap: var(--gap-sm);
       button {
         padding: 2px;
         font-size: var(--xs);

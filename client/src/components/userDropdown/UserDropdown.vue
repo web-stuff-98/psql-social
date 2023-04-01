@@ -208,6 +208,7 @@ function submitDirectMessage(values: any) {
   border-radius: var(--border-radius-md);
   border-top-left-radius: var(--border-radius-sm);
   z-index: 100;
+  box-shadow: 0px 2px 4px rgba(0,0,0,0.333);
   .menu {
     padding: 0;
     width: fit-content;
