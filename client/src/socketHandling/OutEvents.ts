@@ -44,7 +44,7 @@ export type Invitation = {
 };
 export type InvitationResponse = {
   event_type: "INVITATION_RESPONSE";
-  data: { invited: string; room_id: string };
+  data: { accepted: boolean; room_id: string; inviter: string };
 };
 
 /* Room events */

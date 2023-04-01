@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import EAsideSection from "../../../enums/EAsideSection";
-import FindUser from "./sections/FindUser.vue";
-import Profile from "./sections/Profile.vue";
+import FindUser from "./sections/findUser/FindUser.vue";
+import Profile from "./sections/profile/Profile.vue";
 import Rooms from "./sections/rooms/Rooms.vue";
-import Messages from "./sections/Messages.vue";
+import Messages from "./sections/messages/Messages.vue";
 
 const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
 const show = ref(false);

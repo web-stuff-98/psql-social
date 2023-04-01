@@ -42,6 +42,7 @@ type Invitation struct {
 	Inviter   string `json:"inviter"`
 	Invited   string `json:"invited"`
 	CreatedAt string `json:"created_at"`
+	RoomID    string `json:"room_id"`
 }
 
 type FriendRequest struct {

@@ -1,16 +1,16 @@
 <script lang="ts" setup>
 import { Field, Form } from "vee-validate";
 import { computed, onMounted, ref } from "vue";
-import { IResMsg } from "../../../../interfaces/GeneralInterfaces";
-import { makeRequest } from "../../../../services/makeRequest";
-import { getUserBio } from "../../../../services/user";
-import { validateBio } from "../../../../validators/validators";
-import useUserStore from "../../../../store/UserStore";
-import useAuthStore from "../../../../store/AuthStore";
-import Modal from "../../../modal/Modal.vue";
-import ErrorMessage from "../../../shared/ErrorMessage.vue";
-import ModalCloseButton from "../../../shared/ModalCloseButton.vue";
-import ResMsg from "../../../shared/ResMsg.vue";
+import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
+import { makeRequest } from "../../../../../services/makeRequest";
+import { getUserBio } from "../../../../../services/user";
+import { validateBio } from "../../../../../validators/validators";
+import useUserStore from "../../../../../store/UserStore";
+import useAuthStore from "../../../../../store/AuthStore";
+import Modal from "../../../../modal/Modal.vue";
+import ErrorMessage from "../../../../shared/ErrorMessage.vue";
+import ModalCloseButton from "../../../../shared/ModalCloseButton.vue";
+import ResMsg from "../../../../shared/ResMsg.vue";
 defineProps<{ closeClicked: Function }>();
 
 const authStore = useAuthStore();

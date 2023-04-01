@@ -1,16 +1,22 @@
 <script lang="ts" setup>
-import { IRoomMessage } from "../../interfaces/GeneralInterfaces";
+import {
+  IRoomMessage,
+  IDirectMessage,
+} from "../../interfaces/GeneralInterfaces";
+import { validateMessage } from "../../validators/validators";
+import { ref, toRefs } from "vue";
+import { Field, Form } from "vee-validate";
 import User from "./User.vue";
 import useSocketStore from "../../store/SocketStore";
 import {
   RoomMessageDelete,
   RoomMessageUpdate,
 } from "../../socketHandling/OutEvents";
-import { validateMessage } from "../../validators/validators";
-import { ref, toRefs } from "vue";
-import { Field, Form } from "vee-validate";
 import ErrorMessage from "./ErrorMessage.vue";
-const props = defineProps<{ msg: IRoomMessage }>();
+const props = defineProps<{
+  msg: IRoomMessage | IDirectMessage;
+  roomMsg: boolean;
+}>();
 
 const socketStore = useSocketStore();
 
@@ -47,7 +53,7 @@ function handleSubmitEdit(values: any) {
 
 <template>
   <div class="msg-container">
-    <div class="user">
+    <div v-if="roomMsg" class="user">
       <User :uid="msg.author_id" />
     </div>
     <div v-show="!isEditing" class="content">

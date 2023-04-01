@@ -67,7 +67,7 @@
 
   /* Layout dimensions */
   --nav-height: 1.5rem;
-  --aside-width: min(10rem, 20vw);
+  --aside-width: 12rem;
 }
 
 .input-label {
@@ -208,6 +208,33 @@ a {
 .modal-close-button svg {
   width: 12px;
   height: 12px;
+}
+
+.invitation-friend-request {
+  gap: var(--gap-sm);
+  font-size: var(--xs);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid var(--border-pale);
+  padding: 3px;
+  border-radius: var(--border-radius-sm);
+}
+.invitation-friend-request span {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-weight: 600;
+}
+.invitation-friend-request .buttons {
+  gap: var(--gap-sm);
+  width: 100%;
+  display: flex;
+}
+.invitation-friend-request .buttons button {
+  padding: 2px;
+  font-size: var(--xs);
+  width: 50%;
 }
 
 @keyframes spin {

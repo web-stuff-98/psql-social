@@ -7,7 +7,7 @@ import { userdropdownStore } from "../../store/UserDropdownStore";
 const userStore = useUserStore();
 const authStore = useAuthStore();
 
-const props = defineProps<{ uid: string }>();
+const props = defineProps<{ uid: string; noClick?: boolean }>();
 const { uid } = toRefs(props);
 
 const container = ref<HTMLElement>();
@@ -33,7 +33,8 @@ onBeforeUnmount(() => {
       type="button"
       @click="
         {
-          if (authStore.uid !== uid) userdropdownStore.openOnSubject(uid);
+          if (authStore.uid !== uid && !noClick)
+            userdropdownStore.openOnSubject(uid);
         }
       "
       :style="{

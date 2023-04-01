@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import { Field, Form } from "vee-validate";
 import { ref } from "vue";
-import { IResMsg } from "../../../../interfaces/GeneralInterfaces";
-import { getUserByName } from "../../../../services/user";
-import useUserStore from "../../../../store/UserStore";
-import ErrorMessage from "../../../shared/ErrorMessage.vue";
-import ResMsg from "../../../shared/ResMsg.vue";
-import User from "../../../shared/User.vue";
+import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
+import { getUserByName } from "../../../../../services/user";
+import useUserStore from "../../../../../store/UserStore";
+import ErrorMessage from "../../../../shared/ErrorMessage.vue";
+import ResMsg from "../../../../shared/ResMsg.vue";
+import User from "../../../../shared/User.vue";
 
 const userStore = useUserStore();
 

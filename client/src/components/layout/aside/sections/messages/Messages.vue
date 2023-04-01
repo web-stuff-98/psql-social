@@ -1,16 +1,19 @@
 <script lang="ts" setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
-import { makeRequest } from "../../../../services/makeRequest";
+import { onMounted, ref } from "vue";
+import { makeRequest } from "../../../../../services/makeRequest";
 import {
   IDirectMessage,
   IFriendRequest,
   IInvitation,
   IResMsg,
-} from "../../../../interfaces/GeneralInterfaces";
-import useInboxStore from "../../../../store/InboxStore";
-import User from "../../../shared/User.vue";
+} from "../../../../../interfaces/GeneralInterfaces";
+import useInboxStore from "../../../../../store/InboxStore";
+import User from "../../../../shared/User.vue";
+import useUserStore from "../../../../../store/UserStore";
+import MessagesItem from "./MessagesItem.vue";
 
 const inboxStore = useInboxStore();
+const userStore = useUserStore();
 
 const section = ref<"USERS" | "MESSAGES">("USERS");
 const resMsg = ref<IResMsg>({});
@@ -20,7 +23,10 @@ onMounted(async () => {
   try {
     resMsg.value = { msg: "", pen: true, err: false };
     const uids: string[] | null = await makeRequest("/api/acc/uids");
-    uids?.forEach((uid) => (inboxStore.convs[uid] = []));
+    uids?.forEach((uid) => {
+      inboxStore.convs[uid] = [];
+      userStore.cacheUser(uid);
+    });
     resMsg.value = { msg: "", pen: false, err: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, pen: false, err: true };
@@ -58,7 +64,10 @@ async function getConversation(uid: string) {
     <div v-if="section === 'MESSAGES'" class="messages-section">
       <div class="messages-section-messages-container">
         <div class="messages-section-messages">
-          {{ inboxStore.convs[currentUid] }}
+          <MessagesItem
+            :item="item"
+            v-for="item in inboxStore.convs[currentUid]"
+          />
         </div>
       </div>
       <div class="messages-section-back-button-container">
@@ -66,7 +75,8 @@ async function getConversation(uid: string) {
       </div>
     </div>
     <div v-if="section === 'USERS'" class="users">
-      <User
+      <button
+        v-for="uid in Object.keys(inboxStore.convs)"
         @click="
           {
             currentUid = uid;
@@ -74,9 +84,10 @@ async function getConversation(uid: string) {
             getConversation(uid);
           }
         "
-        :uid="uid"
-        v-for="uid in Object.keys(inboxStore.convs)"
-      />
+        class="user-container"
+      >
+        <User :noClick="true" :uid="uid" />
+      </button>
     </div>
   </div>
 </template>
@@ -102,6 +113,17 @@ async function getConversation(uid: string) {
     overflow-y: auto;
     gap: var(--gap-md);
     padding: var(--gap-md);
+  }
+
+  .users {
+    .user-container {
+      padding: var(--gap-sm);
+      border: 1px solid var(--border-light);
+      background: var(--border-pale);
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+    }
   }
 
   .messages-section {

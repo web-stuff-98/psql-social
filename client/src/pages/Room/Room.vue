@@ -115,7 +115,7 @@ function handleSubmit(values: any) {
       </div>
       <div v-if="!resMsg.pen && !resMsg.err" class="messages">
         <div class="list">
-          <RoomMessage :msg="msg" v-for="msg in messages" />
+          <RoomMessage :roomMsg="true" :msg="msg" v-for="msg in messages" />
         </div>
       </div>
       <div v-else class="res-msg-container">

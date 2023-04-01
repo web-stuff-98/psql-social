@@ -29,13 +29,6 @@ CREATE TABLE friend_requests (
     PRIMARY KEY (friender, friended)
 );
 
-CREATE TABLE invitations (
-    inviter UUID REFERENCES users(id) ON DELETE CASCADE,
-    invited UUID REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (inviter, invited)
-);
-
 CREATE TABLE bios (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content VARCHAR(300) NOT NULL,
@@ -54,6 +47,14 @@ CREATE TABLE rooms (
     private BOOLEAN NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE invitations (
+    inviter UUID REFERENCES users(id) ON DELETE CASCADE,
+    invited UUID REFERENCES users(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (inviter, invited)
 );
 
 CREATE TABLE room_channels (

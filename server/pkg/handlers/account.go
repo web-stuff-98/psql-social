@@ -577,7 +577,7 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", "SELECT inviter,invited,created_at FROM invitations WHERE (inviter = $1) OR (invited = $1)")
+	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", "SELECT inviter,invited,created_at,room_id FROM invitations WHERE (inviter = $1) OR (invited = $1)")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
@@ -591,10 +591,10 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 	} else {
 		defer rows.Close()
 		for rows.Next() {
-			var inviter, invited string
+			var inviter, invited, room_id string
 			var created_at pgtype.Timestamptz
 
-			if err = rows.Scan(&inviter, &invited, &created_at); err != nil {
+			if err = rows.Scan(&inviter, &invited, &created_at, &room_id); err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -603,6 +603,7 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 				Inviter:   inviter,
 				Invited:   invited,
 				CreatedAt: created_at.Time.Format(time.RFC3339),
+				RoomID:    room_id,
 			})
 		}
 	}

@@ -95,12 +95,16 @@ async function inviteToRoomClicked() {
 }
 
 function inviteToRoom(roomId: string, uid: string) {
-  socketStore.send({ data: { invited: uid, room_id: roomId } } as Invitation);
+  socketStore.send({
+    event_type: "INVITATION",
+    data: { invited: uid, room_id: roomId },
+  } as Invitation);
   userdropdownStore.open = false;
 }
 
 function friendRequestClicked() {
   socketStore.send({
+    event_type: "FRIEND_REQUEST",
     data: { uid: userdropdownStore.subject },
   } as FriendRequest);
   userdropdownStore.open = false;

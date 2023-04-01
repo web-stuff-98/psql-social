@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -315,7 +314,6 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 
 	stmt, err := conn.Conn().Prepare(ctx, "room_message_update_stmt", "UPDATE room_messages SET content = $1 WHERE author_id = $2 AND id = $3")
 	if err != nil {
-		log.Println("ERR A:", err, err)
 		return fmt.Errorf("Internal error")
 	}
 
@@ -323,7 +321,6 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 
 	if _, err := conn.Exec(ctx, stmt.Name, content, uid, data.MsgID); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR B:", err, err)
 			return fmt.Errorf("Internal error")
 		} else {
 			return fmt.Errorf("Message not found")
@@ -374,13 +371,11 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 
 	stmt, err := conn.Conn().Prepare(ctx, "room_message_delete_stmt", "DELETE FROM room_messages WHERE author_id = $1 AND id = $2")
 	if err != nil {
-		log.Println("ERR A:", err, err)
 		return fmt.Errorf("Internal error")
 	}
 
 	if _, err = conn.Exec(ctx, stmt.Name, uid, data.MsgID); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR B:", err, err)
 			return fmt.Errorf("Internal error")
 		} else {
 			return fmt.Errorf("Message not found")
@@ -586,7 +581,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 		return fmt.Errorf("Internal error")
 	}
 	var friendRequestExists bool
-	if err = h.DB.QueryRow(ctx, selectFriendRequestExistsStmt.Name, uid, data.Uid).Scan(&friendRequestExists); err != nil {
+	if err = conn.QueryRow(ctx, selectFriendRequestExistsStmt.Name, uid, data.Uid).Scan(&friendRequestExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if friendRequestExists {
@@ -599,7 +594,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	}
 
 	var blockedExists bool
-	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, data.Uid, uid).Scan(&blockedExists); err != nil {
+	if err = conn.QueryRow(ctx, selectBlockedStmt.Name, data.Uid, uid).Scan(&blockedExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blockedExists {
@@ -612,7 +607,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	}
 
 	var blockerExists bool
-	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
+	if err = conn.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blockerExists {
@@ -624,7 +619,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 		return fmt.Errorf("Internal error")
 	}
 
-	if _, err = h.DB.Exec(ctx, insertFriendRequestStmt.Name, uid, data.Uid); err != nil {
+	if _, err = conn.Exec(ctx, insertFriendRequestStmt.Name, uid, data.Uid); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
