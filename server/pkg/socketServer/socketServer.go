@@ -342,12 +342,11 @@ func sendUserData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToUser
-		ss.ConnectionsByID.mutex.RLock()
-		// Lock mutex is used to prevent multiple messages being sent to the same connection concurrently
+		ss.ConnectionsByID.mutex.Lock()
 		if conn, ok := ss.ConnectionsByID.data[data.Uid]; ok {
 			WriteMessage(data.MessageType, data.Data, conn)
 		}
-		ss.ConnectionsByID.mutex.RUnlock()
+		ss.ConnectionsByID.mutex.Unlock()
 	}
 }
 
@@ -368,13 +367,13 @@ func sendUsersData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToUsers
-		ss.ConnectionsByID.mutex.RLock()
+		ss.ConnectionsByID.mutex.Lock()
 		for _, v := range data.Uids {
 			if conn, ok := ss.ConnectionsByID.data[v]; ok {
 				WriteMessage(data.MessageType, data.Data, conn)
 			}
 		}
-		ss.ConnectionsByID.mutex.RUnlock()
+		ss.ConnectionsByID.mutex.Unlock()
 	}
 }
 
@@ -421,13 +420,13 @@ func sendConnsData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToConns
-		ss.ConnectionsByWs.mutex.RLock()
+		ss.ConnectionsByWs.mutex.Lock()
 		for _, conn := range data.Conns {
 			if _, ok := ss.ConnectionsByWs.data[conn]; ok {
 				WriteMessage(data.MessageType, data.Data, conn)
 			}
 		}
-		ss.ConnectionsByWs.mutex.RUnlock()
+		ss.ConnectionsByWs.mutex.Unlock()
 	}
 }
 
@@ -798,7 +797,8 @@ func getConnSubscriptions(ss *SocketServer) {
 		if subs, ok := ss.ConnectionSubscriptions.data[data.Conn]; ok {
 			data.RecvChan <- subs
 		} else {
-			data.RecvChan <- make(map[string]struct{})
+			empty := make(map[string]struct{})
+			data.RecvChan <- empty
 		}
 		ss.ConnectionSubscriptions.mutex.RUnlock()
 	}

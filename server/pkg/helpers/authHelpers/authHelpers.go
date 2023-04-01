@@ -30,8 +30,8 @@ func createCookie(token string, expiry time.Time) *fasthttp.Cookie {
 
 func GetClearedCookie() *fasthttp.Cookie {
 	var cookie fasthttp.Cookie
-	cookie.SetValue("")
 	cookie.SetKey("session_token")
+	cookie.SetValue("")
 	cookie.SetExpire(fasthttp.CookieExpireDelete)
 	cookie.SetMaxAge(-1)
 	cookie.SetSecure(os.Getenv("ENVIRONMENT") == "PRODUCTION")
@@ -76,11 +76,15 @@ func GenerateCookieAndSession(redisClient *redis.Client, ctx context.Context, ui
 		ExpiresAt: time.Now().Add(sessionDuration).Unix(),
 	})
 	token, err := claims.SignedString([]byte(os.Getenv("SECRET")))
+	if err != nil {
+		log.Fatalln("Error in GenerateCookieAndSession helper function generating token:", err)
+	}
 	cmd := redisClient.Set(ctx, sid.String(), uid, sessionDuration)
 	if cmd.Err() != nil {
-		log.Fatalln("Error in GenerateCookieAndSession helper function:", err)
+		log.Fatalln("Redis error in GenerateCookieAndSession helper function:", cmd.Err())
 	}
 	cookie := createCookie(token, time.Now().Add(sessionDuration))
+
 	return cookie, nil
 }
 
@@ -107,6 +111,7 @@ func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fasthttp.RequestCtx,
 	if err != nil {
 		return "", "", fmt.Errorf("Error retrieving session")
 	}
+
 	return val, sessionID, nil
 }
 

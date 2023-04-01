@@ -182,18 +182,25 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 	}
 	defer conn.Release()
 
-	selectChannelStmt, err := conn.Conn().Prepare(ctx, "leave_room_select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
+	selectChannelsStmt, err := conn.Conn().Prepare(ctx, "leave_room_select_channels_stmt", "SELECT id FROM room_channels WHERE room_id = $1")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
-	var mainChannelId, mainChannelName string
-	if err = conn.QueryRow(ctx, selectChannelStmt.Name, data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
-		if err != pgx.ErrNoRows {
+	rows, err := conn.Query(ctx, selectChannelsStmt.Name, data.RoomID)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer rows.Close()
+
+	channelIds := make(map[string]struct{})
+
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
 			return fmt.Errorf("Internal error")
-		} else {
-			return fmt.Errorf("Main channel could not be found")
 		}
+		channelIds[id] = struct{}{}
 	}
 
 	recvChan := make(chan map[string]struct{})
@@ -204,7 +211,8 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 	subs := <-recvChan
 
 	for sub := range subs {
-		if strings.HasPrefix(sub, "channel:") {
+		_, ok := channelIds[sub]
+		if strings.HasPrefix(sub, "channel:") && ok {
 			h.SocketServer.LeaveSubscriptionByWs <- socketServer.RegisterUnregisterSubsConnWs{
 				SubName: sub,
 				Conn:    c,
