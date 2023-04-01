@@ -341,7 +341,13 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 
 		for rows.Next() {
 			var room_id string
-			rows.Scan(&room_id)
+			err = rows.Scan(&room_id)
+
+			if err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
 			memberOf = append(memberOf, room_id)
 		}
 	}
@@ -535,7 +541,7 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	selectChannelStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_channel_stmt", "SELECT id,content,author_id,created_at FROM room_messages WHERE room_channel_id = $1 ORDER BY created_at DESC LIMIT 50")
+	selectChannelStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_channel_stmt", "SELECT id,content,author_id,created_at FROM room_messages WHERE room_channel_id = $1 ORDER BY created_at ASC LIMIT 50")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return

@@ -66,7 +66,7 @@ function handleSubmit(values: any) {
   socketStore.send({
     event_type: "DIRECT_MESSAGE",
     data: {
-      content: values.content,
+      content: values.message,
       uid: currentUid.value,
     },
   } as DirectMessage);

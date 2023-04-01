@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -232,10 +233,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 
 	selectChannelStmt, err := conn.Conn().Prepare(ctx, "room_message_select_room_channel_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
 	if err != nil {
-		if err != pgx.ErrNoRows {
-			return fmt.Errorf("Internal error")
-		}
-		return fmt.Errorf("Channel not found")
+		return fmt.Errorf("Internal error")
 	}
 
 	var room_id string
@@ -281,6 +279,8 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	if err := conn.QueryRow(ctx, insertStmt.Name, content, uid, data.ChannelID).Scan(&id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
+
+	log.Println("SEND")
 
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("channel:%v", data.ChannelID),

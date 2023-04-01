@@ -53,7 +53,7 @@ function handleSubmitEdit(values: any) {
 
 <template>
   <div
-    :style="isAuthor ? {} : { flexDirection: 'row-reverse' }"
+    :style="isAuthor ? {} : { flexDirection: 'row-reverse', textAlign:'right' }"
     class="msg-container"
   >
     <div v-if="roomMsg" class="user">

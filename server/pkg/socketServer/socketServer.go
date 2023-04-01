@@ -308,6 +308,15 @@ func disconnect(ss *SocketServer) {
 			ss.ConnectionsByID.mutex.Unlock()
 
 			ss.ConnectionSubscriptions.mutex.Lock()
+			ss.Subscriptions.mutex.Lock()
+			if subs, ok := ss.ConnectionSubscriptions.data[conn]; ok {
+				for sub := range subs {
+					if _, ok := ss.Subscriptions.data[sub]; ok {
+						delete(ss.Subscriptions.data[sub], conn)
+					}
+				}
+			}
+			ss.Subscriptions.mutex.Unlock()
 			delete(ss.ConnectionSubscriptions.data, conn)
 			ss.ConnectionSubscriptions.mutex.Unlock()
 		}
