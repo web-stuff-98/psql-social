@@ -29,7 +29,7 @@ const inputRef = ref<HTMLInputElement>();
 function editClicked() {
   isEditing.value = true;
   //@ts-ignore
-  inputRef.value.value = msg.value.content;
+  inputRef.value = msg.value.content;
 }
 
 function deleteClicked() {

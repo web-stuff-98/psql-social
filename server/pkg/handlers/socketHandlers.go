@@ -437,7 +437,6 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 
 	conn, err := h.DB.Acquire(ctx)
 	if err != nil {
-		log.Println("ERR A:", err)
 		return fmt.Errorf("Internal error")
 	}
 	defer conn.Release()
@@ -445,7 +444,6 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 	var blocker bool
 	selectBlockerStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker = $1 AND blocked = $2)"
 	if err := conn.QueryRow(ctx, selectBlockerStmt, uid, data.Uid).Scan(&blocker); err != nil {
-		log.Println("ERR B:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if blocker {
@@ -455,7 +453,6 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 	var blocked bool
 	selectBlockedStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)"
 	if err := conn.QueryRow(ctx, selectBlockedStmt, uid, data.Uid).Scan(&blocked); err != nil {
-		log.Println("ERR C:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if blocked {
@@ -466,7 +463,6 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 	var id string
 	content := strings.TrimSpace(data.Content)
 	if err := conn.QueryRow(ctx, createMsgStmt, content, uid, data.Uid).Scan(&id); err != nil {
-		log.Println("ERR D:", err)
 		return fmt.Errorf("Internal error")
 	}
 
@@ -507,7 +503,7 @@ func directMessageUpdate(inData map[string]interface{}, h handler, uid string, c
 	}
 
 	var recipient_id string
-	if err = h.DB.QueryRow(ctx, selectMsgStmt.Name, uid, data.MsgID).Scan(&recipient_id); err != nil {
+	if err = conn.QueryRow(ctx, selectMsgStmt.Name, uid, data.MsgID).Scan(&recipient_id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
@@ -518,7 +514,7 @@ func directMessageUpdate(inData map[string]interface{}, h handler, uid string, c
 
 	content := strings.TrimSpace(data.Content)
 
-	if _, err = h.DB.Exec(ctx, updateMsgStmt.Name, content, data.MsgID); err != nil {
+	if _, err = conn.Exec(ctx, updateMsgStmt.Name, content, data.MsgID); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
@@ -558,7 +554,7 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 	}
 
 	var recipient_id string
-	if err = h.DB.QueryRow(ctx, selectMsgStmt.Name, uid, data.MsgID).Scan(&recipient_id); err != nil {
+	if err = conn.QueryRow(ctx, selectMsgStmt.Name, uid, data.MsgID).Scan(&recipient_id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
@@ -567,7 +563,7 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 		return fmt.Errorf("Internal error")
 	}
 
-	if _, err = h.DB.Exec(ctx, deleteMsgStmt.Name, data.MsgID); err != nil {
+	if _, err = conn.Exec(ctx, deleteMsgStmt.Name, data.MsgID); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
