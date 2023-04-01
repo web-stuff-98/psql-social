@@ -550,7 +550,7 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, recipient_id},
-		Data: socketmessages.DirectMessageUpdate{
+		Data: socketmessages.DirectMessageDelete{
 			ID:          data.MsgID,
 			AuthorID:    uid,
 			RecipientID: recipient_id,
