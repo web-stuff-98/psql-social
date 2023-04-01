@@ -11,10 +11,12 @@ import { Field, Form } from "vee-validate";
 import { validateMessage } from "../../validators/validators";
 import ErrorMessage from "../shared/ErrorMessage.vue";
 import {
+  Block,
   DirectMessage,
   FriendRequest,
   Invitation,
 } from "../../socketHandling/OutEvents";
+import { Ban } from "../../socketHandling/OutEvents";
 
 enum EUserdropdownMenuSection {
   "MENU" = "Menu",
@@ -111,10 +113,18 @@ function friendRequestClicked() {
 }
 
 function blockClicked() {
+  socketStore.send({
+    event_type: "BLOCK",
+    data: { uid: userdropdownStore.subject },
+  } as Block);
   userdropdownStore.open = false;
 }
 
 function banClicked() {
+  socketStore.send({
+    event_type: "BAN",
+    data: { uid: userdropdownStore.subject, room_id: userdropdownStore.roomId },
+  } as Ban);
   userdropdownStore.open = false;
 }
 
@@ -208,7 +218,7 @@ function submitDirectMessage(values: any) {
   border-radius: var(--border-radius-md);
   border-top-left-radius: var(--border-radius-sm);
   z-index: 100;
-  box-shadow: 0px 2px 4px rgba(0,0,0,0.333);
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.333);
   .menu {
     padding: 0;
     width: fit-content;

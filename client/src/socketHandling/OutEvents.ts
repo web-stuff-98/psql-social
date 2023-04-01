@@ -46,6 +46,14 @@ export type InvitationResponse = {
   event_type: "INVITATION_RESPONSE";
   data: { accepted: boolean; room_id: string; inviter: string };
 };
+export type Block = {
+  event_type: "BLOCK";
+  data: { uid: string };
+};
+export type UnBlock = {
+  event_type: "BLOCK";
+  data: { uid: string };
+};
 
 /* Room events */
 export type RoomMessage = {
@@ -75,6 +83,14 @@ export type JoinRoom = {
 export type LeaveRoom = {
   event_type: "LEAVE_ROOM";
   data: { room_id: string };
+};
+export type Ban = {
+  event_type: "BAN";
+  data: { uid: string; room_id: string };
+};
+export type UnBan = {
+  event_type: "UNBAN";
+  data: { uid: string; room_id: string };
 };
 
 /* WebRTC events */
