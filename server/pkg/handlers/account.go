@@ -510,7 +510,6 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -518,14 +517,12 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 
 	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at DESC LIMIT 50")
 	if err != nil {
-		log.Println("ERR B:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 	messages := []responses.DirectMessage{}
 	if rows, err := conn.Query(rctx, selectMsgStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR C:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -536,7 +533,6 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 			var created_at pgtype.Timestamptz
 
 			if err = rows.Scan(&id, &content, &author_id, &recipient_id, &created_at); err != nil {
-				log.Println("ERR D:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -553,14 +549,12 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 
 	selectFrqStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_friend_requests_stmt", "SELECT friender,friended,created_at FROM friend_requests WHERE (friender = $1) OR (friended = $1)")
 	if err != nil {
-		log.Println("ERR E:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 	friendRequests := []responses.FriendRequest{}
 	if rows, err := conn.Query(rctx, selectFrqStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR F:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -571,7 +565,6 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 			var created_at pgtype.Timestamptz
 
 			if err = rows.Scan(&friender, &friended, &created_at); err != nil {
-				log.Println("ERR G:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -586,14 +579,12 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 
 	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", "SELECT inviter,invited,created_at FROM invitations WHERE (inviter = $1) OR (invited = $1)")
 	if err != nil {
-		log.Println("ERR H:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 	invitations := []responses.Invitation{}
 	if rows, err := conn.Query(rctx, selectInvStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR I:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -604,7 +595,6 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 			var created_at pgtype.Timestamptz
 
 			if err = rows.Scan(&inviter, &invited, &created_at); err != nil {
-				log.Println("ERR J:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -622,7 +612,6 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 		Invitations:    invitations,
 		FriendRequests: friendRequests,
 	}); err != nil {
-		log.Println("ERR K:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 	} else {
 		ctx.Response.Header.Add("Content-Type", "application/json")
