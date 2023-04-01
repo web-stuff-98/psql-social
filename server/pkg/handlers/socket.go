@@ -9,6 +9,7 @@ import (
 	"github.com/fasthttp/websocket"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
+	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
 var upgrader = websocket.FastHTTPUpgrader{
@@ -73,6 +74,13 @@ func (h handler) WebSocketEndpoint(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Forbidden - Log in to gain access", fasthttp.StatusForbidden)
 	} else {
 		if err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {
+			h.SocketServer.RegisterConn <- socketServer.ConnnectionData{
+				Uid:  uid,
+				Conn: c,
+			}
+			defer func() {
+				h.SocketServer.UnregisterConn <- c
+			}()
 			handleConnection(h, ctx, uid, c)
 		}); err != nil {
 			log.Println(err)
