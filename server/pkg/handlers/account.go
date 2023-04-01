@@ -515,7 +515,7 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 	}
 	defer conn.Release()
 
-	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at DESC LIMIT 50")
+	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at ASC LIMIT 50")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
@@ -614,6 +614,53 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 		FriendRequests: friendRequests,
 	}); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+	} else {
+		ctx.Response.Header.Add("Content-Type", "application/json")
+		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Write(outBytes)
+	}
+}
+
+func (h handler) GetFriends(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	rows, err := h.DB.Query(rctx, "SELECT friender,friended FROM friends WHERE (friender = $1) OR (friended = $1);", uid)
+	if err != nil {
+		log.Println("ERR A:", err)
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	uids := []string{}
+
+	for rows.Next() {
+		var friender, friended string
+
+		if err = rows.Scan(&friender, &friended); err != nil {
+			log.Println("ERR B:", err)
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+
+		if friender != uid {
+			uids = append(uids, friender)
+		} else {
+			uids = append(uids, friended)
+		}
+	}
+
+	if outBytes, err := json.Marshal(uids); err != nil {
+		log.Println("ERR C:", err)
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
 	} else {
 		ctx.Response.Header.Add("Content-Type", "application/json")
 		ctx.SetStatusCode(fasthttp.StatusOK)

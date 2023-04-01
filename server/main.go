@@ -37,6 +37,7 @@ func main() {
 	r.POST("/api/acc/bio", h.UpdateBio)
 	r.POST("/api/acc/pfp", h.UploadPfp)
 	r.GET("/api/acc/uids", h.GetConversees)
+	r.GET("/api/acc/friends", h.GetFriends)
 	r.GET("/api/acc/conv/{id}", h.GetConversation)
 
 	r.POST("/api/room", h.CreateRoom)

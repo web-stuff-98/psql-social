@@ -182,7 +182,7 @@ function handleSubmit(values: any) {
     }
     .channels,
     .messages {
-      border: 2px solid var(--border-pale);
+      border: 2px solid var(--border-light);
       border-radius: var(--border-radius-md);
       position: relative;
       overflow: hidden;
@@ -195,7 +195,7 @@ function handleSubmit(values: any) {
   .form-container {
     width: 100%;
     padding: var(--gap-sm);
-    border: 2px solid var(--border-pale);
+    border: 2px solid var(--border-light);
     border-radius: var(--border-radius-md);
   }
 }

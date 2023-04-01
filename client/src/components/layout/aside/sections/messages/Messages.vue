@@ -109,7 +109,7 @@ function handleSubmit(values: any) {
 
 <style lang="scss" scoped>
 .messaging-section {
-  border: 2px solid var(--border-pale);
+  border: 2px solid var(--border-light);
   border-radius: var(--border-radius-sm);
   height: 100%;
   position: relative;

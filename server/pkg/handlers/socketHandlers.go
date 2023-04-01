@@ -600,7 +600,6 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
-
 	var blockedExists bool
 	if err = conn.QueryRow(ctx, selectBlockedStmt.Name, data.Uid, uid).Scan(&blockedExists); err != nil {
 		return fmt.Errorf("Internal error")
@@ -613,13 +612,24 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
-
 	var blockerExists bool
 	if err = conn.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blockerExists {
 		return fmt.Errorf("You have blocked this user, you must unblock them first")
+	}
+
+	selectFriendsExistsStmt, err := conn.Conn().Prepare(ctx, "friend_request_select_friends_exists_stmt", "SELECT EXISTS(SELECT 1 FROM friends WHERE (friender = $1 AND friended = $2) OR (friender = $2 AND friended = $1))")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var friendsExists bool
+	if err = conn.QueryRow(ctx, selectFriendsExistsStmt.Name, uid, data.Uid).Scan(&friendsExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if friendRequestExists {
+		return fmt.Errorf("You are already friends with this user")
 	}
 
 	insertFriendRequestStmt, err := conn.Conn().Prepare(ctx, "friend_request_insert_stmt", "INSERT INTO friend_requests (friender,friended) VALUES($1, $2)")
@@ -774,7 +784,6 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
-
 	var blockedExists bool
 	if err = conn.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blockedExists); err != nil {
 		return fmt.Errorf("Internal error")
@@ -787,13 +796,24 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
-
 	var blockerExists bool
 	if err = conn.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blockerExists {
 		return fmt.Errorf("You have blocked this user, you must unblock them first")
+	}
+
+	selectMemberExistsStmt, err := conn.Conn().Prepare(ctx, "invitation_select_member_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var memberExists bool
+	if err = conn.QueryRow(ctx, selectMemberExistsStmt.Name, data.Uid, data.RoomID).Scan(&memberExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blockerExists {
+		return fmt.Errorf("This user is already a member of the room")
 	}
 
 	insertStmt, err := conn.Conn().Prepare(ctx, "invitation_insert_stmt", "INSERT INTO invitations (inviter, invited, room_id) VALUES($1, $2, $3)")

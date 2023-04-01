@@ -1,7 +1,6 @@
 import { ref } from "vue";
 import { IMediaOptions } from "../interfaces/GeneralInterfaces";
 
-export const showDeviceSettings = ref(false);
 export const selectedAudioInputDevice = ref("");
 export const selectedVideoInputDevice = ref("");
 

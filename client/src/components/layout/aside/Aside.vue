@@ -5,6 +5,8 @@ import FindUser from "./sections/findUser/FindUser.vue";
 import Profile from "./sections/profile/Profile.vue";
 import Rooms from "./sections/rooms/Rooms.vue";
 import Messages from "./sections/messages/Messages.vue";
+import DeviceSettings from "./sections/deviceSettings/DeviceSettings.vue";
+import Friends from "./sections/friends/Friends.vue";
 
 const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
 const show = ref(false);
@@ -32,6 +34,11 @@ const show = ref(false);
       <FindUser v-if="currentSection === EAsideSection.FIND_USER" />
       <Rooms v-if="currentSection === EAsideSection.ROOMS" />
       <Messages v-if="currentSection === EAsideSection.MESSAGES" />
+      <DeviceSettings
+        :closeClicked="() => (currentSection = EAsideSection.FRIENDS)"
+        v-if="currentSection === EAsideSection.DEVICE_SETTINGS"
+      />
+      <Friends v-if="currentSection === EAsideSection.FRIENDS"/>
       <button
         @click="show = false"
         type="button"
@@ -47,7 +54,7 @@ const show = ref(false);
 aside {
   min-width: var(--aside-width);
   height: 100%;
-  border-right: 2px solid var(--border-pale);
+  border-right: 2px solid var(--border-light);
   position: relative;
   display: flex;
   align-items: center;
@@ -66,7 +73,7 @@ aside {
       padding: 4px 5px;
       font-weight: 600;
       background: none;
-      border: 2px solid var(--border-pale);
+      border: 2px solid var(--border-light);
       color: var(--text-colour);
       text-shadow: none;
     }

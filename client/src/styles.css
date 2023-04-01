@@ -57,8 +57,8 @@
   --border-radius-lg: 8px;
 
   /* Border colour */
-  --border-pale: rgb(198, 198, 198);
-  --border-light: rgb(142, 142, 142);
+  --border-pale: rgb(222, 222, 222);
+  --border-light: rgb(188, 188, 188);
   --border-medium: rgb(46, 46, 46);
   --border-heavy: rgb(16, 16, 16);
 
@@ -169,7 +169,7 @@ a {
   background: rgba(0, 0, 0, 0.02);
 }
 .modal-container .modal {
-  border: 2px solid var(--border-pale);
+  border: 2px solid var(--border-light);
   padding: var(--gap-md);
   border-radius: var(--border-radius-md);
   box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.166), 0px 4px 8px rgba(0, 0, 0, 0.166);

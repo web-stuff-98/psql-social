@@ -25,10 +25,12 @@ form {
   input {
     width: 100%;
     height: 100%;
+    padding: 3px;
   }
   button {
     background: none;
     border: none;
+    padding: 0;
   }
   button:hover {
     background: none;

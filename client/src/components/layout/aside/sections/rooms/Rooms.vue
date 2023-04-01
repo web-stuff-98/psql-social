@@ -55,7 +55,7 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .rooms {
-  border: 2px solid var(--border-pale);
+  border: 2px solid var(--border-light);
   width: 100%;
   height: 100%;
   position: relative;

@@ -65,7 +65,7 @@ function handleInput(e: Event) {
 
 <style lang="scss" scoped>
 .find-user {
-  border: 2px solid var(--border-pale);
+  border: 2px solid var(--border-light);
   width: 100%;
   position: relative;
   border-radius: var(--border-radius-sm);
