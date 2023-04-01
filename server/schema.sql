@@ -25,13 +25,15 @@ CREATE TABLE friends (
 CREATE TABLE friend_requests (
     friender UUID REFERENCES users(id) ON DELETE CASCADE,
     friended UUID REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() PRIMARY KEY (friender, friended)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (friender, friended)
 );
 
 CREATE TABLE invitations (
     inviter UUID REFERENCES users(id) ON DELETE CASCADE,
     invited UUID REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() PRIMARY KEY (inviter, invited)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (inviter, invited)
 );
 
 CREATE TABLE bios (

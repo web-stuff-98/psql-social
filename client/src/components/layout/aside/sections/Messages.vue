@@ -87,6 +87,8 @@ async function getConversation(uid: string) {
   border-radius: var(--border-radius-sm);
   height: 100%;
   position: relative;
+  display: flex;
+  flex-direction: column;
 
   .users,
   .messages-section-messages {
@@ -105,6 +107,8 @@ async function getConversation(uid: string) {
   .messages-section {
     display: flex;
     flex-direction: column;
+    height: 100%;
+    width: 100%;
     .messages-section-messages-container {
       position: relative;
       flex-grow: 1;
@@ -115,6 +119,8 @@ async function getConversation(uid: string) {
       button {
         padding: 2px;
         font-size: var(--xs);
+        border-radius: var(--border-radius-sm);
+        width: 100%;
       }
     }
   }
