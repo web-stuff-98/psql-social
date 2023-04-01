@@ -14,6 +14,7 @@ import useSocketStore from "../store/SocketStore";
 import useUserStore from "../store/UserStore";
 import useRoomStore from "../store/RoomStore";
 import {
+  isBlock,
   isChangeEvent,
   isDirectMsg,
   isDirectMsgDelete,
@@ -222,6 +223,14 @@ export default function useBackgroundProcess({
       //@ts-ignore
       newConv[i]["accepted"] = msg.data.accepted;
       inboxStore.convs[otherUser] = [...newConv];
+    }
+
+    if (isBlock(msg)) {
+      const otherUser =
+        msg.data.blocker === authStore.uid
+          ? msg.data.blocked
+          : msg.data.blocker;
+      delete inboxStore.convs[otherUser];
     }
   }
 

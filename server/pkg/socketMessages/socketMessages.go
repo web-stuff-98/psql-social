@@ -65,6 +65,12 @@ type FriendRequestResponse struct {
 	Friended string `json:"friended"`
 }
 
+// TYPE: BLOCK
+type Block struct {
+	Blocker string `json:"blocker"`
+	Blocked string `json:"blocked"`
+}
+
 // TYPE: CHANGE_EVENT
 type ChangeEvent struct {
 	// UPDATE/DELETE/INSERT/UPDATE_IMAGE

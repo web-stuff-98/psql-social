@@ -92,12 +92,12 @@ function handleMessages(e: MessageEvent) {
   }
 
   if (isBan(msg)) {
-    if (msg.room_id !== roomId.value) return;
-    if (msg.user_id === authStore.uid) {
+    if (msg.data.room_id !== roomId.value) return;
+    if (msg.data.user_id === authStore.uid) {
       router.push("/");
       return;
     }
-    messages.value = messages.value.filter((m) => m.author_id !== msg.user_id);
+    messages.value = messages.value.filter((m) => m.author_id !== msg.data.user_id);
   }
 }
 

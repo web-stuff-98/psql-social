@@ -58,10 +58,10 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 	case "STOP_WATCHING":
 		err = stopWatching(data, h, uid, c)
 
-	//case "BLOCK":
-	//	err = block(data, h, uid, c)
+	case "BLOCK":
+		err = block(data, h, uid, c)
 	//case "UNBLOCK":
-	//	err = unBlock(data, h, uid, c)
+	//	err = unblock(data, h, uid, c)
 
 	case "BAN":
 		err = ban(data, h, uid, c)
@@ -1081,6 +1081,66 @@ func unban(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 	}
 	if _, err = conn.Exec(ctx, deleteStmt.Name, data.Uid, data.RoomID); err != nil {
 		return fmt.Errorf("Internal error")
+	}
+
+	return nil
+}
+
+func block(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.BlockUnBlock{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	if data.Uid == uid {
+		return fmt.Errorf("You cannot block yourself")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectStmt, err := conn.Conn().Prepare(ctx, "block_select_block_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var blockExists bool
+	if err = conn.QueryRow(ctx, selectStmt.Name, data.Uid, uid).Scan(&blockExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blockExists {
+		return fmt.Errorf("You have already blocked this user")
+	}
+
+	insertStmt, err := conn.Conn().Prepare(ctx, "block_insert_block_stmt", "INSERT INTO blocks (blocked, blocker) VALUES($1, $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if _, err = conn.Exec(ctx, insertStmt.Name, data.Uid, uid); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	deleteMsgsStmt, err := conn.Conn().Prepare(ctx, "block_delete_msgs_stmt", "DELETE FROM direct_messages WHERE (author_id = $1 AND recipient_id = $2) OR (recipient_id = $1 AND author_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if _, err = conn.Exec(ctx, deleteMsgsStmt.Name, data.Uid, uid); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
+		Uids: []string{uid, data.Uid},
+		Data: socketmessages.Block{
+			Blocker: uid,
+			Blocked: data.Uid,
+		},
+		MessageType: "BLOCK",
 	}
 
 	return nil

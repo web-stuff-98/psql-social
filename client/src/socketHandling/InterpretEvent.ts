@@ -38,8 +38,10 @@ type RoomMessageDeleteData = MessageDeleteData;
 type RoomMessageUpdateData = MessageUpdateData;
 
 type BanData = {
-  user_id: string;
-  room_id: string;
+  data: {
+    user_id: string;
+    room_id: string;
+  };
 };
 
 type DirectMessageData = MessageData & { data: { recipient_id: string } };
@@ -53,6 +55,13 @@ type DirectMessageUpdateData = MessageUpdateData & {
   data: {
     author_id: string;
     recipient_id: string;
+  };
+};
+
+type BlockData = {
+  data: {
+    blocker: string;
+    blocked: string;
   };
 };
 
@@ -118,6 +127,11 @@ export function isDirectMsgUpdate(
   object: any
 ): object is DirectMessageUpdateData {
   return object.event_type === "DIRECT_MESSAGE_UPDATE";
+}
+export function isBlock(
+  object: any
+): object is BlockData {
+  return object.event_type === "BLOCK";
 }
 
 export function isFriendRequest(object: any): object is FriendRequest {

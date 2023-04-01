@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { makeRequest } from "../../../../../services/makeRequest";
 import {
   IDirectMessage,
@@ -14,14 +14,30 @@ import User from "../../../../shared/User.vue";
 import MessagesItem from "./MessagesItem.vue";
 import MessageForm from "../../../../shared/MessageForm.vue";
 import { DirectMessage } from "../../../../../socketHandling/OutEvents";
+import { isBlock } from "../../../../../socketHandling/InterpretEvent";
+import useAuthStore from "../../../../../store/AuthStore";
 
 const inboxStore = useInboxStore();
 const userStore = useUserStore();
 const socketStore = useSocketStore();
+const authStore = useAuthStore();
 
 const section = ref<"USERS" | "MESSAGES">("USERS");
 const resMsg = ref<IResMsg>({});
 const currentUid = ref("");
+
+function watchForBlocks(e: MessageEvent) {
+  const msg = JSON.parse(e.data);
+  if (!msg) return;
+  if (isBlock(msg)) {
+    const otherUser =
+      msg.data.blocker === authStore.uid ? msg.data.blocked : msg.data.blocker;
+    if (otherUser === currentUid.value) {
+      currentUid.value = "";
+      section.value = "USERS";
+    }
+  }
+}
 
 onMounted(async () => {
   try {
@@ -35,6 +51,11 @@ onMounted(async () => {
   } catch (e) {
     resMsg.value = { msg: `${e}`, pen: false, err: true };
   }
+  socketStore.socket?.addEventListener("message", watchForBlocks);
+});
+
+onBeforeUnmount(() => {
+  socketStore.socket?.removeEventListener("message", watchForBlocks);
 });
 
 async function getConversation(uid: string) {
@@ -80,7 +101,7 @@ function handleSubmit(values: any) {
         <div class="messages-section-messages">
           <MessagesItem
             :item="item"
-            v-for="item in inboxStore.convs[currentUid]"
+            v-for="item in inboxStore.convs[currentUid] || []"
           />
         </div>
       </div>
