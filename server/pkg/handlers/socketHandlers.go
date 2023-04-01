@@ -437,32 +437,36 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 
 	conn, err := h.DB.Acquire(ctx)
 	if err != nil {
+		log.Println("ERR A:", err)
 		return fmt.Errorf("Internal error")
 	}
 	defer conn.Release()
 
-	var blocked bool
-	selectBlockedStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)"
-	if err := conn.QueryRow(ctx, selectBlockedStmt, data.Uid, uid).Scan(&blocked); err != nil {
-		return fmt.Errorf("Internal error")
-	}
-	if blocked {
-		return fmt.Errorf("This user has blocked your account")
-	}
-
 	var blocker bool
 	selectBlockerStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker = $1 AND blocked = $2)"
-	if err := conn.QueryRow(ctx, selectBlockerStmt, data.Uid, uid).Scan(&blocker); err != nil {
+	if err := conn.QueryRow(ctx, selectBlockerStmt, uid, data.Uid).Scan(&blocker); err != nil {
+		log.Println("ERR B:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if blocker {
 		return fmt.Errorf("You have blocked this user, you must unblock them to message them")
 	}
 
+	var blocked bool
+	selectBlockedStmt := "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)"
+	if err := conn.QueryRow(ctx, selectBlockedStmt, uid, data.Uid).Scan(&blocked); err != nil {
+		log.Println("ERR C:", err)
+		return fmt.Errorf("Internal error")
+	}
+	if blocked {
+		return fmt.Errorf("This user has blocked your account")
+	}
+
 	createMsgStmt := "INSERT INTO direct_messages (content, author_id, recipient_id) VALUES ($1, $2, $3) RETURNING id"
 	var id string
 	content := strings.TrimSpace(data.Content)
 	if err := conn.QueryRow(ctx, createMsgStmt, content, uid, data.Uid).Scan(&id); err != nil {
+		log.Println("ERR D:", err)
 		return fmt.Errorf("Internal error")
 	}
 

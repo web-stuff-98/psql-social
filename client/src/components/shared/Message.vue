@@ -9,6 +9,8 @@ import { Field, Form } from "vee-validate";
 import User from "./User.vue";
 import useSocketStore from "../../store/SocketStore";
 import {
+  DirectMessageDelete,
+  DirectMessageUpdate,
   RoomMessageDelete,
   RoomMessageUpdate,
 } from "../../socketHandling/OutEvents";
@@ -20,7 +22,7 @@ const props = defineProps<{
 }>();
 
 const socketStore = useSocketStore();
-const { msg } = toRefs(props);
+const { msg, roomMsg } = toRefs(props);
 const isEditing = ref(false);
 const inputRef = ref<HTMLInputElement>();
 
@@ -31,29 +33,48 @@ function editClicked() {
 }
 
 function deleteClicked() {
-  socketStore.send({
-    event_type: "ROOM_MESSAGE_DELETE",
-    data: {
-      msg_id: msg.value.ID,
-    },
-  } as RoomMessageDelete);
+  if (roomMsg.value)
+    socketStore.send({
+      event_type: "ROOM_MESSAGE_DELETE",
+      data: {
+        msg_id: msg.value.ID,
+      },
+    } as RoomMessageDelete);
+  else
+    socketStore.send({
+      event_type: "DIRECT_MESSAGE_DELETE",
+      data: {
+        msg_id: msg.value.ID,
+      },
+    } as DirectMessageDelete);
 }
 
 function handleSubmitEdit(values: any) {
-  socketStore.send({
-    event_type: "ROOM_MESSAGE_UPDATE",
-    data: {
-      msg_id: msg.value.ID,
-      content: values.content as string,
-    },
-  } as RoomMessageUpdate);
+  if (roomMsg.value)
+    socketStore.send({
+      event_type: "ROOM_MESSAGE_UPDATE",
+      data: {
+        msg_id: msg.value.ID,
+        content: values.content as string,
+      },
+    } as RoomMessageUpdate);
+  else
+    socketStore.send({
+      event_type: "DIRECT_MESSAGE_UPDATE",
+      data: {
+        msg_id: msg.value.ID,
+        content: values.content as string,
+      },
+    } as DirectMessageUpdate);
   isEditing.value = false;
 }
 </script>
 
 <template>
   <div
-    :style="isAuthor ? {} : { flexDirection: 'row-reverse', textAlign:'right' }"
+    :style="
+      isAuthor ? {} : { flexDirection: 'row-reverse', textAlign: 'right' }
+    "
     class="msg-container"
   >
     <div v-if="roomMsg" class="user">
