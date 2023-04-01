@@ -38,11 +38,7 @@ async function getDeviceList() {
 
 onMounted(async () => {
   try {
-    resMsg.value = {
-      msg: "",
-      err: false,
-      pen: true,
-    };
+    resMsg.value = { msg: "", err: false, pen: true };
     await getDeviceList();
     navigator.mediaDevices.ondevicechange = () =>
       getDeviceList().catch((e) => {
@@ -52,19 +48,18 @@ onMounted(async () => {
           pen: false,
         };
       });
-    resMsg.value = {
-      msg: "",
-      err: false,
-      pen: false,
-    };
+    resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
-    resMsg.value = {
-      msg: `${e}`,
-      err: true,
-      pen: false,
-    };
+    resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
 });
+
+const removeParenthesis = (str?: string) =>
+  str ||
+  ""
+    .replace(/ *\([^)]*\) */g, "")
+    .replaceAll(")", "")
+    .replaceAll("(", "");
 </script>
 
 <template>
@@ -79,11 +74,11 @@ onMounted(async () => {
             v-if="selectedAudioInputDevice"
           >
             {{
-              audioInputDevices
-                .find((d) => d.deviceId === selectedAudioInputDevice)
-                ?.label.replace(/ *\([^)]*\) */g, "")
-                .replaceAll(")", "")
-                .replaceAll("(", "")
+              removeParenthesis(
+                audioInputDevices.find(
+                  (d) => d.deviceId === selectedAudioInputDevice
+                )?.label
+              )
             }}
           </option>
           <option
@@ -93,12 +88,7 @@ onMounted(async () => {
               (d) => d.deviceId !== selectedAudioInputDevice
             )"
           >
-            {{
-              device.label
-                .replace(/ *\([^)]*\) */g, "")
-                .replaceAll(")", "")
-                .replaceAll("(", "")
-            }}
+            {{ removeParenthesis(device.label) }}
           </option>
         </select>
       </div>
@@ -110,11 +100,11 @@ onMounted(async () => {
             v-if="selectedVideoInputDevice"
           >
             {{
-              videoInputDevices
-                .find((d) => d.deviceId === selectedVideoInputDevice)
-                ?.label.replace(/ *\([^)]*\) */g, "")
-                .replaceAll(")", "")
-                .replaceAll("(", "")
+              removeParenthesis(
+                videoInputDevices.find(
+                  (d) => d.deviceId === selectedVideoInputDevice
+                )?.label
+              )
             }}
           </option>
           <option
@@ -124,12 +114,7 @@ onMounted(async () => {
               (d) => d.deviceId !== selectedVideoInputDevice
             )"
           >
-            {{
-              device.label
-                .replace(/ *\([^)]*\) */g, "")
-                .replaceAll(")", "")
-                .replaceAll("(", "")
-            }}
+            {{ removeParenthesis(device.label) }}
           </option>
         </select>
       </div>
