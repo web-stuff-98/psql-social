@@ -60,8 +60,8 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 
 	case "BLOCK":
 		err = block(data, h, uid, c)
-	//case "UNBLOCK":
-	//	err = unblock(data, h, uid, c)
+	case "UNBLOCK":
+		err = unblock(data, h, uid, c)
 
 	case "BAN":
 		err = ban(data, h, uid, c)
@@ -1141,6 +1141,49 @@ func block(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 			Blocked: data.Uid,
 		},
 		MessageType: "BLOCK",
+	}
+
+	return nil
+}
+
+func unblock(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.BlockUnBlock{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	if data.Uid == uid {
+		return fmt.Errorf("You cannot unblock yourself")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectStmt, err := conn.Conn().Prepare(ctx, "unblock_select_block_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var blockExists bool
+	if err = conn.QueryRow(ctx, selectStmt.Name, data.Uid, uid).Scan(&blockExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if !blockExists {
+		return fmt.Errorf("You cannot unblock a user that you haven't blocked")
+	}
+
+	deleteStmt, err := conn.Conn().Prepare(ctx, "unblock_delete_block_stmt", "DELETE FROM blocks WHERE blocked = $1 AND blocker = $2")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if _, err = conn.Exec(ctx, deleteStmt.Name, data.Uid, uid); err != nil {
+		return fmt.Errorf("Internal error")
 	}
 
 	return nil
