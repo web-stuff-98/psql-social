@@ -22,11 +22,13 @@ import useRoomChannelStore from "../../store/RoomChannelStore";
 import ResMsg from "../../components/shared/ResMsg.vue";
 import RoomMessage from "../../components/shared/Message.vue";
 import Channel from "./Channel.vue";
+import useAuthStore from "../../store/AuthStore";
 
 const roomChannelStore = useRoomChannelStore();
 const roomStore = useRoomStore();
 const socketStore = useSocketStore();
 const userStore = useUserStore();
+const authStore = useAuthStore();
 
 const route = useRoute();
 const roomId = toRef(route.params, "id");
@@ -115,7 +117,12 @@ function handleSubmit(values: any) {
       </div>
       <div v-if="!resMsg.pen && !resMsg.err" class="messages">
         <div class="list">
-          <RoomMessage :roomMsg="true" :msg="msg" v-for="msg in messages" />
+          <RoomMessage
+            :isAuthor="authStore.uid === msg.author_id"
+            :roomMsg="true"
+            :msg="msg"
+            v-for="msg in messages"
+          />
         </div>
       </div>
       <div v-else class="res-msg-container">

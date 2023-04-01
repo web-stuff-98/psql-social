@@ -83,7 +83,7 @@ async function inviteToRoomClicked() {
     let rooms = await getRooms();
     if (!rooms) rooms = [];
     rooms = rooms.filter((r) => r.author_id === authStore.uid);
-    rooms.map((r) => r.ID);
+    ownRoomIDs.value = rooms.map((r) => r.ID);
     getOwnRoomIDsResMsg.value = {
       msg: rooms.length > 0 ? "" : "You have no rooms",
       err: false,
@@ -97,7 +97,7 @@ async function inviteToRoomClicked() {
 function inviteToRoom(roomId: string, uid: string) {
   socketStore.send({
     event_type: "INVITATION",
-    data: { invited: uid, room_id: roomId },
+    data: { uid, room_id: roomId },
   } as Invitation);
   userdropdownStore.open = false;
 }

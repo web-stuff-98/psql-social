@@ -40,7 +40,7 @@ export type FriendRequestResponse = {
 };
 export type Invitation = {
   event_type: "INVITATION";
-  data: { inviter: string; invited: string; room_id: string };
+  data: { uid: string; room_id: string };
 };
 export type InvitationResponse = {
   event_type: "INVITATION_RESPONSE";

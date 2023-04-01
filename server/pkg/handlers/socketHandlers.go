@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -746,16 +747,19 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 
 	conn, err := h.DB.Acquire(ctx)
 	if err != nil {
+		log.Println("ERR A:", err)
 		return fmt.Errorf("Internal error")
 	}
 	defer conn.Release()
 
-	selectInvitationExistsStmt, err := conn.Conn().Prepare(ctx, "invitation_select_invitation_stmt", "SELECT EXISTS(SELECT 1 FROM invitations WHERE inviter = $1 AND invited = $2 AND room_id = $3")
+	selectInvitationExistsStmt, err := conn.Conn().Prepare(ctx, "invitation_select_invitation_stmt", "SELECT EXISTS(SELECT 1 FROM invitations WHERE inviter = $1 AND invited = $2 AND room_id = $3)")
 	if err != nil {
+		log.Println("ERR B:", err)
 		return fmt.Errorf("Internal error")
 	}
 	var invitationExists bool
-	if err = h.DB.QueryRow(ctx, selectInvitationExistsStmt.Name, uid, data.Uid, data.RoomID).Scan(&invitationExists); err != nil {
+	if err = conn.QueryRow(ctx, selectInvitationExistsStmt.Name, uid, data.Uid, data.RoomID).Scan(&invitationExists); err != nil {
+		log.Println("ERR C:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if invitationExists {
@@ -764,11 +768,13 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 
 	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1 AND blocker_id = $2)")
 	if err != nil {
+		log.Println("ERR D:", err)
 		return fmt.Errorf("Internal error")
 	}
 
 	var blockedExists bool
-	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blockedExists); err != nil {
+	if err = conn.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blockedExists); err != nil {
+		log.Println("ERR E:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if blockedExists {
@@ -777,11 +783,13 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 
 	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "invitation_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocker_id = $1 AND blocked_id = $2)")
 	if err != nil {
+		log.Println("ERR F:", err)
 		return fmt.Errorf("Internal error")
 	}
 
 	var blockerExists bool
-	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
+	if err = conn.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Uid).Scan(&blockerExists); err != nil {
+		log.Println("ERR G:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if blockerExists {
@@ -790,10 +798,12 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 
 	insertStmt, err := conn.Conn().Prepare(ctx, "invitation_insert_stmt", "INSERT INTO invitations (inviter, invited, room_id) VALUES($1, $2, $3)")
 	if err != nil {
+		log.Println("ERR H:", err)
 		return fmt.Errorf("Internal error")
 	}
 
-	if _, err = h.DB.Exec(ctx, insertStmt.Name, uid, data.Uid, data.RoomID); err != nil {
+	if _, err = conn.Exec(ctx, insertStmt.Name, uid, data.Uid, data.RoomID); err != nil {
+		log.Println("ERR I:", err)
 		return fmt.Errorf("Internal error")
 	}
 
@@ -832,7 +842,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		return fmt.Errorf("Internal error")
 	}
 	var invitationExists bool
-	if err = h.DB.QueryRow(ctx, selectExistsStmt.Name, data.Inviter, uid, data.RoomID).Scan(&invitationExists); err != nil {
+	if err = conn.QueryRow(ctx, selectExistsStmt.Name, data.Inviter, uid, data.RoomID).Scan(&invitationExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if !invitationExists {
@@ -844,7 +854,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		return fmt.Errorf("Internal error")
 	}
 	var friendsExists bool
-	if err = h.DB.QueryRow(ctx, selectInvitationExistsStmt.Name, uid, data.RoomID).Scan(&selectInvitationExistsStmt); err != nil {
+	if err = conn.QueryRow(ctx, selectInvitationExistsStmt.Name, uid, data.RoomID).Scan(&selectInvitationExistsStmt); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if friendsExists {
@@ -856,7 +866,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		return fmt.Errorf("Internal error")
 	}
 
-	if _, err = h.DB.Exec(ctx, deleteStmt.Name, data.Inviter, uid, data.RoomID); err != nil {
+	if _, err = conn.Exec(ctx, deleteStmt.Name, data.Inviter, uid, data.RoomID); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
@@ -866,7 +876,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 	}
 
 	var blockedExists bool
-	if err = h.DB.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Inviter).Scan(&blockedExists); err != nil {
+	if err = conn.QueryRow(ctx, selectBlockedStmt.Name, uid, data.Inviter).Scan(&blockedExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blockedExists {
@@ -879,7 +889,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 	}
 
 	var blockerExists bool
-	if err = h.DB.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Inviter).Scan(&blockerExists); err != nil {
+	if err = conn.QueryRow(ctx, selectBlockerStmt.Name, uid, data.Inviter).Scan(&blockerExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 	if blockerExists {
@@ -891,7 +901,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		if err != nil {
 			return fmt.Errorf("Internal error")
 		}
-		if _, err = h.DB.Exec(ctx, insertStmt.Name, data.Inviter, uid, data.RoomID); err != nil {
+		if _, err = conn.Exec(ctx, insertStmt.Name, data.Inviter, uid, data.RoomID); err != nil {
 			return fmt.Errorf("Internal error")
 		}
 	}

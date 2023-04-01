@@ -7,7 +7,11 @@ import { userdropdownStore } from "../../store/UserDropdownStore";
 const userStore = useUserStore();
 const authStore = useAuthStore();
 
-const props = defineProps<{ uid: string; noClick?: boolean }>();
+const props = defineProps<{
+  uid: string;
+  noClick?: boolean;
+  reverse?: boolean;
+}>();
 const { uid } = toRefs(props);
 
 const container = ref<HTMLElement>();
@@ -28,7 +32,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="container" class="user">
+  <div
+    :style="reverse ? { flexDirection: 'row-reverse' } : {}"
+    ref="container"
+    class="user"
+  >
     <button
       type="button"
       @click="

@@ -16,10 +16,10 @@ import ErrorMessage from "./ErrorMessage.vue";
 const props = defineProps<{
   msg: IRoomMessage | IDirectMessage;
   roomMsg: boolean;
+  isAuthor?: boolean;
 }>();
 
 const socketStore = useSocketStore();
-
 const { msg } = toRefs(props);
 const isEditing = ref(false);
 const inputRef = ref<HTMLInputElement>();
@@ -52,9 +52,12 @@ function handleSubmitEdit(values: any) {
 </script>
 
 <template>
-  <div class="msg-container">
+  <div
+    :style="isAuthor ? {} : { flexDirection: 'row-reverse' }"
+    class="msg-container"
+  >
     <div v-if="roomMsg" class="user">
-      <User :uid="msg.author_id" />
+      <User :reverse="!isAuthor" :uid="msg.author_id" />
     </div>
     <div v-show="!isEditing" class="content">
       {{ msg.content }}
@@ -79,7 +82,7 @@ function handleSubmitEdit(values: any) {
         </button>
       </div>
     </Form>
-    <div v-show="!isEditing" class="buttons">
+    <div v-show="!isEditing && isAuthor" class="buttons">
       <button @click="editClicked()" name="edit message" type="button">
         <v-icon name="md-modeeditoutline" />
       </button>

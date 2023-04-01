@@ -7,6 +7,7 @@ import {
 import Message from "../../../../shared/Message.vue";
 import FriendRequest from "./FriendRequest.vue";
 import Invitation from "./Invitation.vue";
+import useAuthStore from "../../../../../store/AuthStore";
 
 /**
  * Determines if the conversation item is a message, invitation or friend request,
@@ -16,6 +17,8 @@ import Invitation from "./Invitation.vue";
 defineProps<{
   item: IDirectMessage | IInvitation | IFriendRequest;
 }>();
+
+const authStore = useAuthStore();
 </script>
 
 <template>
@@ -26,6 +29,7 @@ defineProps<{
   />
   <!-- Only messages have ids -->
   <Message
+    :isAuthor="authStore.uid === (item as any)['author_id']"
     :msg="item as IDirectMessage"
     :roomMsg="false"
     v-if="(item as any)['ID']"
