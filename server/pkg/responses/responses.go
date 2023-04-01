@@ -17,6 +17,12 @@ type Room struct {
 	CreatedAt string `json:"created_at"`
 }
 
+type RoomChannelBase struct {
+	ID   string `json:"ID"`
+	Name string `json:"name"`
+	Main bool   `json:"main"`
+}
+
 type RoomMessage struct {
 	ID        string `json:"ID"`
 	Content   string `json:"content"`
@@ -24,8 +30,28 @@ type RoomMessage struct {
 	CreatedAt string `json:"created_at"`
 }
 
-type RoomChannelBase struct {
-	ID   string `json:"ID"`
-	Name string `json:"name"`
-	Main bool   `json:"main"`
+type DirectMessage struct {
+	ID          string `json:"ID"`
+	Content     string `json:"content"`
+	AuthorID    string `json:"author_id"`
+	RecipientID string `json:"recipient_id"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type Invitation struct {
+	Inviter   string `json:"inviter"`
+	Invited   string `json:"invited"`
+	CreatedAt string `json:"created_at"`
+}
+
+type FriendRequest struct {
+	Friender  string `json:"friender"`
+	Friended  string `json:"friended"`
+	CreatedAt string `json:"created_at"`
+}
+
+type Conversation struct {
+	DirectMessages []DirectMessage `json:"direct_messages"`
+	Invitations    []Invitation    `json:"invitations"`
+	FriendRequests []FriendRequest `json:"friend_requests"`
 }

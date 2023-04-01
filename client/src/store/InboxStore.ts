@@ -1,15 +1,22 @@
 import { defineStore } from "pinia";
-import { IDirectMessage } from "../interfaces/GeneralInterfaces";
+import {
+  IDirectMessage,
+  IFriendRequest,
+  IInvitation,
+} from "../interfaces/GeneralInterfaces";
 
 type InboxStoreState = {
-  messages: IDirectMessage[];
+  convs: Record<
+    string,
+    Array<IDirectMessage | IInvitation | IFriendRequest>
+  >;
 };
 
 const useInboxStore = defineStore("inbox", {
   state: () =>
     ({
-      messages: [],
+      convs: {},
     } as InboxStoreState),
 });
 
-export default useInboxStore
+export default useInboxStore;

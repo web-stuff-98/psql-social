@@ -23,32 +23,39 @@ type RoomMessageDelete struct {
 
 // TYPE: DIRECT_MESSAGE
 type DirectMessage struct {
-	ID        string `json:"ID"`
-	Content   string `json:"content"`
-	CreatedAt string `json:"created_at"`
-	AuthorID  string `json:"author_id"`
+	ID          string `json:"ID"`
+	Content     string `json:"content"`
+	CreatedAt   string `json:"created_at"`
+	AuthorID    string `json:"author_id"`
+	RecipientID string `json:"recipient_id"`
 }
 
 // TYPE: DIRECT_MESSAGE_UPDATE
 type DirectMessageUpdate struct {
-	ID      string `json:"ID"`
-	Content string `json:"content"`
+	ID          string `json:"ID"`
+	Content     string `json:"content"`
+	AuthorID    string `json:"author_id"`
+	RecipientID string `json:"recipient_id"`
 }
 
 // TYPE: DIRECT_MESSAGE_DELETE
 type DirectMessageDelete struct {
-	ID string `json:"ID"`
+	ID          string `json:"ID"`
+	AuthorID    string `json:"author_id"`
+	RecipientID string `json:"recipient_id"`
 }
 
 // TYPE: FRIEND_REQUEST
 type FriendRequest struct {
-	Friender string `json:"friender"`
-	Friended string `json:"friended"`
+	Friender  string `json:"friender"`
+	Friended  string `json:"friended"`
+	CreatedAt string `json:"created_at"`
 }
 
 // TYPE: FRIEND_REQUEST_RESPONSE
 type FriendRequestResponse struct {
 	Accepted bool   `json:"accepted"`
+	Friender string `json:"friender"`
 	Friended string `json:"friended"`
 }
 
@@ -63,14 +70,16 @@ type ChangeEvent struct {
 
 // TYPE: INVITATION
 type Invitation struct {
-	Inviter string `json:"inviter"`
-	Invited string `json:"invited"`
-	RoomID  string `json:"room_id"`
+	Inviter   string `json:"inviter"`
+	Invited   string `json:"invited"`
+	RoomID    string `json:"room_id"`
+	CreatedAt string `json:"created_at"`
 }
 
 // TYPE: INVITATION_RESPONSE
 type InvitationResponse struct {
 	Invited  string `json:"invited"`
+	Inviter  string `json:"inviter"`
 	Accepted bool   `json:"accepted"`
 	RoomID   string `json:"room_id"`
 }

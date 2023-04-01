@@ -32,11 +32,19 @@ export type DirectMessageDelete = {
 };
 export type FriendRequest = {
   event_type: "FRIEND_REQUEST";
-  data: { friender: string; friended: string };
+  data: { uid: string };
 };
 export type FriendRequestResponse = {
   event_type: "FRIEND_REQUEST_RESPONSE";
   data: { accepted: boolean; friender: string };
+};
+export type Invitation = {
+  event_type: "INVITATION";
+  data: { inviter: string; invited: string; room_id: string };
+};
+export type InvitationResponse = {
+  event_type: "INVITATION_RESPONSE";
+  data: { invited: string; room_id: string };
 };
 
 /* Room events */

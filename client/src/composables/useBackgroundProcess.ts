@@ -1,5 +1,11 @@
 import { onBeforeUnmount, onMounted, Ref, ref, watchEffect } from "vue";
-import { IResMsg, IRoom } from "../interfaces/GeneralInterfaces";
+import {
+  IDirectMessage,
+  IFriendRequest,
+  IInvitation,
+  IResMsg,
+  IRoom,
+} from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "../services/makeRequest";
 import { StartWatching, StopWatching } from "../socketHandling/OutEvents";
 
@@ -12,6 +18,10 @@ import {
   isDirectMsg,
   isDirectMsgDelete,
   isDirectMsgUpdate,
+  isFriendRequest,
+  isFriendRequestResponse,
+  isInvitation,
+  isInvitationResponse,
 } from "../socketHandling/InterpretEvent";
 import { getUserPfp } from "../services/user";
 import useInboxStore from "../store/InboxStore";
@@ -112,26 +122,105 @@ export default function useBackgroundProcess({
     }
   }
 
-  function watchForDirectMessages(e: MessageEvent) {
+  function watchInbox(e: MessageEvent) {
     const msg = JSON.parse(e.data);
     if (!msg) return;
     if (isDirectMsg(msg)) {
-      inboxStore.messages = [...inboxStore.messages, msg.data];
+      const otherUser =
+        msg.data.author_id === authStore.uid
+          ? msg.data.recipient_id
+          : msg.data.author_id;
+      inboxStore.convs[otherUser] = [
+        ...(inboxStore.convs[otherUser] || []),
+        msg.data as IDirectMessage,
+      ];
     }
     if (isDirectMsgUpdate(msg)) {
-      const i = inboxStore.messages.findIndex((m) => m.ID === msg.data.ID);
-      if (i !== -1) {
-        const newMsg = { ...inboxStore.messages[i], ...msg.data };
-        inboxStore.messages = [
-          ...inboxStore.messages.filter((m) => m.ID !== msg.data.ID),
-          newMsg,
-        ];
-      }
+      const otherUser =
+        msg.data.author_id === authStore.uid
+          ? msg.data.recipient_id
+          : msg.data.author_id;
+      let newConv = inboxStore.convs[otherUser] || [];
+      const i = newConv.findIndex((item) => {
+        // if it has an ID then its a direct message, not an invite or friend request
+        if ((item as any)["ID"] !== undefined)
+          return (item as any)["ID"] === msg.data.ID;
+      });
+      //@ts-ignore
+      newConv[i]["content"] = msg.data.content;
+      inboxStore.convs[otherUser] = [...newConv];
     }
     if (isDirectMsgDelete(msg)) {
-      inboxStore.messages = [
-        ...inboxStore.messages.filter((m) => m.ID !== msg.data.ID),
+      const otherUser =
+        msg.data.author_id === authStore.uid
+          ? msg.data.recipient_id
+          : msg.data.author_id;
+      if (inboxStore.convs[otherUser]) {
+        const i = inboxStore.convs[otherUser].findIndex((item) => {
+          // if it has an ID then its a direct message, not an invite or friend request
+          if ((item as any)["ID"] !== undefined)
+            return (item as any)["ID"] === msg.data.ID;
+        });
+        inboxStore.convs[otherUser].splice(i, 1);
+      }
+    }
+
+    if (isFriendRequest(msg)) {
+      const otherUser =
+        msg.data.friended === authStore.uid
+          ? msg.data.friender
+          : msg.data.friended;
+      inboxStore.convs[otherUser] = [
+        ...(inboxStore.convs[otherUser] || []),
+        msg.data as IFriendRequest,
       ];
+    }
+    if (isFriendRequestResponse(msg)) {
+      const otherUser =
+        msg.data.friended === authStore.uid
+          ? msg.data.friender
+          : msg.data.friended;
+      let newConv = inboxStore.convs[otherUser] || [];
+      const i = newConv.findIndex((item) => {
+        // if it has a "friender" then its a friend request
+        if ((item as any)["friender"] !== undefined)
+          return (
+            (item as any)["friender"] === msg.data.friender &&
+            (item as any)["friended"] === msg.data.friended
+          );
+      });
+      //@ts-ignore
+      newConv[i]["accepted"] = msg.data.accepted;
+      inboxStore.convs[otherUser] = [...newConv];
+    }
+
+    if (isInvitation(msg)) {
+      const otherUser =
+        msg.data.inviter === authStore.uid
+          ? msg.data.invited
+          : msg.data.inviter;
+      inboxStore.convs[otherUser] = [
+        ...(inboxStore.convs[otherUser] || []),
+        msg.data as IInvitation,
+      ];
+    }
+    if (isInvitationResponse(msg)) {
+      const otherUser =
+        msg.data.inviter === authStore.uid
+          ? msg.data.invited
+          : msg.data.inviter;
+      let newConv = inboxStore.convs[otherUser] || [];
+      const i = newConv.findIndex((item) => {
+        // if it has an "inviter" then its an invitate
+        if ((item as any)["inviter"] !== undefined)
+          return (
+            (item as any)["inviter"] === msg.data.inviter &&
+            (item as any)["invited"] === msg.data.invited
+          );
+      });
+      //@ts-ignore
+      newConv[i]["accepted"] = msg.data.accepted;
+      inboxStore.convs[otherUser] = [...newConv];
     }
   }
 
@@ -242,7 +331,7 @@ export default function useBackgroundProcess({
 
   watchEffect(() => {
     socketStore.socket?.addEventListener("message", watchForChangeEvents);
-    socketStore.socket?.addEventListener("message", watchForDirectMessages);
+    socketStore.socket?.addEventListener("message", watchInbox);
   });
 
   onBeforeUnmount(() => {
@@ -252,7 +341,7 @@ export default function useBackgroundProcess({
     clearInterval(clearRoomCacheInterval.value);
 
     socketStore.socket?.removeEventListener("message", watchForChangeEvents);
-    socketStore.socket?.removeEventListener("message", watchForDirectMessages);
+    socketStore.socket?.removeEventListener("message", watchInbox);
   });
 
   return undefined;

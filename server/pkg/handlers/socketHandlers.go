@@ -455,10 +455,11 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
 		Data: socketmessages.DirectMessage{
-			ID:        id,
-			Content:   content,
-			CreatedAt: time.Now().Format(time.RFC3339),
-			AuthorID:  uid,
+			ID:          id,
+			Content:     content,
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			AuthorID:    uid,
+			RecipientID: data.Uid,
 		},
 		MessageType: "DIRECT_MESSAGE",
 	}
@@ -506,8 +507,10 @@ func directMessageUpdate(inData map[string]interface{}, h handler, uid string, c
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, recipient_id},
 		Data: socketmessages.DirectMessageUpdate{
-			ID:      data.MsgID,
-			Content: content,
+			ID:          data.MsgID,
+			Content:     content,
+			AuthorID:    uid,
+			RecipientID: recipient_id,
 		},
 		MessageType: "DIRECT_MESSAGE_UPDATE",
 	}
@@ -553,7 +556,9 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, recipient_id},
 		Data: socketmessages.DirectMessageUpdate{
-			ID: data.MsgID,
+			ID:          data.MsgID,
+			AuthorID:    uid,
+			RecipientID: recipient_id,
 		},
 		MessageType: "DIRECT_MESSAGE_DELETE",
 	}
@@ -626,8 +631,9 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
 		Data: socketmessages.FriendRequest{
-			Friender: uid,
-			Friended: data.Uid,
+			Friender:  uid,
+			Friended:  data.Uid,
+			CreatedAt: time.Now().Format(time.RFC3339),
 		},
 		MessageType: "FRIEND_REQUEST",
 	}
@@ -726,6 +732,7 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 		Data: socketmessages.FriendRequestResponse{
 			Accepted: data.Accepted,
 			Friended: uid,
+			Friender: data.Friender,
 		},
 	}
 
@@ -798,9 +805,10 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
 		Data: socketmessages.Invitation{
-			Inviter: uid,
-			Invited: data.Uid,
-			RoomID:  data.RoomID,
+			Inviter:   uid,
+			Invited:   data.Uid,
+			RoomID:    data.RoomID,
+			CreatedAt: time.Now().Format(time.RFC3339),
 		},
 		MessageType: "INVITATION",
 	}
@@ -899,6 +907,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		Data: socketmessages.InvitationResponse{
 			Accepted: data.Accepted,
 			Invited:  uid,
+			Inviter:  data.Inviter,
 			RoomID:   data.RoomID,
 		},
 	}

@@ -10,7 +10,11 @@ import useAuthStore from "../../store/AuthStore";
 import { Field, Form } from "vee-validate";
 import { validateMessage } from "../../validators/validators";
 import ErrorMessage from "../shared/ErrorMessage.vue";
-import { DirectMessage } from "../../socketHandling/OutEvents";
+import {
+  DirectMessage,
+  FriendRequest,
+  Invitation,
+} from "../../socketHandling/OutEvents";
 
 enum EUserdropdownMenuSection {
   "MENU" = "Menu",
@@ -37,15 +41,13 @@ function adjust() {
     containerRef.value?.clientWidth! + mousePos.value.left >
     window.innerWidth
   ) {
-    menuPos.value.left =
-      window.innerWidth - containerRef.value?.clientWidth! * 2;
+    menuPos.value.left = window.innerWidth - containerRef.value?.clientWidth!;
   }
   if (
     containerRef.value?.clientHeight! + mousePos.value.top >
     window.innerHeight
   ) {
-    menuPos.value.top =
-      window.innerHeight - containerRef.value?.clientHeight! * 2;
+    menuPos.value.top = window.innerHeight - containerRef.value?.clientHeight!;
   }
 }
 
@@ -92,11 +94,15 @@ async function inviteToRoomClicked() {
   }
 }
 
-function inviteToRoom(roomId: string) {
+function inviteToRoom(roomId: string, uid: string) {
+  socketStore.send({ data: { invited: uid, room_id: roomId } } as Invitation);
   userdropdownStore.open = false;
 }
 
 function friendRequestClicked() {
+  socketStore.send({
+    data: { uid: userdropdownStore.subject },
+  } as FriendRequest);
   userdropdownStore.open = false;
 }
 
@@ -170,7 +176,7 @@ function submitDirectMessage(values: any) {
     >
       <ResMsg :resMsg="getOwnRoomIDsResMsg" />
       <div
-        @click="() => inviteToRoom(id)"
+        @click="() => inviteToRoom(id, userdropdownStore.subject)"
         class="room-container"
         :key="id"
         v-for="id in ownRoomIDs"

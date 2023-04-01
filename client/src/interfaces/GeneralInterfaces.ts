@@ -30,6 +30,17 @@ export interface IMessage {
 }
 export interface IRoomMessage extends IMessage {}
 export interface IDirectMessage extends IMessage {}
+export interface IInvitation {
+  inviter: string;
+  invited: string;
+  room_id: string;
+  created_at: string;
+}
+export interface IFriendRequest {
+  friender: string;
+  friended: string;
+  created_at: string;
+}
 export interface IMediaOptions {
   userMedia: {
     video: boolean;

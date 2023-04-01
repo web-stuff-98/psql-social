@@ -37,18 +37,31 @@ type RoomMessageData = MessageData;
 type RoomMessageDeleteData = MessageDeleteData;
 type RoomMessageUpdateData = MessageUpdateData;
 
-type DirectMessageData = MessageData;
-type DirectMessageDeleteData = MessageDeleteData;
-type DirectMessageUpdateData = MessageUpdateData;
+type DirectMessageData = MessageData & { data: { recipient_id: string } };
+type DirectMessageDeleteData = MessageDeleteData & {
+  data: {
+    author_id: string;
+    recipient_id: string;
+  };
+};
+type DirectMessageUpdateData = MessageUpdateData & {
+  data: {
+    author_id: string;
+    recipient_id: string;
+  };
+};
 
 type FriendRequest = {
   data: {
     friender: string;
     friended: string;
+    created_at: string;
+    accepted?: boolean;
   };
 };
 type FriendRequestResponse = {
   data: {
+    friender: string;
     friended: string;
     accepted: boolean;
   };
@@ -59,6 +72,8 @@ type Invitation = {
     inviter: string;
     invited: string;
     room_id: string;
+    created_at: string;
+    accepted?: boolean;
   };
 };
 type InvitationResponse = {

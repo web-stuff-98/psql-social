@@ -13,10 +13,12 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/nfnt/resize"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
+	"github.com/web-stuff-98/psql-social/pkg/responses"
 	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
@@ -379,4 +381,242 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 	}
 
 	ResponseMessage(ctx, "Profile picture updated successfully", fasthttp.StatusOK)
+}
+
+func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectDmsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_messages_stmt", "SELECT author_id,recipient_id FROM direct_messages WHERE author_id = $1 OR recipient_id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	uids := make(map[string]struct{})
+	if rows, err := conn.Query(rctx, selectDmsStmt.Name, uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var author_id, recipient_id string
+			if err = rows.Scan(&author_id, &recipient_id); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+			if author_id != uid {
+				uids[author_id] = struct{}{}
+			} else {
+				uids[recipient_id] = struct{}{}
+			}
+		}
+	}
+
+	selectFrqsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_friend_reqeusts_stmt", "SELECT friender,friended FROM friend_requests WHERE friender = $1 OR friended = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if rows, err := conn.Query(rctx, selectFrqsStmt.Name, uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var friender, friended string
+			if err = rows.Scan(&friender, &friended); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+			if friender != uid {
+				uids[friender] = struct{}{}
+			} else {
+				uids[friended] = struct{}{}
+			}
+		}
+	}
+
+	selectInvsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_invitations_stmt", "SELECT inviter,invited FROM invitations WHERE inviter = $1 OR invited = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if rows, err := conn.Query(rctx, selectInvsStmt.Name, uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var inviter, invited string
+			if err = rows.Scan(&inviter, &invited); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+			if inviter != uid {
+				uids[inviter] = struct{}{}
+			} else {
+				uids[invited] = struct{}{}
+			}
+		}
+	}
+
+	uidsArr := []string{}
+	for k := range uids {
+		uidsArr = append(uidsArr, k)
+	}
+
+	if outBytes, err := json.Marshal(uids); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+	} else {
+		ctx.Response.Header.Add("Content-Type", "application/json")
+		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Write(outBytes)
+	}
+}
+
+func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	user_id := ctx.UserValue("id").(string)
+	if user_id == "" {
+		ResponseMessage(ctx, "Provide a user ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at FROM direct_messages WHERE author_id = $1 OR author_id = $1 ORDER BY created_at DESC LIMIT 50")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	messages := []responses.DirectMessage{}
+	if rows, err := h.DB.Query(rctx, selectMsgStmt.Name, uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var id, content, author_id, recipient_id string
+			var created_at pgtype.Timestamptz
+
+			if err = rows.Scan(&id, &content, &author_id, &recipient_id, &created_at); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			messages = append(messages, responses.DirectMessage{
+				ID:          id,
+				CreatedAt:   created_at.Time.Format(time.RFC3339),
+				RecipientID: recipient_id,
+				AuthorID:    author_id,
+				Content:     content,
+			})
+		}
+	}
+
+	selectFrqStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_friend_requests_stmt", "SELECT friender,friended,created_at FROM friend_requests WHERE friender = $1 OR friended = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	friendRequests := []responses.FriendRequest{}
+	if rows, err := h.DB.Query(rctx, selectFrqStmt.Name, uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var friender, friended string
+			var created_at pgtype.Timestamptz
+
+			if err = rows.Scan(&friender, &friended, &created_at); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			friendRequests = append(friendRequests, responses.FriendRequest{
+				Friender:  friender,
+				Friended:  friended,
+				CreatedAt: created_at.Time.Format(time.RFC3339),
+			})
+		}
+	}
+
+	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", "SELECT inviter,invited,created_at FROM invitations WHERE inviter = $1 OR invited = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	invitations := []responses.Invitation{}
+	if rows, err := h.DB.Query(rctx, selectInvStmt.Name, uid); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var inviter, invited string
+			var created_at pgtype.Timestamptz
+
+			if err = rows.Scan(&inviter, &invited, &created_at); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+
+			invitations = append(invitations, responses.Invitation{
+				Inviter:   inviter,
+				Invited:   invited,
+				CreatedAt: created_at.Time.Format(time.RFC3339),
+			})
+		}
+	}
+
+	if outBytes, err := json.Marshal(responses.Conversation{
+		DirectMessages: messages,
+		Invitations:    invitations,
+		FriendRequests: friendRequests,
+	}); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+	} else {
+		ctx.Response.Header.Add("Content-Type", "application/json")
+		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Write(outBytes)
+	}
 }

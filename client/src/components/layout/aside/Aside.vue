@@ -4,6 +4,7 @@ import EAsideSection from "../../../enums/EAsideSection";
 import FindUser from "./sections/FindUser.vue";
 import Profile from "./sections/Profile.vue";
 import Rooms from "./sections/rooms/Rooms.vue";
+import Messages from "./sections/Messages.vue";
 
 const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
 const show = ref(false);
@@ -30,6 +31,7 @@ const show = ref(false);
       />
       <FindUser v-if="currentSection === EAsideSection.FIND_USER" />
       <Rooms v-if="currentSection === EAsideSection.ROOMS" />
+      <Messages v-if="currentSection === EAsideSection.MESSAGES" />
       <button
         @click="show = false"
         type="button"

@@ -25,13 +25,13 @@ CREATE TABLE friends (
 CREATE TABLE friend_requests (
     friender UUID REFERENCES users(id) ON DELETE CASCADE,
     friended UUID REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (friender, friended)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() PRIMARY KEY (friender, friended)
 );
 
 CREATE TABLE invitations (
     inviter UUID REFERENCES users(id) ON DELETE CASCADE,
     invited UUID REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (inviter, invited)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() PRIMARY KEY (inviter, invited)
 );
 
 CREATE TABLE bios (
@@ -44,6 +44,21 @@ CREATE TABLE blocks (
     blocked_id UUID REFERENCES users(id) ON DELETE CASCADE,
     blocker_id UUID REFERENCES users(id) ON DELETE CASCADE,
     PRIMARY KEY (blocked_id, blocker_id)
+);
+
+CREATE TABLE rooms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(16) NOT NULL,
+    private BOOLEAN NOT NULL,
+    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE room_channels (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(24) NOT NULL,
+    main BOOLEAN NOT NULL,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE
 );
 
 CREATE TABLE room_messages (
@@ -62,14 +77,6 @@ CREATE TABLE direct_messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE rooms (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(16) NOT NULL,
-    private BOOLEAN NOT NULL,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 CREATE TABLE bans (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
@@ -80,13 +87,6 @@ CREATE TABLE members (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, room_id)
-);
-
-CREATE TABLE room_channels (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(24) NOT NULL,
-    main BOOLEAN NOT NULL,
-    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE
 );
 
 CREATE TABLE direct_message_attachment_chunks (
