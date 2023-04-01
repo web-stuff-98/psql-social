@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -301,7 +300,6 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 	// retrieve the users own rooms first
 	if rows, err := h.DB.Query(rctx, "SELECT id,name,private,author_id,created_at FROM rooms WHERE author_id = $1;", uid); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR A:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -316,7 +314,6 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 			err = rows.Scan(&id, &name, &private, &author_id, &created_at)
 
 			if err != nil {
-				log.Println("ERR B:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -331,11 +328,9 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
-	// get all the users room memberships
 	memberOf := []string{}
 	if rows, err := h.DB.Query(rctx, "SELECT room_id FROM members WHERE user_id = $1", uid); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR C:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		} else {
 			ResponseMessage(ctx, "No rooms found", fasthttp.StatusNotFound)
@@ -352,10 +347,8 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 	}
 
 	if len(memberOf) > 0 {
-		// Construct the query using an array parameter
 		query := "SELECT id, name, private, author_id, created_at FROM rooms WHERE id = ANY($1)"
 		if rows, err := h.DB.Query(rctx, query, memberOf); err != nil {
-			log.Println("ERR D:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		} else {
@@ -369,7 +362,6 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 				err = rows.Scan(&id, &name, &private, &author_id, &created_at)
 
 				if err != nil {
-					log.Println("ERR E:", err)
 					ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 					return
 				}
@@ -386,7 +378,6 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 	}
 
 	if data, err := json.Marshal(rooms); err != nil {
-		log.Println("ERR F:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
