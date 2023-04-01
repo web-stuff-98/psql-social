@@ -215,7 +215,8 @@ export default function useBackgroundProcess({
         if ((item as any)["inviter"] !== undefined)
           return (
             (item as any)["inviter"] === msg.data.inviter &&
-            (item as any)["invited"] === msg.data.invited
+            (item as any)["invited"] === msg.data.invited &&
+            (item as any)["room_id"] === msg.data.room_id
           );
       });
       //@ts-ignore

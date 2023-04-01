@@ -51,13 +51,24 @@ function uppercaseFirstLetter(str: string) {
 <template>
   <div class="invitation-friend-request">
     <span v-if="inv.inviter !== authStore.uid">
-      {{ `${uppercaseFirstLetter(inviter || "")} ` }} sent you an invitation to
-      {{ ` ${room}` }}
+      {{
+        inv.accepted
+          ? `You accepted ${inviter}'s invitation to ${room}`
+          : `${uppercaseFirstLetter(
+              inviter || ""
+            )} sent you an invitation to ${room}`
+      }}
     </span>
     <span v-else>
-      You sent an invitation to {{ ` ${invited} ` }} to join {{ ` ${room}` }}
+      {{
+        inv.accepted
+          ? `${uppercaseFirstLetter(
+              invited || ""
+            )} accepted your invitation to ${room}`
+          : `You sent an invitation to ${invited} to join ${room}`
+      }}
     </span>
-    <div v-if="inv.invited === authStore.uid" class="buttons">
+    <div v-if="inv.invited === authStore.uid && !inv.accepted" class="buttons">
       <button @click="respond(true)" type="button">Accept</button>
       <button @click="respond(false)" type="button">Decline</button>
     </div>

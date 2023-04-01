@@ -35,11 +35,13 @@ export interface IInvitation {
   invited: string;
   room_id: string;
   created_at: string;
+  accepted?: boolean;
 }
 export interface IFriendRequest {
   friender: string;
   friended: string;
   created_at: string;
+  accepted?: boolean;
 }
 export interface IMediaOptions {
   userMedia: {
