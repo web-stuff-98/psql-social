@@ -18,6 +18,7 @@ import (
 
 /*
 	Massive file. Still need to add ~20 more events...
+	No point code splitting, will just result in having loads of files
 */
 
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {
@@ -1131,6 +1132,16 @@ func block(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 	}
 	if _, err = conn.Exec(ctx, deleteMsgsStmt.Name, data.Uid, uid); err != nil {
 		return fmt.Errorf("Internal error")
+	}
+
+	deleteFriendsStmt, err := conn.Conn().Prepare(ctx, "block_delete_friends_stmt", "DELETE FROM friends WHERE (friended = $1 AND friender = $2) OR (friender = $1 AND friended = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if _, err = conn.Exec(ctx, deleteFriendsStmt.Name, data.Uid, uid); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		}
 	}
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{

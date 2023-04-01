@@ -1,12 +1,29 @@
 <script lang="ts" setup>
-import { onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
 import { makeRequest } from "../../../../../services/makeRequest";
 import User from "../../../../shared/User.vue";
 import ResMsg from "../../../../shared/ResMsg.vue";
+import { isBlock } from "../../../../../socketHandling/InterpretEvent";
+import useAuthStore from "../../../../../store/AuthStore";
+import useSocketStore from "../../../../../store/SocketStore";
+
+const authStore = useAuthStore();
+const socketStore = useSocketStore();
 
 const friends = ref<string[]>([]);
 const resMsg = ref<IResMsg>({});
+
+function watchForBlocks(e: MessageEvent) {
+  const msg = JSON.parse(e.data);
+  if (!msg) return;
+  if (isBlock(msg)) {
+    const otherUser =
+      msg.data.blocker === authStore.uid ? msg.data.blocked : msg.data.blocker;
+    const i = friends.value.findIndex((f) => f === otherUser);
+    if (i !== -1) friends.value.splice(i, 1);
+  }
+}
 
 onMounted(async () => {
   try {
@@ -17,6 +34,12 @@ onMounted(async () => {
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
+
+  socketStore.socket?.addEventListener("message", watchForBlocks);
+});
+
+onBeforeUnmount(() => {
+  socketStore.socket?.removeEventListener("message", watchForBlocks);
 });
 </script>
 
