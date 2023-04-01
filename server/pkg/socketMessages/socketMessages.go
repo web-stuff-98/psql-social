@@ -21,6 +21,12 @@ type RoomMessageDelete struct {
 	ID string `json:"ID"`
 }
 
+// TYPE: BAN
+type Ban struct {
+	UserID string `json:"user_id"`
+	RoomID string `json:"room_id"`
+}
+
 // TYPE: DIRECT_MESSAGE
 type DirectMessage struct {
 	ID          string `json:"ID"`

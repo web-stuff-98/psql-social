@@ -68,3 +68,14 @@ type InvitationResponse struct {
 	RoomID   string `json:"room_id" validation:"required,lte=36"`
 	Accepted bool   `json:"accepted"`
 }
+
+// BLOCK/UNBLOCK
+type BlockUnBlock struct {
+	Uid string `json:"uid" validation:"required,lte=36"`
+}
+
+// BAN/UNBAN
+type BanUnban struct {
+	Uid    string `json:"uid" validation:"required,lte=36"`
+	RoomID string `json:"room_id" validation:"required,lte=36"`
+}

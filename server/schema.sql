@@ -36,9 +36,9 @@ CREATE TABLE bios (
 );
 
 CREATE TABLE blocks (
-    blocked_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    blocker_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (blocked_id, blocker_id)
+    blocked UUID REFERENCES users(id) ON DELETE CASCADE,
+    blocker UUID REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (blocked, blocker)
 );
 
 CREATE TABLE rooms (

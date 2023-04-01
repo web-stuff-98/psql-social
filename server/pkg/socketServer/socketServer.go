@@ -51,7 +51,8 @@ type SocketServer struct {
 	// Send data to multiple subscriptions, exclude connection(s) by matching user ids
 	SendDataToSubsExcludeByIDs chan SubscriptionsMessageDataExcludeByIDs
 
-	Subscriptions Subscriptions
+	Subscriptions       Subscriptions
+	GetSubscriptionUids chan GetSubscriptionUids
 }
 
 /* ------ INTERNAL MUTEX PROTECTED MAPS ------ */
@@ -81,6 +82,11 @@ type Subscriptions struct {
 type GetConnectionSubscriptions struct {
 	RecvChan chan map[string]struct{}
 	Conn     *websocket.Conn
+}
+
+type GetSubscriptionUids struct {
+	RecvChan chan map[string]struct{}
+	SubName  string
 }
 
 /* ------ GENERAL STRUCTS USED INTERNALLY AND EXTERNALLY ------ */
@@ -202,6 +208,7 @@ func Init() *SocketServer {
 		Subscriptions: Subscriptions{
 			data: make(map[string]map[*websocket.Conn]struct{}),
 		},
+		GetSubscriptionUids: make(chan GetSubscriptionUids),
 	}
 	go runServer(ss)
 	log.Println("Socket server initialized")
@@ -243,6 +250,8 @@ func runServer(ss *SocketServer) {
 	go sendDataToSubsExcludeIDs(ss)
 	// Get the subscriptions a socket connection is using
 	go getConnSubscriptions(ss)
+	// Get the uids of users in a subscription
+	go getSubscriptionUids(ss)
 }
 
 func WriteMessage(t string, m interface{}, c *websocket.Conn) {
@@ -801,5 +810,41 @@ func getConnSubscriptions(ss *SocketServer) {
 			data.RecvChan <- empty
 		}
 		ss.ConnectionSubscriptions.mutex.RUnlock()
+	}
+}
+
+func getSubscriptionUids(ss *SocketServer) {
+	var failCount uint8
+	for {
+		defer func() {
+			r := recover()
+			if r != nil {
+				log.Println("Recovered from panic in ws get connection subscriptions loop:", r)
+				if failCount < 10 {
+					go getSubscriptionUids(ss)
+				} else {
+					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
+				}
+				failCount++
+			}
+		}()
+
+		data := <-ss.GetSubscriptionUids
+		ss.Subscriptions.mutex.RLock()
+		uids := make(map[string]struct{})
+		conns, ok := ss.Subscriptions.data[data.SubName]
+		if ok {
+			ss.ConnectionsByWs.mutex.RLock()
+			for c := range conns {
+				if uid, ok := ss.ConnectionsByWs.data[c]; ok {
+					uids[uid] = struct{}{}
+				}
+			}
+			data.RecvChan <- uids
+			ss.ConnectionsByWs.mutex.RUnlock()
+		} else {
+			data.RecvChan <- uids
+		}
+		ss.Subscriptions.mutex.RUnlock()
 	}
 }

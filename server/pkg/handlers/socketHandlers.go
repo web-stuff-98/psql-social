@@ -58,6 +58,16 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 	case "STOP_WATCHING":
 		err = stopWatching(data, h, uid, c)
 
+	//case "BLOCK":
+	//	err = block(data, h, uid, c)
+	//case "UNBLOCK":
+	//	err = unBlock(data, h, uid, c)
+
+	case "BAN":
+		err = ban(data, h, uid, c)
+	case "UNBAN":
+		err = unban(data, h, uid, c)
+
 	default:
 		return fmt.Errorf("Unrecognized event type")
 	}
@@ -933,6 +943,144 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 			Inviter:  data.Inviter,
 			RoomID:   data.RoomID,
 		},
+	}
+
+	return nil
+}
+
+func ban(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.BanUnban{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	if data.Uid == uid {
+		return fmt.Errorf("You cannot ban yourself")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	var author_id string
+	if err = h.DB.QueryRow(ctx, "SELECT author_id FROM rooms WHERE room_id = $1;", data.RoomID).Scan(&author_id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if author_id != uid {
+		return fmt.Errorf("Only the owner of a room can ban users")
+	}
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	blockedExistsStmt, err := conn.Conn().Prepare(ctx, "ban_ban_exists_stmt", "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var banExists bool
+	if err = conn.QueryRow(ctx, blockedExistsStmt.Name, data.Uid, data.RoomID).Scan(&banExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if banExists {
+		return fmt.Errorf("User is already banned from this room")
+	}
+
+	insertBanStmt, err := conn.Conn().Prepare(ctx, "ban_insert_stmt", "INSERT INTO bans (user_id, room_id) VALUES($1, $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if _, err = conn.Exec(ctx, insertBanStmt.Name, data.Uid, data.RoomID); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	deleteMsgsStmt, err := conn.Conn().Prepare(ctx, "ban_delete_msgs_stmt", "DELETE FROM room_messages WHERE author_id = $1 AND room_id = $2")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if _, err = conn.Exec(ctx, deleteMsgsStmt.Name, data.Uid, data.RoomID); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	selectChannelsStmt, err := conn.Conn().Prepare(ctx, "ban_select_channels_stmt", "SELECT id FROM channels WHERE room_id = $1")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	rows, err := conn.Query(ctx, selectChannelsStmt.Name, data.RoomID)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+
+		if err = rows.Scan(&id); err != nil {
+			return fmt.Errorf("Internal error")
+		}
+
+		h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+			SubName: fmt.Sprintf("channel:%v", id),
+			Data: socketmessages.Ban{
+				UserID: data.Uid,
+				RoomID: data.RoomID,
+			},
+			MessageType: "BAN",
+		}
+	}
+
+	return nil
+}
+
+func unban(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.BanUnban{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	if data.Uid == uid {
+		return fmt.Errorf("You cannot unban yourself")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	var author_id string
+	if err = h.DB.QueryRow(ctx, "SELECT author_id FROM rooms WHERE room_id = $1;", data.RoomID).Scan(&author_id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if author_id != uid {
+		return fmt.Errorf("Only the owner of a room can unban users")
+	}
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	banSelectStmt, err := conn.Conn().Prepare(ctx, "unban_select_ban_stmt", "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	var banExists bool
+	if err = conn.QueryRow(ctx, banSelectStmt.Name, data.Uid, data.RoomID).Scan(&banExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if !banExists {
+		return fmt.Errorf("You cannot unban a user that is not banned")
+	}
+
+	deleteStmt, err := conn.Conn().Prepare(ctx, "unban_delete_stmt", "DELETE FROM bans WHERE user_id = $1 AND room_id = $2")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if _, err = conn.Exec(ctx, deleteStmt.Name, data.Uid, data.RoomID); err != nil {
+		return fmt.Errorf("Internal error")
 	}
 
 	return nil

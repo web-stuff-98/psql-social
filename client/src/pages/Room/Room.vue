@@ -9,6 +9,7 @@ import {
 } from "../../socketHandling/OutEvents";
 import { getRoomChannel } from "../../services/room";
 import {
+  isBan,
   isRoomMsg,
   isRoomMsgDelete,
   isRoomMsgUpdate,
@@ -23,6 +24,7 @@ import ResMsg from "../../components/shared/ResMsg.vue";
 import RoomMessage from "../../components/shared/Message.vue";
 import Channel from "./Channel.vue";
 import useAuthStore from "../../store/AuthStore";
+import router from "../../router";
 
 const roomChannelStore = useRoomChannelStore();
 const roomStore = useRoomStore();
@@ -87,6 +89,15 @@ function handleMessages(e: MessageEvent) {
   if (isRoomMsgUpdate(msg)) {
     const i = messages.value.findIndex((m) => m.ID === msg.data.ID);
     if (i !== -1) messages.value[i].content = msg.data.content;
+  }
+
+  if (isBan(msg)) {
+    if (msg.room_id !== roomId.value) return;
+    if (msg.user_id === authStore.uid) {
+      router.push("/");
+      return;
+    }
+    messages.value = messages.value.filter((m) => m.author_id !== msg.user_id);
   }
 }
 

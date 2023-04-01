@@ -37,6 +37,11 @@ type RoomMessageData = MessageData;
 type RoomMessageDeleteData = MessageDeleteData;
 type RoomMessageUpdateData = MessageUpdateData;
 
+type BanData = {
+  user_id: string;
+  room_id: string;
+};
+
 type DirectMessageData = MessageData & { data: { recipient_id: string } };
 type DirectMessageDeleteData = MessageDeleteData & {
   data: {
@@ -96,6 +101,9 @@ export function isRoomMsgDelete(object: any): object is RoomMessageDeleteData {
 }
 export function isRoomMsgUpdate(object: any): object is RoomMessageUpdateData {
   return object.event_type === "ROOM_MESSAGE_UPDATE";
+}
+export function isBan(object: any): object is BanData {
+  return object.event_type === "BAN";
 }
 
 export function isDirectMsg(object: any): object is DirectMessageData {
