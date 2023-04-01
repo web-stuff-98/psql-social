@@ -1066,7 +1066,6 @@ func unban(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
-
 	var banExists bool
 	if err = conn.QueryRow(ctx, banSelectStmt.Name, data.Uid, data.RoomID).Scan(&banExists); err != nil {
 		return fmt.Errorf("Internal error")
