@@ -123,6 +123,19 @@ type CallWebRTCOfferAnswer = {
     dm_vid: boolean;
   };
 };
+type CallAcknowledge = {
+  data: {
+    caller: string;
+    called: string;
+  };
+};
+type CallResponse = {
+  data: {
+    caller: string;
+    called: string;
+    accept: boolean;
+  };
+};
 
 export function isChangeEvent(object: any): object is ChangeEventData {
   return object.event_type === "CHANGE";
@@ -193,6 +206,12 @@ export function isCallAnswerFromRecipient(
   object: any
 ): object is CallWebRTCOfferAnswer {
   return object.event_type === "CALL_WEBRTC_ANSWER_FROM_RECIPIENT";
+}
+export function isCallAcknowledge(object: any): object is CallAcknowledge {
+  return object.event_type === "CALL_USER_ACKNOWLEDGE";
+}
+export function isCallResponse(object: any): object is CallResponse {
+  return object.event_type === "CALL_USER_RESPONSE";
 }
 
 export function isUpdateMediaOptions(

@@ -85,6 +85,11 @@ type BanUnban struct {
 	RoomID string `json:"room_id" validation:"required,lte=36"`
 }
 
+// CALL_USER
+type CallUser struct {
+	Uid string `json:"uid" validation:"required,lte=36"`
+}
+
 // CALL_USER_RESPONSE
 type CallResponse struct {
 	Caller string `json:"caller" validation:"required,lte=36"`

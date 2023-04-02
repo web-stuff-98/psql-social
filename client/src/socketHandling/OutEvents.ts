@@ -54,6 +54,12 @@ export type UnBlock = {
   event_type: "BLOCK";
   data: { uid: string };
 };
+export type CallUser = {
+  event_type: "CALL_USER";
+  data: {
+    uid: string;
+  };
+};
 export type CallResponse = {
   event_type: "CALL_USER_RESPONSE";
   data: {

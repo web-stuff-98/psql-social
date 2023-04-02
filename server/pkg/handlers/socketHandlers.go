@@ -11,6 +11,7 @@ import (
 	"github.com/fasthttp/websocket"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
+	callserver "github.com/web-stuff-98/psql-social/pkg/callServer"
 	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	socketvalidation "github.com/web-stuff-98/psql-social/pkg/socketValidation"
@@ -74,6 +75,11 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = ban(data, h, uid, c)
 	case "UNBAN":
 		err = unban(data, h, uid, c)
+
+	case "CALL_USER":
+		err = callUser(data, h, uid, c)
+	case "CALL_USER_RESPONSE":
+		err = callUserResponse(data, h, uid, c)
 
 	default:
 		return fmt.Errorf("Unrecognized event type")
@@ -1259,6 +1265,87 @@ func unblock(inData map[string]interface{}, h handler, uid string, c *websocket.
 	}
 	if _, err = conn.Exec(ctx, deleteStmt.Name, data.Uid, uid); err != nil {
 		return fmt.Errorf("Internal error")
+	}
+
+	return nil
+}
+
+func callUser(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.CallUser{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	if data.Uid == uid {
+		return fmt.Errorf("You cannot call yourself")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectBlockedStmt, err := conn.Conn().Prepare(ctx, "call_user_select_blocked_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var blocked bool
+	if err = conn.Conn().QueryRow(ctx, selectBlockedStmt.Name, uid, data.Uid).Scan(&blocked); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blocked {
+		return fmt.Errorf("This user has blocked your account")
+	}
+
+	selectBlockerStmt, err := conn.Conn().Prepare(ctx, "call_user_select_blocker_stmt", "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1 AND blocker = $2)")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var blocker bool
+	if err = conn.Conn().QueryRow(ctx, selectBlockerStmt.Name, data.Uid, uid).Scan(&blocker); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if blocked {
+		return fmt.Errorf("You cannot call a user you have blocked")
+	}
+
+	h.CallServer.CallsPendingChan <- callserver.InCall{
+		Caller: uid,
+		Called: data.Uid,
+	}
+
+	return nil
+}
+
+func callUserResponse(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.CallResponse{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	if data.Called != uid && data.Caller != uid || uid == data.Caller && data.Accept {
+		return fmt.Errorf("Unauthorized")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	h.CallServer.ResponseToCallChan <- callserver.InCallResponse{
+		Caller: data.Caller,
+		Called: data.Called,
+		Accept: data.Accept,
 	}
 
 	return nil

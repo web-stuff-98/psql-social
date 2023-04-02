@@ -15,6 +15,7 @@ import {
   DirectMessage,
   FriendRequest,
   Invitation,
+  CallUser,
 } from "../../socketHandling/OutEvents";
 import { Ban } from "../../socketHandling/OutEvents";
 import useRoomStore from "../../store/RoomStore";
@@ -133,6 +134,10 @@ function banClicked() {
 }
 
 function callClicked() {
+  socketStore.send({
+    event_type: "CALL_USER",
+    data: { uid: userdropdownStore.subject },
+  } as CallUser);
   userdropdownStore.open = false;
 }
 

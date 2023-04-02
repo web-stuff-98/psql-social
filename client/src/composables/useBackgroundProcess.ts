@@ -8,13 +8,15 @@ import {
 } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "../services/makeRequest";
 import { StartWatching, StopWatching } from "../socketHandling/OutEvents";
-
 import useAuthStore from "../store/AuthStore";
 import useSocketStore from "../store/SocketStore";
 import useUserStore from "../store/UserStore";
 import useRoomStore from "../store/RoomStore";
+import useInboxStore from "../store/InboxStore";
 import {
   isBlock,
+  isCallAcknowledge,
+  isCallResponse,
   isChangeEvent,
   isDirectMsg,
   isDirectMsgDelete,
@@ -25,11 +27,13 @@ import {
   isInvitationResponse,
 } from "../socketHandling/InterpretEvent";
 import { getUserPfp } from "../services/user";
-import useInboxStore from "../store/InboxStore";
+import { pendingCallsStore } from "../store/CallsStore";
+import { useRouter } from "vue-router";
 
 /**
  * This composable is for intervals that run in the background
- * and socket event listeners that aren't tied to components
+ * and socket event listeners that aren't tied to components,
+ * et cet
  */
 
 export default function useBackgroundProcess({
@@ -47,6 +51,8 @@ export default function useBackgroundProcess({
   const userStore = useUserStore();
   const roomStore = useRoomStore();
   const inboxStore = useInboxStore();
+
+  const router = useRouter();
 
   const currentlyWatching = ref<string[]>([]);
 
@@ -234,6 +240,28 @@ export default function useBackgroundProcess({
     }
   }
 
+  const watchForCalls = (e: MessageEvent) => {
+    const msg = JSON.parse(e.data);
+    if (!msg) return;
+    if (isCallAcknowledge(msg)) {
+      pendingCallsStore.push(msg.data);
+    }
+    if (isCallResponse(msg)) {
+      const i = pendingCallsStore.findIndex(
+        (c) => c.called === msg.data.called && c.caller === msg.data.caller
+      );
+      if (i !== -1) pendingCallsStore.splice(i, 1);
+      if (msg.data.accept)
+        router.push(
+          `/call/${
+            msg.data.called === authStore.uid
+              ? msg.data.caller
+              : msg.data.called
+          }${msg.data.caller === authStore.uid ? "?initiator" : ""}`
+        );
+    }
+  };
+
   onMounted(() => {
     /* Refresh the token */
     refreshTokenInterval.value = setInterval(async () => {
@@ -342,6 +370,7 @@ export default function useBackgroundProcess({
   watchEffect(() => {
     socketStore.socket?.addEventListener("message", watchForChangeEvents);
     socketStore.socket?.addEventListener("message", watchInbox);
+    socketStore.socket?.addEventListener("message", watchForCalls);
   });
 
   onBeforeUnmount(() => {
@@ -352,6 +381,7 @@ export default function useBackgroundProcess({
 
     socketStore.socket?.removeEventListener("message", watchForChangeEvents);
     socketStore.socket?.removeEventListener("message", watchInbox);
+    socketStore.socket?.removeEventListener("message", watchForCalls);
   });
 
   return undefined;
