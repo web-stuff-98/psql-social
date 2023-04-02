@@ -32,7 +32,8 @@ function acceptClicked(index: number) {
 </script>
 
 <template>
-  <div class="container">
+  <div class="pending-calls-container">
+    {{ pendingCallsStore }}
     <PendingCall
       :key="pendingCall.caller"
       v-for="(pendingCall, index) in pendingCallsStore"
@@ -50,7 +51,7 @@ function acceptClicked(index: number) {
 </template>
 
 <style lang="scss" scoped>
-.container {
+.pending-calls-container {
   position: fixed;
   bottom: 0;
   right: 0;

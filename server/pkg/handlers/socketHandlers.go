@@ -370,8 +370,6 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 		return fmt.Errorf("Internal error")
 	}
 
-	log.Println("SEND")
-
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("channel:%v", data.ChannelID),
 		Data: socketmessages.RoomMessage{
@@ -1314,10 +1312,14 @@ func callUser(inData map[string]interface{}, h handler, uid string, c *websocket
 		return fmt.Errorf("You cannot call a user you have blocked")
 	}
 
+	log.Println("Sending to pending calls chan")
+
 	h.CallServer.CallsPendingChan <- callserver.InCall{
 		Caller: uid,
 		Called: data.Uid,
 	}
+
+	log.Println("Sent to pending calls chan")
 
 	return nil
 }
@@ -1342,11 +1344,15 @@ func callUserResponse(inData map[string]interface{}, h handler, uid string, c *w
 	}
 	defer conn.Release()
 
+	log.Println("Sending to calls response chan")
+
 	h.CallServer.ResponseToCallChan <- callserver.InCallResponse{
 		Caller: data.Caller,
 		Called: data.Called,
 		Accept: data.Accept,
 	}
+
+	log.Println("Sent to calls response chan")
 
 	return nil
 }

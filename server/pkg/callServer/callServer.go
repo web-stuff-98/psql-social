@@ -148,7 +148,7 @@ func callPending(ss *socketServer.SocketServer, cs *CallServer) {
 		} else {
 			cs.CallsPending.data[data.Caller] = data.Called
 		}
-		Uids := []string{}
+		Uids := []string{data.Called, data.Caller}
 		ss.SendDataToUsers <- socketServer.UsersMessageData{
 			Uids: Uids,
 			Data: socketmessages.CallAcknowledge{
@@ -157,6 +157,9 @@ func callPending(ss *socketServer.SocketServer, cs *CallServer) {
 			},
 			MessageType: "CALL_USER_ACKNOWLEDGE",
 		}
+
+		log.Println("Sent CALL_USER_ACKNOWLEDGE event")
+
 		cs.CallsPending.mutex.Unlock()
 		go timeoutCall(ss, cs, data.Caller)
 	}

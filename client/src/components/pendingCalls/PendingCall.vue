@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, toRefs, ref, onBeforeUnmount, computed } from "vue";
 import useUserStore from "../../store/UserStore";
-import ring from "../../../assets/ring.wav";
+import ring from "../../assets/ring.wav";
 
 const userStore = useUserStore();
 
