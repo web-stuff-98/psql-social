@@ -121,7 +121,12 @@ function handleMessages(e: MessageEvent) {
           ...msg.data.data,
         };
         roomChannelStore.channels = [
-          ...roomChannelStore.channels.filter((c) => c.ID !== msg.data.data.ID),
+          ...roomChannelStore.channels
+            .filter((c) => c.ID !== msg.data.data.ID)
+            .map((c) => ({
+              ...c,
+              main: (c.main = (msg.data.data as any)["main"] ? false : c.main),
+            })),
           newChannel,
         ];
       }

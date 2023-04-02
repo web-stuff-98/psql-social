@@ -204,7 +204,7 @@ func (h handler) UpdateRoomChannel(ctx *fasthttp.RequestCtx) {
 
 	channel_id := ctx.UserValue("id").(string)
 	if channel_id == "" {
-		ResponseMessage(ctx, "Provide a room ID", fasthttp.StatusBadRequest)
+		ResponseMessage(ctx, "Provide a channel ID", fasthttp.StatusBadRequest)
 		return
 	}
 
@@ -323,7 +323,7 @@ func (h handler) UpdateRoomChannel(ctx *fasthttp.RequestCtx) {
 	h.SocketServer.SendDataToSubs <- socketServer.SubscriptionsMessageData{
 		SubNames: channel_sub_names,
 		Data: socketmessages.ChangeEvent{
-			Type:   "CHANGE",
+			Type:   "UPDATE",
 			Entity: "CHANNEL",
 			Data:   changeData,
 		},
@@ -331,6 +331,118 @@ func (h handler) UpdateRoomChannel(ctx *fasthttp.RequestCtx) {
 	}
 
 	ResponseMessage(ctx, "Channel updated", fasthttp.StatusOK)
+}
+
+func (h handler) DeleteRoomChannel(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	channel_id := ctx.UserValue("id").(string)
+	if channel_id == "" {
+		ResponseMessage(ctx, "Provide a channel ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectChannelStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_channel_stmt", "SELECT room_id,main FROM room_channels WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	var room_id string
+	var main bool
+	if err = conn.QueryRow(rctx, selectChannelStmt.Name, channel_id).Scan(&room_id, &main); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "Channel not found", fasthttp.StatusNotFound)
+		}
+		return
+	}
+
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_room_stmt", "SELECT author_id FROM rooms WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	var author_id string
+	if err = conn.QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&author_id); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "Room not found", fasthttp.StatusNotFound)
+		}
+		return
+	}
+
+	if author_id != uid {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	if main {
+		ResponseMessage(ctx, "You cannot delete the main channel, create a new main channel first, or promote another channel", fasthttp.StatusBadRequest)
+		return
+	}
+
+	deleteChannelStmt, err := conn.Conn().Prepare(rctx, "delete_channel_delete_stmt", "DELETE FROM room_channels WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	if _, err = conn.Exec(rctx, deleteChannelStmt.Name, channel_id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_channels_stmt", "SELECT id FROM room_channels WHERE room_id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	channel_sub_names := []string{}
+
+	if rows, err := conn.Query(rctx, selectChannelsStmt.Name, room_id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	} else {
+		defer rows.Close()
+
+		for rows.Next() {
+			var id string
+			if err = rows.Scan(&id); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+			channel_sub_names = append(channel_sub_names, fmt.Sprintf("channel:%v", id))
+		}
+	}
+
+	changeData := make(map[string]interface{})
+	changeData["ID"] = channel_id
+	h.SocketServer.SendDataToSubs <- socketServer.SubscriptionsMessageData{
+		SubNames: channel_sub_names,
+		Data: socketmessages.ChangeEvent{
+			Type:   "DELETE",
+			Entity: "CHANNEL",
+			Data:   changeData,
+		},
+		MessageType: "CHANGE",
+	}
+
+	ResponseMessage(ctx, "Channel deleted", fasthttp.StatusOK)
 }
 
 func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
