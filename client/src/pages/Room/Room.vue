@@ -142,6 +142,15 @@ function handleMessages(e: MessageEvent) {
           ];
         }
       }
+      if (msg.data.change_type === "INSERT") {
+        roomChannelStore.channels = [
+          ...roomChannelStore.channels.map((c) => ({
+            ...c,
+            main: (msg.data.data as any)["main"] ? false : c.main,
+          })),
+          msg.data.data as IRoomChannel,
+        ];
+      }
       if (msg.data.change_type === "DELETE") {
         const i = roomChannelStore.channels.findIndex(
           (c) => c.ID === msg.data.data.ID
