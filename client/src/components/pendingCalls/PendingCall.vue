@@ -22,11 +22,14 @@ onMounted(() => {
   sound.value = audio;
   audio.loop = true;
   audio.play();
+  userStore.cacheUser(uid.value);
+  userStore.userEnteredView(uid.value);
 });
 
 onBeforeUnmount(() => {
   sound.value.pause();
   sound.value = undefined;
+  userStore.userLeftView(uid.value);
 });
 </script>
 
@@ -58,17 +61,18 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .pending-call {
-  width: 4rem;
-  height: 4rem;
+  min-width: 4rem;
+  min-height: 4rem;
   border-radius: 50%;
-  border: 2px solid var(--base);
+  border: 2px solid var(--border-medium);
   background-size: cover;
   background-position: center;
   font-weight: 600;
-  filter: drop-shadow(0px, 2px, 2px rgba(0, 0, 0.5));
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  filter: drop-shadow(0px, 2px, 2px rgba(0, 0, 0.5));
   button {
     border: none;
     padding: 0;
@@ -88,22 +92,22 @@ onBeforeUnmount(() => {
   }
   .cancel-hangup-button {
     filter: drop-shadow(var(--shadow-medium));
-    bottom: 3px;
-    right: 3px;
+    bottom: -8px;
+    right: -8px;
     background: red;
     border-radius: 50%;
     padding: 3px;
-    border: 2px solid var(--text-color);
+    border: 2px solid var(--text-colour);
     transform: scaleX(-1);
   }
   .accept-button {
     filter: drop-shadow(var(--shadow-medium));
-    bottom: 3px;
-    left: 3px;
+    bottom: -8px;
+    left: -8px;
     background: lime;
     border-radius: 50%;
     padding: 3px;
-    border: 2px solid var(--text-color);
+    border: 2px solid var(--text-colour);
   }
 }
 </style>
