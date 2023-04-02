@@ -29,6 +29,7 @@ import Channel from "./Channel.vue";
 import useAuthStore from "../../store/AuthStore";
 import router from "../../router";
 import EditRoomChannel from "./EditRoomChannel.vue";
+import CreateRoomChannel from "./CreateRoomChannel.vue";
 
 const roomChannelStore = useRoomChannelStore();
 const roomStore = useRoomStore();
@@ -38,6 +39,12 @@ const authStore = useAuthStore();
 
 const route = useRoute();
 const roomId = toRef(route.params, "id");
+
+const isEditingChannel = ref("");
+const isCreatingChannel = ref(false);
+function editChannelClicked(channelId: string) {
+  isEditingChannel.value = channelId;
+}
 
 const room = computed(() => roomStore.getRoom(roomId.value as string));
 
@@ -177,11 +184,6 @@ function handleSubmit(values: any) {
     data: { content, channel_id: roomChannelStore.current },
   } as RoomMessageEvent);
 }
-
-const isEditingChannel = ref("");
-function editChannelClicked(channelId: string) {
-  isEditingChannel.value = channelId;
-}
 </script>
 
 <template>
@@ -208,7 +210,12 @@ function editChannelClicked(channelId: string) {
             />
           </div>
         </div>
-        <button type="button" name="create room" class="create-button">
+        <button
+          @click="isCreatingChannel = true"
+          type="button"
+          name="create room"
+          class="create-button"
+        >
           <v-icon name="io-add-circle-sharp" />
           Create
         </button>
@@ -235,6 +242,10 @@ function editChannelClicked(channelId: string) {
     v-if="isEditingChannel"
     :channelId="isEditingChannel"
     :closeClicked="() => (isEditingChannel = '')"
+  />
+  <CreateRoomChannel
+    :closeClicked="() => (isCreatingChannel = false)"
+    :roomId="roomId as string"
   />
 </template>
 

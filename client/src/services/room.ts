@@ -45,6 +45,20 @@ export const updateRoomChannel = ({
     data: { name, main },
   });
 
+export const createRoomChannel = ({
+  name,
+  main,
+  roomId,
+}: {
+  name: string;
+  main: boolean;
+  roomId: string;
+}) =>
+  makeRequest(`/api/room/${roomId}/channels`, {
+    method: "POST",
+    data: { name, main },
+  });
+
 export const deleteRoomChannel = (id: string) =>
   makeRequest(`/api/room/channel/${id}`, {
     method: "DELETE",
