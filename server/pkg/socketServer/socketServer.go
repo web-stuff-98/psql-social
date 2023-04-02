@@ -216,41 +216,23 @@ func Init(csdc chan string) *SocketServer {
 }
 
 func runServer(ss *SocketServer, csdc chan string) {
-	// Connection registration
 	go connection(ss)
-	// Disconnect registration
 	go disconnect(ss, csdc)
-	// Send data to user loop
 	go sendUserData(ss)
-	// Send data to a specific connection
 	go sendConnData(ss)
-	// Send data to users loop
 	go sendUsersData(ss)
-	// Send data to connections loop
 	go sendConnsData(ss)
-	// Join connection to subscription by matching websocket
 	go joinSubsByWs(ss)
-	// Join connection subscription by matching user id
 	go joinSubsByID(ss)
-	// Disconnect connection from subscription by matching websocket
 	go leaveSubByWs(ss)
-	// Disconnect connection from subscription by matching user id
 	go leaveSubByID(ss)
-	// Send data to subscription
 	go sendSubData(ss)
-	// Send data to subscriptions
 	go sendSubsData(ss)
-	// Send data to subscription excluding connection(s)
 	go sendDataToSubExcludeWss(ss)
-	// Send data to subscription excluding connection(s) by matching user ids
 	go sendDataToSubExcludeIDs(ss)
-	// Send data to multiple subscriptions excluding connection(s)
 	go sendDataToSubsExcludeWss(ss)
-	// Send data to multiple subscriptions excluding connection(s) by matching user ids
 	go sendDataToSubsExcludeIDs(ss)
-	// Get the subscriptions a socket connection is using
 	go getConnSubscriptions(ss)
-	// Get the uids of users in a subscription
 	go getSubscriptionUids(ss)
 }
 

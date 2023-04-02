@@ -102,21 +102,13 @@ func Init(ss *socketServer.SocketServer, dc chan string) *CallServer {
 }
 
 func runServer(ss *socketServer.SocketServer, cs *CallServer, dc chan string) {
-	/* ----- Call pending loop ----- */
 	go callPending(ss, cs)
-	/* ----- Call response loop ----- */
 	go callResponse(ss, cs)
-	/* ----- Leave call channel loop ----- */
 	go leaveCall(ss, cs)
-	/* ----- Send call recipient webRTC offer loop ----- */
 	go sendCallRecipientOffer(ss, cs)
-	/* ----- Send call recipient webRTC offer loop ----- */
 	go sendCallerAnswer(ss, cs)
-	/* ----- Call recipient request webRTC reinitialization loop ----- */
 	go callRecipientRequestReInitialization(ss, cs)
-	/* ----- Update media options loop ----- */
 	go updateMediaOptions(ss, cs)
-	/* ----- Socket disconnect registration loop ----- */
 	go socketDisconnect(ss, cs, dc)
 }
 
