@@ -95,3 +95,45 @@ type InvitationResponse struct {
 	Accepted bool   `json:"accepted"`
 	RoomID   string `json:"room_id"`
 }
+
+// TYPE: CALL_USER_RESPONSE
+type CallResponse struct {
+	Called string `json:"called"`
+	Caller string `json:"caller"`
+	Accept bool   `json:"accept"`
+}
+
+// TYPE: CALL_USER_ACKNOWLEDGE
+type CallAcknowledge struct {
+	Called string `json:"called"`
+	Caller string `json:"caller"`
+}
+
+// TYPE: CALL_LEFT
+type CallLeft struct{}
+
+// TYPE: CALL_WEBRTC_OFFER_FROM_INITIATOR
+type CallWebRTCOfferFromInitiator struct {
+	Signal            string `json:"signal"`
+	UserMediaStreamID string `json:"um_stream_id"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+}
+
+// TYPE: CALL_WEBRTC_ANSWER_FROM_RECIPIENT
+type CallWebRTCOfferAnswer struct {
+	Signal            string `json:"signal"`
+	UserMediaStreamID string `json:"um_stream_id"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+}
+
+// TYPE: CALL_WEBRTC_REQUESTED_REINITIALIZATION
+type CallWebRTCRequestedReInitialization struct{}
+
+// TYPE: UPDATE_MEDIA_OPTIONS_OUT
+type CallUpdateMediaOptions struct {
+	UserMediaStreamID string `json:"um_stream_id"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+}
