@@ -7,24 +7,33 @@ const roomChannelStore = useRoomChannelStore();
 defineProps<{
   channel: IRoomChannel;
   isAuthor?: boolean;
+  joinChannel: (channelId: string) => void;
   editClicked: (channelId: string) => void;
 }>();
 </script>
 
 <template>
-  <button
+  <div
     :style="
       roomChannelStore.current === channel.ID ? {} : { filter: 'opacity(0.6)' }
     "
     class="channel"
   >
     # {{ channel.name }}
-    <div v-if="isAuthor" class="buttons">
-      <button @click="editClicked(channel.ID)" name="edit room" type="button">
+    <div class="buttons">
+      <button @click="joinChannel(channel.ID)" name="enter room" type="button">
+        <v-icon name="md-sensordoor-round" />
+      </button>
+      <button
+        v-if="isAuthor"
+        @click="editClicked(channel.ID)"
+        name="edit room"
+        type="button"
+      >
         <v-icon name="md-modeeditoutline" />
       </button>
     </div>
-  </button>
+  </div>
 </template>
 
 <style lang="scss" scoped>
@@ -41,6 +50,7 @@ defineProps<{
   align-items: center;
   justify-content: space-between;
   padding-left: 7px;
+  border-radius: var(--border-radius-sm);
   .buttons {
     display: flex;
     align-items: center;

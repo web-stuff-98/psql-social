@@ -19,7 +19,7 @@ async function handleSubmit(values: any) {
     resMsg.value = { msg: "", err: false, pen: true };
     await createRoomChannel({
       name: values.name,
-      main: values.name,
+      main: values.main,
       roomId: roomId.value,
     });
     resMsg.value = { msg: "", err: false, pen: false };

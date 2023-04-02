@@ -85,16 +85,29 @@ onBeforeUnmount(() => {
   socketStore.socket?.removeEventListener("message", handleMessages);
 });
 
-function joinChannel(channelId: string) {
+async function joinChannel(channelId: string) {
   socketStore.send({
     event_type: "LEAVE_CHANNEL",
     data: { channel_id: roomChannelStore.current },
   } as LeaveChannel);
   roomChannelStore.current = channelId;
+
+  messages.value = [];
+
   socketStore.send({
     event_type: "JOIN_CHANNEL",
     data: { channel_id: channelId },
   } as JoinChannel);
+
+  try {
+    resMsg.value = { msg: "", err: false, pen: true };
+    const msgs = await getRoomChannel(channelId);
+    if (msgs) msgs.forEach((m) => userStore.cacheUser(m.author_id));
+    messages.value = msgs || [];
+    resMsg.value = { msg: "", err: false, pen: false };
+  } catch (e) {
+    resMsg.value = { msg: `${e}`, err: true, pen: false };
+  }
 }
 
 function handleMessages(e: MessageEvent) {
@@ -194,6 +207,7 @@ function handleSubmit(values: any) {
           <div class="list">
             <!-- Main channel -->
             <Channel
+              :joinChannel="joinChannel"
               :editClicked="editChannelClicked"
               :isAuthor="authStore.uid === room?.author_id"
               v-if="roomChannelStore.channels.find((c) => c.main) as IRoomChannel"
@@ -201,6 +215,7 @@ function handleSubmit(values: any) {
             />
             <!-- Secondary channels -->
             <Channel
+              :joinChannel="joinChannel"
               :editClicked="editChannelClicked"
               :isAuthor="authStore.uid === room?.author_id"
               :channel="channel"
@@ -244,6 +259,7 @@ function handleSubmit(values: any) {
     :closeClicked="() => (isEditingChannel = '')"
   />
   <CreateRoomChannel
+    v-if="isCreatingChannel"
     :closeClicked="() => (isCreatingChannel = false)"
     :roomId="roomId as string"
   />
