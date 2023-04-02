@@ -247,18 +247,23 @@ function handleSubmit(values: any) {
           Create
         </button>
       </div>
-      <div v-if="!resMsg.pen && !resMsg.err" class="messages">
-        <div class="list">
-          <RoomMessage
-            :isAuthor="authStore.uid === msg.author_id"
-            :roomId="roomId as string"
-            :msg="msg"
-            v-for="msg in messages"
-          />
+      <div class="messages-vid-chat">
+        <div class="vid-chat">
+          <button type="button">Enter channel voip/video chat</button>
         </div>
-      </div>
-      <div v-else class="res-msg-container">
-        <ResMsg :resMsg="resMsg" />
+        <div v-if="!resMsg.pen && !resMsg.err" class="messages">
+          <div class="list">
+            <RoomMessage
+              :isAuthor="authStore.uid === msg.author_id"
+              :roomId="roomId as string"
+              :msg="msg"
+              v-for="msg in messages"
+            />
+          </div>
+        </div>
+        <div v-else class="res-msg-container">
+          <ResMsg :resMsg="resMsg" />
+        </div>
       </div>
     </div>
     <div class="form-container">
@@ -356,7 +361,8 @@ function handleSubmit(values: any) {
       }
     }
     .channels,
-    .messages {
+    .messages,
+    .vid-chat {
       border: 2px solid var(--border-light);
       border-radius: var(--border-radius-md);
       position: relative;
@@ -365,6 +371,24 @@ function handleSubmit(values: any) {
     }
     .messages {
       width: 100%;
+    }
+    .messages-vid-chat {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      gap: var(--gap-md);
+      .vid-chat {
+        width: 100%;
+        height: fit-content;
+        padding: var(--gap-sm);
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        button {
+          font-size: var(--xs);
+          padding: 3px;
+        }
+      }
     }
   }
   .form-container {
