@@ -170,7 +170,7 @@ type SubscriptionsMessageDataExcludeByIDs struct {
 	ExcludeUids map[string]struct{}
 }
 
-func Init() *SocketServer {
+func Init(csdc chan string) *SocketServer {
 	ss := &SocketServer{
 		ConnectionsByWs: ConnectionsByWs{
 			data: map[*websocket.Conn]string{},
@@ -210,16 +210,16 @@ func Init() *SocketServer {
 		},
 		GetSubscriptionUids: make(chan GetSubscriptionUids),
 	}
-	go runServer(ss)
+	go runServer(ss, csdc)
 	log.Println("Socket server initialized")
 	return ss
 }
 
-func runServer(ss *SocketServer) {
+func runServer(ss *SocketServer, csdc chan string) {
 	// Connection registration
 	go connection(ss)
 	// Disconnect registration
-	go disconnect(ss)
+	go disconnect(ss, csdc)
 	// Send data to user loop
 	go sendUserData(ss)
 	// Send data to a specific connection
@@ -293,7 +293,7 @@ func connection(ss *SocketServer) {
 	}
 }
 
-func disconnect(ss *SocketServer) {
+func disconnect(ss *SocketServer, csdc chan string) {
 	var failCount uint8
 	for {
 		defer func() {
@@ -301,7 +301,7 @@ func disconnect(ss *SocketServer) {
 			if r != nil {
 				log.Println("Recovered from panic in ws disconnect loop:", r)
 				if failCount < 10 {
-					go disconnect(ss)
+					go disconnect(ss, csdc)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
