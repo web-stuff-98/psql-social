@@ -43,13 +43,13 @@ function adjust() {
     containerRef.value?.clientWidth! + mousePos.value.left >
     window.innerWidth
   ) {
-    menuPos.value.left = window.innerWidth - containerRef.value?.clientWidth!;
+    menuPos.value.left = window.innerWidth - (containerRef.value?.clientWidth!);
   }
   if (
     containerRef.value?.clientHeight! + mousePos.value.top >
     window.innerHeight
   ) {
-    menuPos.value.top = window.innerHeight - containerRef.value?.clientHeight!;
+    menuPos.value.top = window.innerHeight - (containerRef.value?.clientHeight!);
   }
 }
 
@@ -67,10 +67,12 @@ watch(section, adjust);
 
 onMounted(() => {
   window.addEventListener("mousemove", handleMouseMove);
+  window.addEventListener("resize", adjust)
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("mousemove", handleMouseMove);
+  window.removeEventListener("resize", adjust)
 });
 
 const directMessageClicked = () =>

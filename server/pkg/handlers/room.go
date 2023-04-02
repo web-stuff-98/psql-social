@@ -162,14 +162,14 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	updateStmt, err := conn.Conn().Prepare(rctx, "update_room_stmt", "UPDATE rooms SET name = $1 WHERE id = $2")
+	updateStmt, err := conn.Conn().Prepare(rctx, "update_room_stmt", "UPDATE rooms SET name = $1, private = $2 WHERE id = $3")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 
 	name := strings.TrimSpace(body.Name)
-	if _, err := conn.Exec(rctx, updateStmt.Name, name, room_id); err != nil {
+	if _, err := conn.Exec(rctx, updateStmt.Name, name, body.Private, room_id); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -190,6 +190,147 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.SetStatusCode(fasthttp.StatusOK)
+}
+
+func (h handler) UpdateRoomChannel(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	channel_id := ctx.UserValue("id").(string)
+	if channel_id == "" {
+		ResponseMessage(ctx, "Provide a room ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	v := validator.New()
+	body := &validation.CreateUpdateChannel{}
+	if err := json.Unmarshal(ctx.Request.Body(), &body); err != nil {
+		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
+		return
+	}
+	if err := v.Struct(body); err != nil {
+		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
+		return
+	}
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_channel_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	var room_id string
+	if err = conn.QueryRow(rctx, selectChannelStmt.Name, channel_id).Scan(&room_id); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "Channel not found", fasthttp.StatusNotFound)
+		}
+		return
+	}
+
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_room_stmt", "SELECT author_id FROM rooms WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	var author_id string
+	if err = conn.QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&author_id); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "Room not found", fasthttp.StatusNotFound)
+		}
+		return
+	}
+
+	if author_id != uid {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	if body.Main {
+		// if promoting channel to main, need to set other channels "main" value to false first, there can only be one main
+		if _, err = h.DB.Exec(rctx, "UPDATE room_channels SET main = FALSE WHERE room_id = $1", room_id); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+
+		updateChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_update_with_main_stmt", "UPDATE room_channels SET name = $1, main = $2 WHERE id = $3")
+		if err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+		if _, err = conn.Exec(rctx, updateChannelStmt.Name, body.Name, body.Main, channel_id); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	} else {
+		// otherwise don't update main
+
+		updateChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_update_without_main_stmt", "UPDATE room_channels SET name = $1 WHERE id = $2")
+		if err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+		if _, err = conn.Exec(rctx, updateChannelStmt.Name, body.Name, channel_id); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	}
+
+	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_channels_stmt", "SELECT id FROM room_channels WHERE room_id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	channel_sub_names := []string{}
+
+	if rows, err := conn.Query(rctx, selectChannelsStmt.Name, room_id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	} else {
+		defer rows.Close()
+
+		for rows.Next() {
+			var id string
+			if err = rows.Scan(&id); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+			channel_sub_names = append(channel_sub_names, fmt.Sprintf("channel:%v", id))
+		}
+	}
+
+	changeData := make(map[string]interface{})
+	changeData["ID"] = channel_id
+	changeData["name"] = body.Name
+	if body.Main {
+		changeData["main"] = true
+	}
+	h.SocketServer.SendDataToSubs <- socketServer.SubscriptionsMessageData{
+		SubNames: channel_sub_names,
+		Data: socketmessages.ChangeEvent{
+			Type:   "CHANGE",
+			Entity: "CHANNEL",
+			Data:   changeData,
+		},
+		MessageType: "CHANGE",
+	}
+
+	ResponseMessage(ctx, "Channel updated", fasthttp.StatusOK)
 }
 
 func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {

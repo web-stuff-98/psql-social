@@ -1,42 +1,49 @@
 <script lang="ts" setup>
-import { ref } from "vue";
-import { Form, Field } from "vee-validate";
-import { createRoom } from "../../../../../services/room";
-import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
-import { validateRoomName } from "../../../../../validators/validators";
-import Modal from "../../../../modal/Modal.vue";
 import ModalCloseButton from "../../../../shared/ModalCloseButton.vue";
-import ResMsg from "../../../../shared/ResMsg.vue";
-import CustomCheckbox from "../../../../shared/CustomCheckbox.vue";
+import { ref, toRefs } from "vue";
+import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
+import { updateRoom } from "../../../../../services/room";
+import { validateRoomName } from "../../../../../validators/validators";
+import { Field, Form } from "vee-validate";
+import useRoomStore from "../../../../../store/RoomStore";
+import Modal from "../../../../modal/Modal.vue";
 import ErrorMessage from "../../../../shared/ErrorMessage.vue";
+import CustomCheckbox from "../../../../shared/CustomCheckbox.vue";
+import ResMsg from "../../../../shared/ResMsg.vue";
 
-defineProps<{ closeClicked: Function }>();
+const props = defineProps<{ closeClicked: Function; roomId: string }>();
+
+const { roomId } = toRefs(props);
+
+const roomStore = useRoomStore();
 
 const resMsg = ref<IResMsg>({});
 
-async function handleSubmit(values: any) {
+// used for initial values
+const r = roomStore.getRoom(roomId.value);
+
+async function handleSubmitEdit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    console.log(values)
-    await createRoom({ name: values.name, isPrivate: values.isPrivate });
+    await updateRoom({
+      name: values.name,
+      isPrivate: values.isPrivate,
+      id: roomId.value,
+    });
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
 }
-
-/* This is a subsection of rooms */
 </script>
 
 <template>
   <Modal>
     <ModalCloseButton @click="closeClicked()" />
-    <Form @submit="handleSubmit">
-      <div class="input-label">
-        <label for="private">Private</label>
-        <CustomCheckbox name="isPrivate" />
-        <ErrorMessage name="isPrivate" />
-      </div>
+    <Form
+      :initialValues="{ name:r!.name, isPrivate:r!.is_private }"
+      @submit="handleSubmitEdit"
+    >
       <div class="input-label">
         <label for="name">Name</label>
         <Field
@@ -47,7 +54,12 @@ async function handleSubmit(values: any) {
         />
         <ErrorMessage name="name" />
       </div>
-      <button type="submit">Create room</button>
+      <div class="input-label">
+        <label for="private">Private </label>
+        <CustomCheckbox id="private" name="isPrivate" />
+        <ErrorMessage name="isPrivate" />
+      </div>
+      <button type="submit">Update room</button>
       <ResMsg :resMsg="resMsg" />
     </Form>
   </Modal>

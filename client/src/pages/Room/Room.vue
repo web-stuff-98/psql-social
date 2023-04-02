@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { IResMsg, IRoomChannel } from "../../interfaces/GeneralInterfaces";
-import { onBeforeUnmount, onMounted, toRef, ref } from "vue";
+import { onBeforeUnmount, onMounted, toRef, ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import {
   JoinRoom,
@@ -10,6 +10,7 @@ import {
 import { getRoomChannel } from "../../services/room";
 import {
   isBan,
+  isChangeEvent,
   isRoomMsg,
   isRoomMsgDelete,
   isRoomMsgUpdate,
@@ -25,6 +26,11 @@ import RoomMessage from "../../components/shared/Message.vue";
 import Channel from "./Channel.vue";
 import useAuthStore from "../../store/AuthStore";
 import router from "../../router";
+import Modal from "../../components/modal/Modal.vue";
+import ModalCloseButton from "../../components/shared/ModalCloseButton.vue";
+import { Field, Form } from "vee-validate";
+import { validateChannelName } from "../../validators/validators";
+import EditRoomChannel from "./EditRoomChannel.vue";
 
 const roomChannelStore = useRoomChannelStore();
 const roomStore = useRoomStore();
@@ -34,6 +40,8 @@ const authStore = useAuthStore();
 
 const route = useRoute();
 const roomId = toRef(route.params, "id");
+
+const room = computed(() => roomStore.getRoom(roomId.value as string));
 
 const resMsg = ref<IResMsg>({});
 
@@ -67,7 +75,7 @@ onBeforeUnmount(() => {
     data: { room_id: roomId.value },
   } as LeaveRoom);
 
-  roomStore.roomEnteredView(roomId.value as string);
+  roomStore.roomLeftView(roomId.value as string);
 
   socketStore.socket?.removeEventListener("message", handleMessages);
 });
@@ -97,7 +105,27 @@ function handleMessages(e: MessageEvent) {
       router.push("/");
       return;
     }
-    messages.value = messages.value.filter((m) => m.author_id !== msg.data.user_id);
+    messages.value = messages.value.filter(
+      (m) => m.author_id !== msg.data.user_id
+    );
+  }
+
+  if (isChangeEvent(msg)) {
+    if (msg.data.entity === "CHANNEL") {
+      if (msg.data.change_type === "UPDATE") {
+        const i = roomChannelStore.channels.findIndex(
+          (c) => c.ID === msg.data.data.ID
+        );
+        const newChannel = {
+          ...roomChannelStore.channels[i],
+          ...msg.data.data,
+        };
+        roomChannelStore.channels = [
+          ...roomChannelStore.channels.filter((c) => c.ID !== msg.data.data.ID),
+          newChannel,
+        ];
+      }
+    }
   }
 }
 
@@ -109,22 +137,41 @@ function handleSubmit(values: any) {
     data: { content, channel_id: roomChannelStore.current },
   } as RoomMessageEvent);
 }
+
+const isEditingChannel = ref("");
+function editChannelClicked(channelId: string) {
+  isEditingChannel.value = channelId;
+}
 </script>
 
 <template>
   <div class="room">
     <div class="channels-messages">
       <div class="channels">
-        <!-- Main channel -->
-        <Channel
-          v-if="roomChannelStore.channels.find((c) => c.main) as IRoomChannel"
-          :channel="roomChannelStore.channels.find((c) => c.main) as IRoomChannel"
-        />
-        <!-- Secondary channels -->
-        <Channel
-          :channel="channel"
-          v-for="channel in roomChannelStore.channels.filter((c) => !c.main)"
-        />
+        <div class="channels-list">
+          <div class="list">
+            <!-- Main channel -->
+            <Channel
+              :editClicked="editChannelClicked"
+              :isAuthor="authStore.uid === room?.author_id"
+              v-if="roomChannelStore.channels.find((c) => c.main) as IRoomChannel"
+              :channel="roomChannelStore.channels.find((c) => c.main) as IRoomChannel"
+            />
+            <!-- Secondary channels -->
+            <Channel
+              :editClicked="editChannelClicked"
+              :isAuthor="authStore.uid === room?.author_id"
+              :channel="channel"
+              v-for="channel in roomChannelStore.channels.filter(
+                (c) => !c.main
+              )"
+            />
+          </div>
+        </div>
+        <button type="button" name="create room" class="create-button">
+          <v-icon name="io-add-circle-sharp" />
+          Create
+        </button>
       </div>
       <div v-if="!resMsg.pen && !resMsg.err" class="messages">
         <div class="list">
@@ -144,6 +191,11 @@ function handleSubmit(values: any) {
       <MessageForm :handleSubmit="handleSubmit" />
     </div>
   </div>
+  <EditRoomChannel
+    v-if="isEditingChannel"
+    :channelId="isEditingChannel"
+    :closeClicked="() => (isEditingChannel = '')"
+  />
 </template>
 
 <style lang="scss" scoped>
@@ -183,12 +235,44 @@ function handleSubmit(values: any) {
       overflow-y: auto;
     }
     .channels {
-      width: 10rem;
+      width: 14rem;
       height: 100%;
-      padding: var(--gap-sm);
-      button:first-of-type {
-        margin-bottom: var(--gap-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      .channels-list {
+        display: flex;
+        width: 100%;
+        flex-grow: 1;
+        position: relative;
+        button:first-of-type {
+          margin-bottom: var(--gap-md);
+          font-weight: 600;
+        }
+      }
+      .create-button {
+        padding: var(--gap-sm);
+        background: none;
+        width: 100%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-colour);
+        text-shadow: none;
         font-weight: 600;
+        gap: 3px;
+        border-radius: 0;
+        border-top: 1px solid var(--border-pale);
+        svg {
+          width: 1.333rem;
+          height: 1.333rem;
+          fill: var(--text-colour);
+        }
+      }
+      .create-button:hover {
+        background: var(--border-pale);
       }
     }
     .channels,

@@ -6,7 +6,7 @@
 type ChangeEventData = {
   data: {
     change_type: "UPDATE" | "DELETE" | "INSERT" | "UPDATE_IMAGE";
-    entity: "ROOM" | "USER" | "BIO";
+    entity: "ROOM" | "USER" | "BIO" | "CHANNEL";
     data: object & { ID: string };
   };
 };

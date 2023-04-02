@@ -36,3 +36,10 @@ export const validateMessage = (msg: string) => {
   if (msg.length > 200) return "Maximum 200 characters";
   return true;
 };
+
+export const validateChannelName = (name: string) => {
+  if (!name) return "Name is required";
+  if (name.length < 2) return "Minimum 2 characters";
+  if (name.length > 16) return "Maximum 16 characters";
+  return true;
+};

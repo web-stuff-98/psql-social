@@ -46,6 +46,7 @@ func main() {
 	r.GET("/api/room/{id}", h.GetRoom)
 	r.DELETE("/api/room/{id}", h.DeleteRoom)
 	r.GET("/api/room/channel/{id}", h.GetRoomChannel)
+	r.PATCH("/api/room/channel/{id}", h.UpdateRoomChannel)
 	r.GET("/api/room/channels/{id}", h.GetRoomChannels)
 
 	r.GET("/api/user/bio/{id}", h.GetUserBio)

@@ -7,9 +7,11 @@ import ResMsg from "../../../../shared/ResMsg.vue";
 import { isBlock } from "../../../../../socketHandling/InterpretEvent";
 import useAuthStore from "../../../../../store/AuthStore";
 import useSocketStore from "../../../../../store/SocketStore";
+import useUserStore from "../../../../../store/UserStore";
 
 const authStore = useAuthStore();
 const socketStore = useSocketStore();
+const userStore = useUserStore();
 
 const friends = ref<string[]>([]);
 const resMsg = ref<IResMsg>({});
@@ -30,6 +32,7 @@ onMounted(async () => {
     resMsg.value = { msg: "", err: false, pen: true };
     const ids: string[] | null = await makeRequest("/api/acc/friends");
     friends.value = ids || [];
+    if (ids) ids.forEach((id) => userStore.cacheUser(id));
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
@@ -47,7 +50,10 @@ onBeforeUnmount(() => {
   <div class="friends-section">
     <ResMsg :resMsg="resMsg" />
     <div class="list">
-      <User :uid="uid" v-for="uid in friends" />
+      <User
+        :uid="uid"
+        v-for="uid in friends"
+      />
     </div>
   </div>
 </template>

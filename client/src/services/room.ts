@@ -31,6 +31,20 @@ export const updateRoom = ({
     data: { name, private: isPrivate },
   });
 
+export const updateRoomChannel = ({
+  name,
+  main,
+  id,
+}: {
+  name: string;
+  main: boolean;
+  id: string;
+}) =>
+  makeRequest(`/api/room/channel/${id}`, {
+    method: "PATCH",
+    data: { name, main },
+  });
+
 export const getRooms = (): Promise<IRoom[] | null> =>
   makeRequest("/api/rooms");
 

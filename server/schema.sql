@@ -59,7 +59,7 @@ CREATE TABLE invitations (
 
 CREATE TABLE room_channels (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(24) NOT NULL,
+    name VARCHAR(16) NOT NULL,
     main BOOLEAN NOT NULL,
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE
 );

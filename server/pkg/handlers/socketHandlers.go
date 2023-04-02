@@ -18,7 +18,9 @@ import (
 
 /*
 	Massive file. Still need to add ~20 more events...
-	No point code splitting, will just result in having loads of files
+	No point code splitting, will just result in having loads of files,
+	having to constantly open/close multiple tabs, and having to write
+	more to pass pointers around, et, I just use the search function
 */
 
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {

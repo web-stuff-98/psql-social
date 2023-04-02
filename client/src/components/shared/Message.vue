@@ -77,13 +77,17 @@ function handleSubmitEdit(values: any) {
     "
     class="msg-container"
   >
-    <div v-if="roomMsg" class="user">
-      <User :reverse="!isAuthor" :uid="msg.author_id" />
+    <div class="user">
+      <User :date="msg.created_at" :reverse="!isAuthor" :uid="msg.author_id" />
     </div>
     <div v-show="!isEditing" class="content">
       {{ msg.content }}
     </div>
-    <Form @submit="handleSubmitEdit" v-show="isEditing">
+    <Form
+      :initial-values="{ content: msg.content }"
+      @submit="handleSubmitEdit"
+      v-show="isEditing"
+    >
       <div class="field-error">
         <Field
           ref="inputRef"

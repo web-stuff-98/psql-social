@@ -11,11 +11,17 @@ const props = defineProps<{
   uid: string;
   noClick?: boolean;
   reverse?: boolean;
+  date?: string;
+  noPfp?: boolean;
 }>();
-const { uid } = toRefs(props);
+const { uid, date } = toRefs(props);
 
 const container = ref<HTMLElement>();
 const user = computed(() => userStore.getUser(uid.value));
+const dateAsDate = computed(() => {
+  if (!date?.value) return;
+  return new Date(date.value);
+});
 
 const observer = new IntersectionObserver(([entry]) => {
   if (entry.isIntersecting) userStore.userEnteredView(uid.value);
@@ -39,6 +45,7 @@ onBeforeUnmount(() => {
   >
     <button
       type="button"
+      v-if="!noPfp"
       @click="
         {
           if (authStore.uid !== uid && !noClick)
@@ -48,13 +55,27 @@ onBeforeUnmount(() => {
       :style="{
         backgroundImage: `url(${user?.pfp})`,
         ...(authStore.uid === uid ? { cursor: 'default' } : {}),
+        ...(date ? { width: '2.4rem', height: '2.4rem' } : {}),
       }"
       class="pfp"
     >
       <v-icon v-if="!user?.pfp" name="fa-user-alt" />
     </button>
-    <div class="name">
-      {{ user?.username }}
+    <div
+      :style="reverse ? { alignItems: 'flex-end' } : {}"
+      class="name-date-time"
+    >
+      <div class="name">
+        {{ user?.username }}
+      </div>
+      <div v-if="date" class="date">
+        {{ dateAsDate?.getFullYear() }}/{{ dateAsDate?.getMonth() }}/{{
+          dateAsDate?.getDay()
+        }}
+      </div>
+      <div v-if="date" class="time">
+        {{ dateAsDate?.toTimeString().slice(0, 8) }}
+      </div>
     </div>
   </div>
 </template>
@@ -79,10 +100,21 @@ onBeforeUnmount(() => {
     background-color: var(--base-colour);
     padding: 0;
   }
-  .name {
-    font-weight: 600;
-    font-size: var(--md);
-    text-shadow: 0px 2px 1px rgba(0, 0, 0, 0.166);
+  .name-date-time {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    .name {
+      font-weight: 600;
+      line-height: 0.866;
+      font-size: var(--md);
+      text-shadow: 0px 2px 1px rgba(0, 0, 0, 0.166);
+    }
+    .date,
+    .time {
+      line-height: 0.866;
+      font-size: var(--xs);
+    }
   }
 }
 </style>

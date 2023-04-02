@@ -17,3 +17,8 @@ type GetUserByName struct {
 type Bio struct {
 	Content string `json:"content" validate:"lte=300"`
 }
+
+type CreateUpdateChannel struct {
+	Name string `json:"name" validate:"required,lte=16,gte=2"`
+	Main bool   `json:"main"`
+}

@@ -404,7 +404,6 @@ func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
-
 	uids := make(map[string]struct{})
 	if rows, err := conn.Query(rctx, selectDmsStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
@@ -431,7 +430,6 @@ func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
-
 	if rows, err := conn.Query(rctx, selectFrqsStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)

@@ -16,12 +16,13 @@ const { name } = toRefs(props);
 //@ts-ignore
 const { checked, handleChange } = useField(name, undefined, {
   type: "checkbox",
-  checkedValue: props.value,
+  checkedValue: true,
+  uncheckedValue: false,
 });
 </script>
 
 <template>
-  <button type="button" @click="handleChange(value)">
+  <button type="button" @click="handleChange(!value)">
     {{ checked ? "checked" : "unchecked" }}
   </button>
 </template>
@@ -33,5 +34,8 @@ button {
   font-size: 22px;
   color: var(--text-colour);
   text-shadow: none;
+}
+button:hover {
+  background: none;
 }
 </style>
