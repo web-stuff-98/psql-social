@@ -445,6 +445,137 @@ func (h handler) DeleteRoomChannel(ctx *fasthttp.RequestCtx) {
 	ResponseMessage(ctx, "Channel deleted", fasthttp.StatusOK)
 }
 
+func (h handler) CreateRoomChannel(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	v := validator.New()
+	body := &validation.CreateUpdateChannel{}
+	if err := json.Unmarshal(ctx.Request.Body(), &body); err != nil {
+		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
+		return
+	}
+	if err := v.Struct(body); err != nil {
+		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
+		return
+	}
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	room_id := ctx.UserValue("id").(string)
+	if room_id == "" {
+		ResponseMessage(ctx, "Provide a room ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_room_stmt", "SELECT author_id FROM rooms WHERE id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	var author_id string
+	if err = conn.Conn().QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&author_id); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "Room not found", fasthttp.StatusNotFound)
+		}
+		return
+	}
+	if author_id != uid {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	channelExistsStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_channel_exists_stmt", "SELECT EXISTS(SELECT 1 FROM room_channels WHERE LOWER(name) = LOWER($1) AND room_id = $2)")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	var channelExists = false
+	if err = conn.QueryRow(rctx, channelExistsStmt.Name, body.Name, room_id).Scan(&channelExists); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	if channelExists {
+		ResponseMessage(ctx, "There is already another channel by that name", fasthttp.StatusBadRequest)
+		return
+	}
+
+	// if the new channel being created is the main channel, set "main" on other channels to false
+	if body.Main {
+		updateMainStmt, err := conn.Conn().Prepare(rctx, "create_channel_update_main_stmt", "UPDATE room_channels SET main = FALSE WHERE room_id = $1")
+		if err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+		if _, err = conn.Exec(rctx, updateMainStmt.Name, room_id); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	}
+
+	insertStmt, err := conn.Conn().Prepare(rctx, "create_channel_insert_stmt", "INSERT INTO room_channels (name,main,room_id) VALUES($1,$2,$3) RETURNING id")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	var channel_id string
+	if err = conn.Conn().QueryRow(rctx, insertStmt.Name, body.Name, body.Main, room_id).Scan(&channel_id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_channels_stmt", "SELECT id FROM room_channels WHERE room_id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	channel_sub_names := []string{}
+	if rows, err := conn.Query(rctx, selectChannelsStmt.Name, room_id); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	} else {
+		defer rows.Close()
+
+		for rows.Next() {
+			var id string
+			if err = rows.Scan(&id); err != nil {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				return
+			}
+			channel_sub_names = append(channel_sub_names, fmt.Sprintf("channel:%v", id))
+		}
+	}
+
+	changeData := make(map[string]interface{})
+	changeData["ID"] = channel_id
+	changeData["name"] = body.Name
+	changeData["main"] = body.Main
+	h.SocketServer.SendDataToSubs <- socketServer.SubscriptionsMessageData{
+		SubNames: channel_sub_names,
+		Data: socketmessages.ChangeEvent{
+			Type:   "INSERT",
+			Entity: "CHANNEL",
+			Data:   changeData,
+		},
+		MessageType: "CHANGE",
+	}
+
+	ResponseMessage(ctx, "Channel created", fasthttp.StatusCreated)
+}
+
 func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
