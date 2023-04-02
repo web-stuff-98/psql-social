@@ -38,41 +38,38 @@ async function handleSubmit(values: any) {
 <template>
   <Modal>
     <ModalCloseButton @click="closeClicked()" />
-    <div class="edit-channel-container">
-      <Form
-        @submit="handleSubmit"
-        :initial-values="{name:ch!.name, main:ch!.main}"
-      >
-        <div class="input-label">
-          <label for="main">Set main (unchecked ignored)</label>
-          <CustomCheckbox id="main" name="main" />
-          <ErrorMessage name="main" />
-        </div>
-        <div class="input-label">
-          <label for="name">Channel name</label>
-          <Field
-            type="text"
-            name="name"
-            id="name"
-            :rules="validateChannelName as any"
-          />
-          <ErrorMessage name="name" />
-        </div>
-        <button type="submit">Submit update</button>
-      </Form>
-    </div>
+    <Form
+      @submit="handleSubmit"
+      :initial-values="{name:ch!.name, main:ch!.main}"
+    >
+      <div class="input-label">
+        <label for="main">Set main (unchecked ignored)</label>
+        <CustomCheckbox id="main" name="main" />
+        <ErrorMessage name="main" />
+      </div>
+      <div class="input-label">
+        <label for="name">Channel name</label>
+        <Field
+          type="text"
+          name="name"
+          id="name"
+          :rules="validateChannelName as any"
+        />
+        <ErrorMessage name="name" />
+      </div>
+      <button type="submit">Submit update</button>
+    </Form>
   </Modal>
 </template>
 
 <style lang="scss" scoped>
-.edit-channel-container {
-  form {
-    gap: var(--gap-md);
-    display: flex;
-    flex-direction: column;
-    button {
-      width: 100%;
-    }
+form {
+  margin-top: var(--gap-lg);
+  gap: var(--gap-md);
+  display: flex;
+  flex-direction: column;
+  button {
+    width: 100%;
   }
 }
 </style>

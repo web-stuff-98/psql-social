@@ -81,6 +81,7 @@
 .input-label label {
   font-weight: 600;
   margin-bottom: 2px;
+  padding: 0 6px;
 }
 
 .input-label input {

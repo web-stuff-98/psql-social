@@ -35,7 +35,7 @@ async function handleSubmit(values: any) {
     <div class="edit-channel-container">
       <Form @submit="handleSubmit">
         <div class="input-label">
-          <label for="main">Set to new main channel</label>
+          <label for="main">Is new main channel</label>
           <CustomCheckbox id="main" name="main" />
           <ErrorMessage name="main" />
         </div>
@@ -58,6 +58,7 @@ async function handleSubmit(values: any) {
 <style lang="scss" scoped>
 .edit-channel-container {
   form {
+    margin-top: var(--gap-lg);
     gap: var(--gap-md);
     display: flex;
     flex-direction: column;

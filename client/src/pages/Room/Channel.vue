@@ -21,7 +21,7 @@ defineProps<{
     "
     class="channel"
   >
-    # {{ channel.name }}
+    <div class="name"># {{ channel.name }}</div>
     <div class="buttons">
       <button
         v-if="roomChannelStore.current !== channel.ID"
@@ -65,8 +65,11 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 7px;
   border-radius: var(--border-radius-sm);
+  white-space: nowrap;
+  .name {
+  padding: 0 7px;
+  }
   .buttons {
     display: flex;
     align-items: center;

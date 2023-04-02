@@ -314,7 +314,8 @@ function handleSubmit(values: any) {
       overflow-y: auto;
     }
     .channels {
-      width: 14rem;
+      width: fit-content;
+      min-width: 10rem;
       height: 100%;
       display: flex;
       flex-direction: column;

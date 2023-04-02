@@ -23,14 +23,13 @@ const { checked, handleChange } = useField(name, undefined, {
 
 <template>
   <button type="button" @click="handleChange(!value)">
-    {{ checked ? "checked" : "unchecked" }}
+    {{ checked ? "TRUE" : "FALSE" }}
   </button>
 </template>
 
 <style scoped>
 button {
   background: none;
-  border: none;
   font-size: 22px;
   color: var(--text-colour);
   text-shadow: none;
