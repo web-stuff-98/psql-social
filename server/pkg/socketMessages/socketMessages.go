@@ -133,6 +133,7 @@ type CallWebRTCRequestedReInitialization struct{}
 
 // TYPE: UPDATE_MEDIA_OPTIONS_OUT
 type CallUpdateMediaOptions struct {
+	Uid               string `json:"uid"`
 	UserMediaStreamID string `json:"um_stream_id"`
 	UserMediaVid      bool   `json:"um_vid"`
 	DisplayMediaVid   bool   `json:"dm_vid"`

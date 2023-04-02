@@ -98,6 +98,32 @@ type InvitationResponse = {
   };
 };
 
+type CallLeft = { data: {} };
+type CallWebRTCRequestedReInitialization = { data: {} };
+type CallUpdateMediaOptions = {
+  data: {
+    um_stream_id: string;
+    um_vid: boolean;
+    dm_vid: boolean;
+  };
+};
+type CallWebRTCOfferFromInitiator = {
+  data: {
+    signal: string;
+    um_stream_id: string;
+    um_vid: boolean;
+    dm_vid: boolean;
+  };
+};
+type CallWebRTCOfferAnswer = {
+  data: {
+    signal: string;
+    um_stream_id: string;
+    um_vid: boolean;
+    dm_vid: boolean;
+  };
+};
+
 export function isChangeEvent(object: any): object is ChangeEventData {
   return object.event_type === "CHANGE";
 }
@@ -128,9 +154,7 @@ export function isDirectMsgUpdate(
 ): object is DirectMessageUpdateData {
   return object.event_type === "DIRECT_MESSAGE_UPDATE";
 }
-export function isBlock(
-  object: any
-): object is BlockData {
+export function isBlock(object: any): object is BlockData {
   return object.event_type === "BLOCK";
 }
 
@@ -150,4 +174,29 @@ export function isInvitationResponse(
   object: any
 ): object is InvitationResponse {
   return object.event_type === "INVITATION_RESPONSE";
+}
+
+export function isCallLeft(object: any): object is CallLeft {
+  return object.event_type === "CALL_LEFT";
+}
+export function isCallRequestedReInitialization(
+  object: any
+): object is CallWebRTCRequestedReInitialization {
+  return object.event_type === "CALL_WEBRTC_REQUESTED_REINITIALIZATION";
+}
+export function isCallOfferFromInitiator(
+  object: any
+): object is CallWebRTCOfferFromInitiator {
+  return object.event_type === "CALL_WEBRTC_OFFER_FROM_INITIATOR";
+}
+export function isCallAnswerFromRecipient(
+  object: any
+): object is CallWebRTCOfferAnswer {
+  return object.event_type === "CALL_WEBRTC_ANSWER_FROM_RECIPIENT";
+}
+
+export function isUpdateMediaOptions(
+  object: any
+): object is CallUpdateMediaOptions {
+  return object.event_type === "UPDATE_MEDIA_OPTIONS_OUT";
 }

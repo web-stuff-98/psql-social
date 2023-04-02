@@ -17,6 +17,8 @@ import {
   MdModeeditoutline,
   MdDeleteRound,
   BiPaperclip,
+  HiPhoneMissedCall,
+  HiPhoneIncoming,
 } from "oh-vue-icons/icons";
 
 addIcons(
@@ -31,7 +33,9 @@ addIcons(
   MdSensordoorRound,
   MdModeeditoutline,
   MdDeleteRound,
-  BiPaperclip
+  BiPaperclip,
+  HiPhoneMissedCall,
+  HiPhoneIncoming
 );
 
 const pinia = createPinia();

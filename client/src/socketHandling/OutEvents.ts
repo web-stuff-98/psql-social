@@ -11,7 +11,7 @@ export type StopWatching = {
   data: { entity: Watchable; id: string };
 };
 
-/* Direct messages / friend requests / invitations */
+/* Direct messages / friend requests / invitations / call events */
 export type DirectMessage = {
   event_type: "DIRECT_MESSAGE";
   data: {
@@ -53,6 +53,14 @@ export type Block = {
 export type UnBlock = {
   event_type: "BLOCK";
   data: { uid: string };
+};
+export type CallResponse = {
+  event_type: "CALL_USER_RESPONSE";
+  data: {
+    caller: string;
+    called: string;
+    accept: boolean;
+  };
 };
 
 /* Room events */
