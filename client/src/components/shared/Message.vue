@@ -77,16 +77,32 @@ function handleSubmitEdit(values: any) {
     "
     class="msg-container"
   >
-    <div class="user">
-      <User
-        :roomId="roomId"
-        :date="msg.created_at"
-        :reverse="!isAuthor"
-        :uid="msg.author_id"
-      />
-    </div>
-    <div v-show="!isEditing" class="content">
-      {{ msg.content }}
+    <div
+      :style="{
+        ...(isAuthor
+          ? {}
+          : { flexDirection: 'row-reverse', textAlign: 'right' }),
+        ...(true
+          ? {
+              flexDirection: 'column',
+              alignItems: isAuthor ? 'flex-start' : 'flex-end',
+              gap:'6px'
+            }
+          : {}),
+      }"
+      class="user-content"
+    >
+      <div class="user">
+        <User
+          :roomId="roomId"
+          :date="msg.created_at"
+          :reverse="!isAuthor"
+          :uid="msg.author_id"
+        />
+      </div>
+      <div v-show="!isEditing" class="content">
+        {{ msg.content }}
+      </div>
     </div>
     <Form
       :initial-values="{ content: msg.content }"
@@ -135,9 +151,14 @@ function handleSubmitEdit(values: any) {
   justify-content: center;
   width: 100%;
   gap: var(--gap-md);
-  .content {
-    font-size: var(--xs);
-    flex-grow: 1;
+  .user-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    .content {
+      font-size: var(--xs);
+      flex-grow: 1;
+    }
   }
   .buttons {
     display: flex;
