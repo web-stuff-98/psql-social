@@ -31,6 +31,10 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = joinRoom(data, h, uid, c)
 	case "LEAVE_ROOM":
 		err = leaveRoom(data, h, uid, c)
+	case "JOIN_CHANNEL":
+		err = joinChannel(data, h, uid, c)
+	case "LEAVE_CHANNEL":
+		err = leaveChannel(data, h, uid, c)
 
 	case "ROOM_MESSAGE":
 		err = roomMessage(data, h, uid, c)
@@ -231,6 +235,65 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 				Conn:    c,
 			}
 		}
+	}
+
+	return nil
+}
+
+func joinChannel(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.JoinLeaveChannel{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	selectChannelStmt, err := conn.Conn().Prepare(ctx, "join_channel_select_channel_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var room_id string
+	if err = conn.Conn().QueryRow(ctx, selectChannelStmt.Name, data.ChannelID).Scan(&room_id); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		}
+		return fmt.Errorf("Channel not found")
+	}
+
+	var banExists bool
+	if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);", uid, room_id).Scan(&banExists); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	if banExists {
+		return fmt.Errorf("You are banned from this room")
+	}
+
+	h.SocketServer.JoinSubscriptionByWs <- socketServer.RegisterUnregisterSubsConnWs{
+		SubName: fmt.Sprintf("channel:%v", data.ChannelID),
+		Conn:    c,
+	}
+
+	return nil
+}
+
+func leaveChannel(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.JoinLeaveChannel{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.SocketServer.LeaveSubscriptionByWs <- socketServer.RegisterUnregisterSubsConnWs{
+		SubName: fmt.Sprintf("channel:%v", data.ChannelID),
+		Conn:    c,
 	}
 
 	return nil

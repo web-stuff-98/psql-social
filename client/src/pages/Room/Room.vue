@@ -6,6 +6,8 @@ import {
   JoinRoom,
   LeaveRoom,
   RoomMessage as RoomMessageEvent,
+  JoinChannel,
+  LeaveChannel,
 } from "../../socketHandling/OutEvents";
 import { getRoomChannel } from "../../services/room";
 import {
@@ -26,10 +28,6 @@ import RoomMessage from "../../components/shared/Message.vue";
 import Channel from "./Channel.vue";
 import useAuthStore from "../../store/AuthStore";
 import router from "../../router";
-import Modal from "../../components/modal/Modal.vue";
-import ModalCloseButton from "../../components/shared/ModalCloseButton.vue";
-import { Field, Form } from "vee-validate";
-import { validateChannelName } from "../../validators/validators";
 import EditRoomChannel from "./EditRoomChannel.vue";
 
 const roomChannelStore = useRoomChannelStore();
@@ -79,6 +77,18 @@ onBeforeUnmount(() => {
 
   socketStore.socket?.removeEventListener("message", handleMessages);
 });
+
+function joinChannel(channelId: string) {
+  socketStore.send({
+    event_type: "LEAVE_CHANNEL",
+    data: { channel_id: roomChannelStore.current },
+  } as LeaveChannel);
+  roomChannelStore.current = channelId;
+  socketStore.send({
+    event_type: "JOIN_CHANNEL",
+    data: { channel_id: channelId },
+  } as JoinChannel);
+}
 
 function handleMessages(e: MessageEvent) {
   const msg = JSON.parse(e.data);
@@ -138,9 +148,10 @@ function handleMessages(e: MessageEvent) {
         );
         if (i !== -1) {
           if (roomChannelStore.channels[i].ID === roomChannelStore.current) {
-            roomChannelStore.current = roomChannelStore.channels.find(
-              (c) => c.ID === msg.data.data.ID
-            )?.ID!;
+            joinChannel(
+              roomChannelStore.channels.find((c) => c.ID === msg.data.data.ID)
+                ?.ID!
+            );
           }
           roomChannelStore.channels.splice(i, 1);
         }

@@ -84,6 +84,14 @@ export type LeaveRoom = {
   event_type: "LEAVE_ROOM";
   data: { room_id: string };
 };
+export type JoinChannel = {
+  event_type: "JOIN_CHANNEL";
+  data: { channel_id: string };
+};
+export type LeaveChannel = {
+  event_type: "LEAVE_CHANNEL";
+  data: { channel_id: string };
+};
 export type Ban = {
   event_type: "BAN";
   data: { uid: string; room_id: string };

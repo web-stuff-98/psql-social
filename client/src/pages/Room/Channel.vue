@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import useAuthStore from "../../store/AuthStore";
 import { IRoomChannel } from "../../interfaces/GeneralInterfaces";
+import useRoomChannelStore from "../../store/RoomChannelStore";
 
-const authStore = useAuthStore();
+const roomChannelStore = useRoomChannelStore();
 
 defineProps<{
   channel: IRoomChannel;
@@ -12,7 +12,12 @@ defineProps<{
 </script>
 
 <template>
-  <button class="channel">
+  <button
+    :style="
+      roomChannelStore.current === channel.ID ? {} : { filter: 'opacity(0.6)' }
+    "
+    class="channel"
+  >
     # {{ channel.name }}
     <div v-if="isAuthor" class="buttons">
       <button @click="editClicked(channel.ID)" name="edit room" type="button">
@@ -35,7 +40,7 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left:7px;
+  padding-left: 7px;
   .buttons {
     display: flex;
     align-items: center;
