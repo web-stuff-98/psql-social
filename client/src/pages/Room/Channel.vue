@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { IRoomChannel } from "../../interfaces/GeneralInterfaces";
+import { deleteRoomChannel } from "../../services/room";
 import useRoomChannelStore from "../../store/RoomChannelStore";
 
 const roomChannelStore = useRoomChannelStore();
@@ -9,6 +10,7 @@ defineProps<{
   isAuthor?: boolean;
   joinChannel: (channelId: string) => void;
   editClicked: (channelId: string) => void;
+  deleteClicked: (channelId: string) => void;
 }>();
 </script>
 
@@ -21,16 +23,30 @@ defineProps<{
   >
     # {{ channel.name }}
     <div class="buttons">
-      <button @click="joinChannel(channel.ID)" name="enter room" type="button">
+      <button
+        v-if="roomChannelStore.current !== channel.ID"
+        @click="joinChannel(channel.ID)"
+        name="enter room"
+        type="button"
+      >
         <v-icon name="md-sensordoor-round" />
       </button>
       <button
         v-if="isAuthor"
         @click="editClicked(channel.ID)"
-        name="edit room"
+        name="edit channel"
         type="button"
       >
         <v-icon name="md-modeeditoutline" />
+      </button>
+      <button
+        @click="deleteClicked(channel.ID)"
+        v-if="isAuthor && !channel.main"
+        class="delete-button"
+        name="delete channel"
+        type="button"
+      >
+        <v-icon name="md-delete-round" />
       </button>
     </div>
   </div>

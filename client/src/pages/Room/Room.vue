@@ -9,7 +9,7 @@ import {
   JoinChannel,
   LeaveChannel,
 } from "../../socketHandling/OutEvents";
-import { getRoomChannel } from "../../services/room";
+import { deleteRoomChannel, getRoomChannel } from "../../services/room";
 import {
   isBan,
   isChangeEvent,
@@ -44,6 +44,16 @@ const isEditingChannel = ref("");
 const isCreatingChannel = ref(false);
 function editChannelClicked(channelId: string) {
   isEditingChannel.value = channelId;
+}
+
+async function deleteChannelClicked(channelId: string) {
+  try {
+    resMsg.value = { msg: "", err: false, pen: true };
+    await deleteRoomChannel(channelId);
+    resMsg.value = { msg: "", err: false, pen: false };
+  } catch (e) {
+    resMsg.value = { msg: `${e}`, err: true, pen: false };
+  }
 }
 
 const room = computed(() => roomStore.getRoom(roomId.value as string));
@@ -208,6 +218,7 @@ function handleSubmit(values: any) {
             <!-- Main channel -->
             <Channel
               :joinChannel="joinChannel"
+              :deleteClicked="deleteChannelClicked"
               :editClicked="editChannelClicked"
               :isAuthor="authStore.uid === room?.author_id"
               v-if="roomChannelStore.channels.find((c) => c.main) as IRoomChannel"
@@ -216,6 +227,7 @@ function handleSubmit(values: any) {
             <!-- Secondary channels -->
             <Channel
               :joinChannel="joinChannel"
+              :deleteClicked="deleteChannelClicked"
               :editClicked="editChannelClicked"
               :isAuthor="authStore.uid === room?.author_id"
               :channel="channel"
