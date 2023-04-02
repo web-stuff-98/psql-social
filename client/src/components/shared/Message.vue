@@ -82,7 +82,7 @@ function handleSubmitEdit(values: any) {
         ...(isAuthor
           ? {}
           : { flexDirection: 'row-reverse', textAlign: 'right' }),
-        ...(roomId
+        ...(!roomId
           ? {
               flexDirection: 'column',
               alignItems: isAuthor ? 'flex-start' : 'flex-end',
