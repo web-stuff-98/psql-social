@@ -13,6 +13,7 @@ const props = defineProps<{
   reverse?: boolean;
   date?: string;
   noPfp?: boolean;
+  roomId?: string;
 }>();
 const { uid, date } = toRefs(props);
 
@@ -49,7 +50,7 @@ onBeforeUnmount(() => {
       @click="
         {
           if (authStore.uid !== uid && !noClick)
-            userdropdownStore.openOnSubject(uid);
+            userdropdownStore.openOnSubject(uid, roomId);
         }
       "
       :style="{

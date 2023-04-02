@@ -251,7 +251,7 @@ function handleSubmit(values: any) {
         <div class="list">
           <RoomMessage
             :isAuthor="authStore.uid === msg.author_id"
-            :roomMsg="true"
+            :roomId="roomId as string"
             :msg="msg"
             v-for="msg in messages"
           />

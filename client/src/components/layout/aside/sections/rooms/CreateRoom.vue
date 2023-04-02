@@ -17,7 +17,7 @@ const resMsg = ref<IResMsg>({});
 async function handleSubmit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    console.log(values)
+    console.log(values);
     await createRoom({ name: values.name, isPrivate: values.isPrivate });
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {

@@ -22,7 +22,9 @@ defineProps<{
     class="channel"
   >
     <div class="name"># {{ channel.name }}</div>
-    <div class="buttons">
+    <div
+    v-if="roomChannelStore.current !== channel.ID || isAuthor"
+    class="buttons">
       <button
         v-if="roomChannelStore.current !== channel.ID"
         @click="joinChannel(channel.ID)"
@@ -68,7 +70,7 @@ defineProps<{
   border-radius: var(--border-radius-sm);
   white-space: nowrap;
   .name {
-  padding: 0 7px;
+  padding: 4px 7px;
   }
   .buttons {
     display: flex;

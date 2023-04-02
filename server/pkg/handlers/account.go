@@ -476,6 +476,9 @@ func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
 		}
 	}
 
+	// delete the users own id because sometimes it somehow magically ends up in the map
+	delete(uids, uid)
+
 	uidsArr := []string{}
 	for k := range uids {
 		uidsArr = append(uidsArr, k)

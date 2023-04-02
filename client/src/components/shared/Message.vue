@@ -17,12 +17,12 @@ import {
 import ErrorMessage from "./ErrorMessage.vue";
 const props = defineProps<{
   msg: IRoomMessage | IDirectMessage;
-  roomMsg: boolean;
+  roomId?: string;
   isAuthor?: boolean;
 }>();
 
 const socketStore = useSocketStore();
-const { msg, roomMsg } = toRefs(props);
+const { msg, roomId } = toRefs(props);
 const isEditing = ref(false);
 const inputRef = ref<HTMLInputElement>();
 
@@ -33,7 +33,7 @@ function editClicked() {
 }
 
 function deleteClicked() {
-  if (roomMsg.value)
+  if (roomId!.value)
     socketStore.send({
       event_type: "ROOM_MESSAGE_DELETE",
       data: {
@@ -50,7 +50,7 @@ function deleteClicked() {
 }
 
 function handleSubmitEdit(values: any) {
-  if (roomMsg.value)
+  if (roomId!.value)
     socketStore.send({
       event_type: "ROOM_MESSAGE_UPDATE",
       data: {
@@ -78,7 +78,12 @@ function handleSubmitEdit(values: any) {
     class="msg-container"
   >
     <div class="user">
-      <User :date="msg.created_at" :reverse="!isAuthor" :uid="msg.author_id" />
+      <User
+        :roomId="roomId"
+        :date="msg.created_at"
+        :reverse="!isAuthor"
+        :uid="msg.author_id"
+      />
     </div>
     <div v-show="!isEditing" class="content">
       {{ msg.content }}

@@ -30,7 +30,8 @@ const { checked, handleChange } = useField(name, undefined, {
 <style scoped>
 button {
   background: none;
-  font-size: 22px;
+  font-size: 16px;
+  width: 100%;
   color: var(--text-colour);
   text-shadow: none;
 }

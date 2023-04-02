@@ -31,7 +31,6 @@ const authStore = useAuthStore();
   <Message
     :isAuthor="authStore.uid === (item as any)['author_id']"
     :msg="item as IDirectMessage"
-    :roomMsg="false"
     v-if="(item as any)['ID']"
   />
 </template>

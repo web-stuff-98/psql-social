@@ -17,6 +17,7 @@ import {
   Invitation,
 } from "../../socketHandling/OutEvents";
 import { Ban } from "../../socketHandling/OutEvents";
+import useRoomStore from "../../store/RoomStore";
 
 enum EUserdropdownMenuSection {
   "MENU" = "Menu",
@@ -37,19 +38,20 @@ const getOwnRoomIDsResMsg = ref<IResMsg>({});
 
 const socketStore = useSocketStore();
 const authStore = useAuthStore();
+const roomStore = useRoomStore();
 
 function adjust() {
   if (
     containerRef.value?.clientWidth! + mousePos.value.left >
     window.innerWidth
   ) {
-    menuPos.value.left = window.innerWidth - (containerRef.value?.clientWidth!);
+    menuPos.value.left = window.innerWidth - containerRef.value?.clientWidth!;
   }
   if (
     containerRef.value?.clientHeight! + mousePos.value.top >
     window.innerHeight
   ) {
-    menuPos.value.top = window.innerHeight - (containerRef.value?.clientHeight!);
+    menuPos.value.top = window.innerHeight - containerRef.value?.clientHeight!;
   }
 }
 
@@ -67,12 +69,12 @@ watch(section, adjust);
 
 onMounted(() => {
   window.addEventListener("mousemove", handleMouseMove);
-  window.addEventListener("resize", adjust)
+  window.addEventListener("resize", adjust);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("mousemove", handleMouseMove);
-  window.removeEventListener("resize", adjust)
+  window.removeEventListener("resize", adjust);
 });
 
 const directMessageClicked = () =>
@@ -164,8 +166,13 @@ function submitDirectMessage(values: any) {
       <button @click="directMessageClicked">Direct message</button>
       <button @click="friendRequestClicked">Friend request</button>
       <button @click="blockClicked">Block</button>
+      <button
+        v-if="userdropdownStore.roomId && roomStore.getRoom(userdropdownStore.roomId)?.author_id! === authStore.uid"
+        @click="banClicked"
+      >
+        Ban
+      </button>
       <button @click="callClicked">Call user</button>
-      <button v-if="userdropdownStore.roomId" @click="banClicked">Ban</button>
     </div>
     <!-- Direct message section -->
     <Form
