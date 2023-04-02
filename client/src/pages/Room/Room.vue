@@ -116,19 +116,34 @@ function handleMessages(e: MessageEvent) {
         const i = roomChannelStore.channels.findIndex(
           (c) => c.ID === msg.data.data.ID
         );
-        const newChannel = {
-          ...roomChannelStore.channels[i],
-          ...msg.data.data,
-        };
-        roomChannelStore.channels = [
-          ...roomChannelStore.channels
-            .filter((c) => c.ID !== msg.data.data.ID)
-            .map((c) => ({
-              ...c,
-              main: (c.main = (msg.data.data as any)["main"] ? false : c.main),
-            })),
-          newChannel,
-        ];
+        if (i !== -1) {
+          const newChannel = {
+            ...roomChannelStore.channels[i],
+            ...msg.data.data,
+          };
+          roomChannelStore.channels = [
+            ...roomChannelStore.channels
+              .filter((c) => c.ID !== msg.data.data.ID)
+              .map((c) => ({
+                ...c,
+                main: (msg.data.data as any)["main"] ? false : c.main,
+              })),
+            newChannel,
+          ];
+        }
+      }
+      if (msg.data.change_type === "DELETE") {
+        const i = roomChannelStore.channels.findIndex(
+          (c) => c.ID === msg.data.data.ID
+        );
+        if (i !== -1) {
+          if (roomChannelStore.channels[i].ID === roomChannelStore.current) {
+            roomChannelStore.current = roomChannelStore.channels.find(
+              (c) => c.ID === msg.data.data.ID
+            )?.ID!;
+          }
+          roomChannelStore.channels.splice(i, 1);
+        }
       }
     }
   }

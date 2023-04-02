@@ -45,6 +45,11 @@ export const updateRoomChannel = ({
     data: { name, main },
   });
 
+export const deleteRoomChannel = (id: string) =>
+  makeRequest(`/api/room/channel/${id}`, {
+    method: "DELETE",
+  });
+
 export const getRooms = (): Promise<IRoom[] | null> =>
   makeRequest("/api/rooms");
 
