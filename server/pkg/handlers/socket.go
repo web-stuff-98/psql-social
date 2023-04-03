@@ -13,8 +13,8 @@ import (
 )
 
 var upgrader = websocket.FastHTTPUpgrader{
-	ReadBufferSize:  2048,
-	WriteBufferSize: 2048,
+	ReadBufferSize:  8192,
+	WriteBufferSize: 8192,
 	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {
 		if os.Getenv("ENVIRONMENT") != "PRODUCTION" {
 			return true
