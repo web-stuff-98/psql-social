@@ -28,7 +28,6 @@ var upgrader = websocket.FastHTTPUpgrader{
 /*
 	Messages come in like this, different to my last go projects:
 	{ "event_type":string , "data":json }
-	They are also sent out the same way, for consistency
 */
 
 type decodedMsg struct {

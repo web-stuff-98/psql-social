@@ -38,7 +38,7 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 	}
 
 	if !body.Policy {
-		ResponseMessage(ctx, "You must agree to the policy", fasthttp.StatusBadRequest)
+		ResponseMessage(ctx, "You must agree to the policy",fasthttp.StatusBadRequest)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	}
 
 	if !body.Policy {
-		ResponseMessage(ctx, "You must agree to the policy", fasthttp.StatusBadRequest)
+		ResponseMessage(ctx, "You must agree to the policy",fasthttp.StatusBadRequest)
 		return
 	}
 
