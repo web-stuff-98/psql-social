@@ -37,7 +37,7 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(rctx)
@@ -99,7 +99,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(rctx)
@@ -155,7 +155,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) Logout(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	if _, sid, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB); err != nil {
@@ -171,7 +171,7 @@ func (h handler) Logout(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	if cookie, err := authHelpers.RefreshToken(h.RedisClient, ctx, rctx, h.DB); err != nil {
@@ -183,7 +183,7 @@ func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -494,7 +494,7 @@ func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -623,7 +623,7 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) GetFriends(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
