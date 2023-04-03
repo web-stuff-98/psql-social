@@ -12,6 +12,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
 	callserver "github.com/web-stuff-98/psql-social/pkg/callServer"
+	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
 	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	socketvalidation "github.com/web-stuff-98/psql-social/pkg/socketValidation"
@@ -91,18 +92,16 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 	case "CALL_UPDATE_MEDIA_OPTIONS":
 		err = callUpdateMediaOptions(data, h, uid, c)
 
-		/*
-			case "CHANNEL_WEBRTC_JOIN":
-				err = channelWebRTCJoin(data, conn, uid, cRTCs, colls)
-			case "CHANNEL_WEBRTC_LEAVE":
-				err = channelWebRTCLeave(data, conn, uid, cRTCs)
-			case "CHANNEL_WEBRTC_SENDING_SIGNAL":
-				err = channelWebRTCSendingSignal(data, conn, uid, cRTCs)
-			case "CHANNEL_WEBRTC_RETURNING_SIGNAL":
-				err = channelWebRTCReturningSignal(data, conn, uid, cRTCs)
-			case "CHANNEL_WEBRTC_UPDATE_MEDIA_OPTIONS":
-				err = channelWebRTCUpdateMediaOptions(data, conn, uid, cRTCs)
-		*/
+	case "CHANNEL_WEBRTC_JOIN":
+		err = channelWebRTCJoin(data, h, uid, c)
+	case "CHANNEL_WEBRTC_LEAVE":
+		err = channelWebRTCLeave(data, h, uid, c)
+	case "CHANNEL_WEBRTC_SENDING_SIGNAL":
+		err = channelWebRTCSendingSignal(data, h, uid, c)
+	case "CHANNEL_WEBRTC_RETURNING_SIGNAL":
+		err = channelWebRTCReturningSignal(data, h, uid, c)
+	case "CHANNEL_WEBRTC_UPDATE_MEDIA_OPTIONS":
+		err = channelWebRTCUpdateMediaOptions(data, h, uid, c)
 
 	default:
 		return fmt.Errorf("Unrecognized event type")
@@ -1453,6 +1452,95 @@ func callRequestReinitialization(inData map[string]interface{}, h handler, uid s
 	}
 
 	h.CallServer.CallRecipientRequestedReInitialization <- uid
+
+	return nil
+}
+
+func channelWebRTCJoin(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.ChannelWebRTCJoin{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.ChannelRTCServer.JoinChannelRTC <- channelRTCserver.JoinChannel{
+		Uid:               uid,
+		ChannelID:         data.ChannelID,
+		UserMediaStreamID: data.UserMediaStreamID,
+		UserMediaVid:      data.UserMediaVid,
+		DisplayMediaVid:   data.DisplayMediaVid,
+	}
+
+	return nil
+}
+
+func channelWebRTCLeave(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.ChannelWebRTCLeave{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.ChannelRTCServer.LeaveChannelRTC <- channelRTCserver.LeaveChannel{
+		Uid:       uid,
+		ChannelID: data.ChannelID,
+	}
+
+	return nil
+}
+
+func channelWebRTCSendingSignal(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.ChannelWebRTCSendingSignal{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.ChannelRTCServer.SignalRTC <- channelRTCserver.SignalRTC{
+		Signal:            data.Signal,
+		ToUid:             data.Uid,
+		Uid:               uid,
+		UserMediaStreamID: data.UserMediaStreamID,
+		UserMediaVid:      data.UserMediaVid,
+		DisplayMediaVid:   data.DisplayMediaVid,
+	}
+
+	return nil
+}
+
+func channelWebRTCReturningSignal(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.ChannelWebRTCReturningSignal{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.ChannelRTCServer.ReturnSignalRTC <- channelRTCserver.ReturnSignalRTC{
+		Signal:            data.Signal,
+		CallerID:          data.CallerUID,
+		Uid:               uid,
+		UserMediaStreamID: data.UserMediaStreamID,
+		UserMediaVid:      data.UserMediaVid,
+		DisplayMediaVid:   data.DisplayMediaVid,
+	}
+
+	return nil
+}
+
+func channelWebRTCUpdateMediaOptions(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.ChannelUpdateMediaOptions{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.ChannelRTCServer.UpdateMediaOptions <- channelRTCserver.UpdateMediaOptions{
+		ChannelID:         data.ChannelID,
+		Uid:               uid,
+		UserMediaStreamID: data.UserMediaStreamID,
+		UserMediaVid:      data.UserMediaVid,
+		DisplayMediaVid:   data.DisplayMediaVid,
+	}
 
 	return nil
 }

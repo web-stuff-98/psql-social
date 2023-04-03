@@ -132,7 +132,7 @@ type CallWebRTCOfferAnswer struct {
 type CallWebRTCRequestedReInitialization struct{}
 
 // TYPE: UPDATE_MEDIA_OPTIONS_OUT
-type CallUpdateMediaOptions struct {
+type UpdateMediaOptions struct {
 	Uid               string `json:"uid"`
 	UserMediaStreamID string `json:"um_stream_id"`
 	UserMediaVid      bool   `json:"um_vid"`
@@ -154,9 +154,12 @@ type ChannelWebRTCUserLeft struct {
 }
 
 // TYPE: CHANNEL_WEBRTC_RETURN_SIGNAL_OUT
-type ChannelWebRTCReceivingReturnedSignal struct {
-	Uid    string `json:"uid"`
-	Signal string `json:"signal"`
+type ChannelWebRTCReturnSignal struct {
+	Uid               string `json:"uid"`
+	Signal            string `json:"signal"`
+	UserMediaStreamID string `json:"um_stream_id"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
 }
 
 // TYPE: CHANNEL_WEBRTC_ALL_USERS

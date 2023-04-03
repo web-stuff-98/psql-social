@@ -32,7 +32,7 @@ func main() {
 
 	defer db.Close()
 
-	h := handlers.New(db, rdb, ss, cs)
+	h := handlers.New(db, rdb, ss, cs, cRTCs)
 
 	r := router.New()
 

@@ -118,6 +118,14 @@ type CallUpdateMediaOptions struct {
 	DisplayMediaVid   bool   `json:"dm_vid"`
 }
 
+// CHANNEL_WEBRTC_UPDATE_MEDIA_OPTIONS
+type ChannelUpdateMediaOptions struct {
+	ChannelID         string `json:"channel_id" validation:"required,lte=36"`
+	UserMediaStreamID string `json:"um_stream_id" validation:"lte=45"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+}
+
 // CHANNEL_WEBRTC_SENDING_SIGNAL
 type ChannelWebRTCSendingSignal struct {
 	Signal            string `json:"signal" validation:"required,lte=4000"`
@@ -142,4 +150,9 @@ type ChannelWebRTCJoin struct {
 	UserMediaStreamID string `json:"um_stream_id" validation:"lte=45"`
 	UserMediaVid      bool   `json:"um_vid"`
 	DisplayMediaVid   bool   `json:"dm_vid"`
+}
+
+// CHANNEL_WEBRTC_LEAVE
+type ChannelWebRTCLeave struct {
+	ChannelID string `json:"channel_id"`
 }
