@@ -115,15 +115,30 @@ export type UnBan = {
   data: { uid: string; room_id: string };
 };
 
-/* WebRTC events */
-export type ChannelWebRTCUpdateMediaOptions = {
-  event_type: "CHANNEL_WEBRTC_UPDATE_MEDIA_OPTIONS";
+/* Call & WebRTC events */
+export type CallWebRTCRequestReInitialization = {
+  event_type: "CALL_WEBRTC_RECIPIENT_REQUEST_REINITIALIZATION";
+};
+export type CallWebRTCOffer = {
+  event_type: "CALL_WEBRTC_OFFER";
   data: {
+    signal: string;
+    um_stream_id: string;
     um_vid: boolean;
     dm_vid: boolean;
-    um_stream_id: string;
-    channel_id: string;
   };
+};
+export type CallWebRTCAnswer = {
+  event_type: "CALL_WEBRTC_ANSWER";
+  data: {
+    signal: string;
+    um_stream_id: string;
+    um_vid: boolean;
+    dm_vid: boolean;
+  };
+};
+export type CallLeave = {
+  event_type: string;
 };
 export type CallWebRTCUpdateMediaOptions = {
   event_type: "CALL_UPDATE_MEDIA_OPTIONS";
@@ -131,5 +146,14 @@ export type CallWebRTCUpdateMediaOptions = {
     um_vid: boolean;
     dm_vid: boolean;
     um_stream_id: string;
+  };
+};
+export type ChannelWebRTCUpdateMediaOptions = {
+  event_type: "CHANNEL_WEBRTC_UPDATE_MEDIA_OPTIONS";
+  data: {
+    um_vid: boolean;
+    dm_vid: boolean;
+    um_stream_id: string;
+    channel_id: string;
   };
 };

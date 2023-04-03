@@ -80,6 +80,14 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = callUser(data, h, uid, c)
 	case "CALL_USER_RESPONSE":
 		err = callUserResponse(data, h, uid, c)
+	case "CALL_LEAVE":
+		err = callLeave(data, h, uid, c)
+	case "CALL_WEBRTC_OFFER":
+		err = callOffer(data, h, uid, c)
+	case "CALL_WEBRTC_ANSWER":
+		err = callAnswer(data, h, uid, c)
+	case "CALL_WEBRTC_RECIPIENT_REQUEST_REINITIALIZATION":
+		err = callRequestReinitialization(data, h, uid, c)
 
 	default:
 		return fmt.Errorf("Unrecognized event type")
@@ -1353,6 +1361,64 @@ func callUserResponse(inData map[string]interface{}, h handler, uid string, c *w
 	}
 
 	log.Println("Sent to calls response chan")
+
+	return nil
+}
+
+func callLeave(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.CallLeave{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.CallServer.LeaveCallChan <- uid
+
+	return nil
+}
+
+func callOffer(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.CallOfferAndAnswer{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.CallServer.SendCallRecipientOffer <- callserver.CallerSignal{
+		Signal:            data.Signal,
+		UserMediaStreamID: data.UserMediaStreamID,
+		UserMediaVid:      data.UserMediaVid,
+		DisplayMediaVid:   data.DisplayMediaVid,
+	}
+
+	return nil
+}
+
+func callAnswer(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.CallOfferAndAnswer{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.CallServer.SendCallRecipientOffer <- callserver.CallerSignal{
+		Signal:            data.Signal,
+		UserMediaStreamID: data.UserMediaStreamID,
+		UserMediaVid:      data.UserMediaVid,
+		DisplayMediaVid:   data.DisplayMediaVid,
+	}
+
+	return nil
+}
+
+func callRequestReinitialization(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.CallRequestReinitialization{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.CallServer.CallRecipientRequestedReInitialization <- uid
 
 	return nil
 }

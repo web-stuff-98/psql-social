@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.15.11",
+    "@types/simple-peer": "^9.11.5",
     "@vitejs/plugin-vue": "^4.1.0",
     "events": "^3.3.0",
     "global": "^4.4.0",

@@ -91,7 +91,7 @@ onBeforeUnmount(() => {
     }
   }
   .cancel-hangup-button {
-    filter: drop-shadow(var(--shadow-medium));
+    filter: drop-shadow(0px 2px 3px black);
     bottom: -8px;
     right: -8px;
     background: red;
@@ -101,7 +101,7 @@ onBeforeUnmount(() => {
     transform: scaleX(-1);
   }
   .accept-button {
-    filter: drop-shadow(var(--shadow-medium));
+    filter: drop-shadow(0px 2px 3px black);
     bottom: -8px;
     left: -8px;
     background: lime;

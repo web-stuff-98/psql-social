@@ -218,7 +218,7 @@ export default function useBackgroundProcess({
           : msg.data.inviter;
       let newConv = inboxStore.convs[otherUser] || [];
       const i = newConv.findIndex((item) => {
-        // if it has an "inviter" then its an invitate
+        // if it has an "inviter" then its an invitation
         if ((item as any)["inviter"] !== undefined)
           return (
             (item as any)["inviter"] === msg.data.inviter &&

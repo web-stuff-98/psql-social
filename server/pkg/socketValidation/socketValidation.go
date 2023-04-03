@@ -96,3 +96,14 @@ type CallResponse struct {
 	Called string `json:"called" validation:"required,lte=36"`
 	Accept bool   `json:"accept"`
 }
+
+// CALL_LEAVE
+type CallLeave struct{}
+
+// CALL_OFFER/CALL_ANSWER
+type CallOfferAndAnswer struct {
+	Signal            string `json:"signal" validation:"required,lte=4000"`
+	UserMediaStreamID string `json:"um_stream_id" validation:"lte=45"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+}
