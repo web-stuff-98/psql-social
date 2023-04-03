@@ -208,7 +208,7 @@ a {
 .modal-close-button {
   background: red;
   cursor: pointer;
-  border: 2px solid var(--border-heavy);
+  border: 2px solid var(--text-colour);
   padding: 0;
   margin: 0;
   width: 1rem;

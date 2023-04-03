@@ -3,6 +3,8 @@ import { computed, onBeforeUnmount, onMounted, ref, toRefs } from "vue";
 import useRoomStore from "../../../../../store/RoomStore";
 import useAuthStore from "../../../../../store/AuthStore";
 import EditRoom from "./EditRoom.vue";
+import { deleteRoom } from "../../../../../services/room";
+import messageModalStore from "../../../../../store/MessageModalStore";
 
 const props = defineProps<{ rid: string }>();
 
@@ -28,10 +30,37 @@ onMounted(() => {
 onBeforeUnmount(() => {
   observer.disconnect();
 });
+
+function deleteRoomClicked() {
+  messageModalStore.show = true;
+  messageModalStore.msg = {
+    msg: "Are you sure you want to delete this room?",
+  };
+  messageModalStore.cancellationCallback = () =>
+    (messageModalStore.show = false);
+  messageModalStore.confirmationCallback = () => {
+    messageModalStore.msg = { msg: "Deleting...", err: false, pen: true };
+    messageModalStore.cancellationCallback = undefined;
+    messageModalStore.confirmationCallback = () =>
+      (messageModalStore.show = false);
+    deleteRoom(rid.value)
+      .then(() => (messageModalStore.show = false))
+      .catch((e) => {
+        messageModalStore.msg = {
+          msg: `${e}`,
+          err: true,
+          pen: false,
+        };
+        messageModalStore.cancellationCallback = undefined;
+        messageModalStore.confirmationCallback = () =>
+          (messageModalStore.show = false);
+      });
+  };
+}
 </script>
 
 <template>
-  <div ref="container" class="room">
+  <div v-if="room" ref="container" class="room">
     {{ room?.name }}
     <div class="buttons">
       <button
@@ -48,6 +77,7 @@ onBeforeUnmount(() => {
         </button>
       </router-link>
       <button
+        @click="deleteRoomClicked"
         v-if="authStore.uid === room?.author_id"
         class="delete-button"
         name="delete room"

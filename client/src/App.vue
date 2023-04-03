@@ -13,6 +13,7 @@ import ResMsg from "./components/shared/ResMsg.vue";
 import UserDropdown from "./components/userDropdown/UserDropdown.vue";
 import PendingCalls from "./components/pendingCalls/PendingCalls.vue";
 import Bio from "./components/modal/Bio.vue";
+import MessageModal from "./components/modal/MessageModal.vue";
 
 const authStore = useAuthStore();
 
@@ -26,8 +27,8 @@ watch(authStore, (_, newVal) => {
 });
 
 onMounted(() => {
-  document.body.classList.add("dark-mode")
-})
+  document.body.classList.add("dark-mode");
+});
 </script>
 
 <template>
@@ -54,7 +55,8 @@ onMounted(() => {
     </Modal>
     <UserDropdown />
     <PendingCalls />
-    <Bio/>
+    <Bio />
+    <MessageModal />
   </div>
 </template>
 
