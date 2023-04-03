@@ -38,6 +38,7 @@ button {
   width: 100%;
   color: var(--text-colour);
   text-shadow: none;
+  border: 1px solid var(--border-medium);
 }
 button:hover {
   background: none;

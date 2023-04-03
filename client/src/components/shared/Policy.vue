@@ -5,14 +5,15 @@
       When you create an account, a cookie called "session_token" will be
       created. This contains an encrypted ID used to identify your session and
       facilitate your login. This cookie is protected by your browser. The
-      cookie is regularly refreshed by the server to add extra security.
+      cookie is regularly refreshed by the server.
     </p>
     <h2>Privacy Policy</h2>
     <p>
       None of your information is shared with any 3rd party, and your account
       will be automatically deleted after 20 minutes. Your password is hashed
       with bcrypt and stored on the database. The database is protected against
-      SQL injection attacks using prepared statements.
+      SQL injection using prepared statements. Stream data is sent through a
+      peer to peer network established with other clients.
     </p>
   </div>
 </template>
@@ -24,6 +25,13 @@
   h1,
   h2 {
     margin-bottom: var(--gap-md);
+  }
+  p {
+    font-size: var(--xs);
+    margin-bottom: var(--gap-md);
+  }
+  p:last-of-type {
+    margin: 0;
   }
 }
 </style>

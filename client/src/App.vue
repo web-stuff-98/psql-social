@@ -25,10 +25,6 @@ const noUserModalSection = ref<"WELCOME" | "LOGIN" | "REGISTER">("WELCOME");
 watch(authStore, (_, newVal) => {
   if (!newVal.uid) noUserModalSection.value = "WELCOME";
 });
-
-onMounted(() => {
-  document.body.classList.add("dark-mode");
-});
 </script>
 
 <template>

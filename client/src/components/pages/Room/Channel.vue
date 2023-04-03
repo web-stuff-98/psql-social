@@ -68,8 +68,8 @@ defineProps<{
   align-items: center;
   justify-content: space-between;
   border-radius: var(--border-radius-sm);
-  white-space: nowrap;
   .name {
+    text-align: left;
     padding: 4px 7px;
   }
   .buttons {

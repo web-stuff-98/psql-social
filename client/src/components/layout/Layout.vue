@@ -21,6 +21,10 @@ async function logout() {
   }
 }
 
+function toggleDarkMode() {
+  document.body.classList.toggle("dark-mode");
+}
+
 const username = computed(
   () => userStore.getUser(authStore.uid as string)?.username
 );
@@ -35,10 +39,14 @@ const username = computed(
     <nav>
       <div class="name">{{ username }}</div>
       <div class="nav-items">
-        <button type="button" class="nav-item" @click="logout">Logout</button>
         <RouterLink to="/policy">
           <button type="button" class="nav-item">Policy</button>
         </RouterLink>
+        <RouterLink to="/">
+          <button type="button" class="nav-item">Home</button>
+        </RouterLink>
+        <button type="button" class="nav-item" @click="toggleDarkMode">Darkmode</button>
+        <button type="button" class="nav-item" @click="logout">Logout</button>
       </div>
     </nav>
     <div class="aside-main">
