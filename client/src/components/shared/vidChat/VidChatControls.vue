@@ -80,10 +80,10 @@ defineProps<{
   padding: 0.25rem;
   border: 3px outset var(--border-light);
   border-radius: 5pc;
-  box-shadow: var(--shadow);
+  box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.166);
   width: fit-content;
   button {
-    border: 2px solid var(--border-light);
+    border: 2px solid var(--border-heavy);
     border-radius: 50%;
     padding: 0;
     margin: 0;

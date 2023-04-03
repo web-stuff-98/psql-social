@@ -19,6 +19,12 @@ import {
   BiPaperclip,
   HiPhoneMissedCall,
   HiPhoneIncoming,
+  MdScreenshare,
+  MdStopscreenshare,
+  BiCameraVideo,
+  BiCameraVideoOff,
+  BiMicMuteFill,
+  BiMicFill,
 } from "oh-vue-icons/icons";
 
 addIcons(
@@ -35,7 +41,13 @@ addIcons(
   MdDeleteRound,
   BiPaperclip,
   HiPhoneMissedCall,
-  HiPhoneIncoming
+  HiPhoneIncoming,
+  MdScreenshare,
+  MdStopscreenshare,
+  BiCameraVideo,
+  BiCameraVideoOff,
+  BiMicMuteFill,
+  BiMicFill
 );
 
 const pinia = createPinia();

@@ -88,6 +88,8 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = callAnswer(data, h, uid, c)
 	case "CALL_WEBRTC_RECIPIENT_REQUEST_REINITIALIZATION":
 		err = callRequestReinitialization(data, h, uid, c)
+	case "CALL_UPDATE_MEDIA_OPTIONS":
+		err = callUpdateMediaOptions(data, h, uid, c)
 
 	default:
 		return fmt.Errorf("Unrecognized event type")
@@ -1385,6 +1387,7 @@ func callOffer(inData map[string]interface{}, h handler, uid string, c *websocke
 	}
 
 	h.CallServer.SendCallRecipientOffer <- callserver.CallerSignal{
+		Caller:            uid,
 		Signal:            data.Signal,
 		UserMediaStreamID: data.UserMediaStreamID,
 		UserMediaVid:      data.UserMediaVid,
@@ -1401,8 +1404,26 @@ func callAnswer(inData map[string]interface{}, h handler, uid string, c *websock
 		return err
 	}
 
-	h.CallServer.SendCallRecipientOffer <- callserver.CallerSignal{
+	h.CallServer.SendCalledAnswer <- callserver.CalledSignal{
+		Called:            uid,
 		Signal:            data.Signal,
+		UserMediaStreamID: data.UserMediaStreamID,
+		UserMediaVid:      data.UserMediaVid,
+		DisplayMediaVid:   data.DisplayMediaVid,
+	}
+
+	return nil
+}
+
+func callUpdateMediaOptions(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketvalidation.CallUpdateMediaOptions{}
+	var err error
+	if err = UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	h.CallServer.UpdateMediaOptions <- callserver.UpdateMediaOptions{
+		Uid:               uid,
 		UserMediaStreamID: data.UserMediaStreamID,
 		UserMediaVid:      data.UserMediaVid,
 		DisplayMediaVid:   data.DisplayMediaVid,

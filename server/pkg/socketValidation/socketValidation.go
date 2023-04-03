@@ -107,3 +107,13 @@ type CallOfferAndAnswer struct {
 	UserMediaVid      bool   `json:"um_vid"`
 	DisplayMediaVid   bool   `json:"dm_vid"`
 }
+
+// CALL_WEBRTC_RECIPIENT_REQUEST_REINITIALIZATION
+type CallRequestReinitialization struct{}
+
+// CALL_UPDATE_MEDIA_OPTIONS
+type CallUpdateMediaOptions struct {
+	UserMediaStreamID string `json:"um_stream_id" validation:"lte=45"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+}
