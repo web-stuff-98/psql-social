@@ -30,6 +30,7 @@ import useAuthStore from "../../store/AuthStore";
 import router from "../../router";
 import EditRoomChannel from "./EditRoomChannel.vue";
 import CreateRoomChannel from "./CreateRoomChannel.vue";
+import RoomVidChat from "./RoomVidChat.vue";
 
 const roomChannelStore = useRoomChannelStore();
 const roomStore = useRoomStore();
@@ -45,6 +46,8 @@ const isCreatingChannel = ref(false);
 function editChannelClicked(channelId: string) {
   isEditingChannel.value = channelId;
 }
+
+const vidChatOpen = ref(false);
 
 async function deleteChannelClicked(channelId: string) {
   try {
@@ -249,7 +252,13 @@ function handleSubmit(values: any) {
       </div>
       <div class="messages-vid-chat">
         <div class="vid-chat">
-          <button type="button">Enter channel voip/video chat</button>
+          <button @click="vidChatOpen = true" v-if="!vidChatOpen" type="button">
+            Enter channel voip/video chat
+          </button>
+          <RoomVidChat
+            :exitButtonClicked="() => (vidChatOpen = false)"
+            v-if="vidChatOpen"
+          />
         </div>
         <div v-if="!resMsg.pen && !resMsg.err" class="messages">
           <div class="list">

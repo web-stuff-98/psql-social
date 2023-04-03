@@ -247,7 +247,9 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 			if _, ok := channelUids[data.Uid]; ok {
 				uids := []string{}
 				for uid := range cRTCs.ChannelConnections.data[data.ChannelID] {
-					uids = append(uids, uid)
+					if uid != data.Uid {
+						uids = append(uids, uid)
+					}
 				}
 				cRTCs.ChannelConnections.mutex.RUnlock()
 				cRTCs.ChannelConnections.mutex.Lock()
@@ -264,14 +266,14 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 					log.Println("Error in leave WebRTC select channel statement:", err)
 				}
 
-				ss.SendDataToSub <- socketServer.SubscriptionMessageData{
+				/*ss.SendDataToSub <- socketServer.SubscriptionMessageData{
 					SubName: fmt.Sprintf("channel:%v", data.ChannelID),
 					Data: socketMessages.RoomChannelWebRTCUserJoinedLeft{
 						ChannelID: data.ChannelID,
 						Uid:       data.Uid,
 					},
 					MessageType: "ROOM_CHANNEL_WEBRTC_USER_LEFT",
-				}
+				}*/
 				ss.SendDataToUsers <- socketServer.UsersMessageData{
 					Uids:        uids,
 					MessageType: "CHANNEL_WEBRTC_LEFT",

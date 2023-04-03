@@ -602,13 +602,13 @@ func sendSubData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSub
-		ss.Subscriptions.mutex.RLock()
+		ss.Subscriptions.mutex.Lock()
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
 				WriteMessage(data.MessageType, data.Data, c)
 			}
 		}
-		ss.Subscriptions.mutex.RUnlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
@@ -629,7 +629,7 @@ func sendSubsData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSubs
-		ss.Subscriptions.mutex.RLock()
+		ss.Subscriptions.mutex.Lock()
 		for _, v := range data.SubNames {
 			if _, ok := ss.Subscriptions.data[v]; ok {
 				if conns, ok := ss.Subscriptions.data[v]; ok {
@@ -639,7 +639,7 @@ func sendSubsData(ss *SocketServer) {
 				}
 			}
 		}
-		ss.Subscriptions.mutex.RUnlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
@@ -660,7 +660,7 @@ func sendDataToSubExcludeWss(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSubExcludeByWss
-		ss.Subscriptions.mutex.RLock()
+		ss.Subscriptions.mutex.Lock()
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
 				if _, ok := data.ExcludeConns[c]; !ok {
@@ -668,7 +668,7 @@ func sendDataToSubExcludeWss(ss *SocketServer) {
 				}
 			}
 		}
-		ss.Subscriptions.mutex.RUnlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
@@ -690,7 +690,7 @@ func sendDataToSubExcludeIDs(ss *SocketServer) {
 
 		data := <-ss.SendDataToSubExcludeByIDs
 		ss.Subscriptions.mutex.RLock()
-		ss.ConnectionsByWs.mutex.RLock()
+		ss.ConnectionsByWs.mutex.Lock()
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
 				if id, ok := ss.ConnectionsByWs.data[c]; ok {
@@ -700,7 +700,7 @@ func sendDataToSubExcludeIDs(ss *SocketServer) {
 				}
 			}
 		}
-		ss.ConnectionsByWs.mutex.RUnlock()
+		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.RUnlock()
 	}
 }
@@ -723,7 +723,7 @@ func sendDataToSubsExcludeIDs(ss *SocketServer) {
 
 		data := <-ss.SendDataToSubsExcludeByIDs
 		ss.Subscriptions.mutex.RLock()
-		ss.ConnectionsByWs.mutex.RLock()
+		ss.ConnectionsByWs.mutex.Lock()
 		for _, subName := range data.SubNames {
 			if conns, ok := ss.Subscriptions.data[subName]; ok {
 				for c := range conns {
@@ -735,7 +735,7 @@ func sendDataToSubsExcludeIDs(ss *SocketServer) {
 				}
 			}
 		}
-		ss.ConnectionsByWs.mutex.RUnlock()
+		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.RUnlock()
 	}
 }
@@ -757,7 +757,7 @@ func sendDataToSubsExcludeWss(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSubsExcludeByWss
-		ss.Subscriptions.mutex.RLock()
+		ss.Subscriptions.mutex.Lock()
 		for _, subName := range data.SubNames {
 			if conns, ok := ss.Subscriptions.data[subName]; ok {
 				for c := range conns {
@@ -767,7 +767,7 @@ func sendDataToSubsExcludeWss(ss *SocketServer) {
 				}
 			}
 		}
-		ss.Subscriptions.mutex.RUnlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
