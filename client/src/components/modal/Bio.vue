@@ -37,10 +37,11 @@ function watchBio(e: MessageEvent) {
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    await getUserBio(bioUid.value);
+    const data = await getUserBio(bioUid.value);
+    bio.value = data;
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
-    resMsg.value = { msg: `${e}`, err: true, pen: true };
+    resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
 
   socketStore.send({
@@ -68,16 +69,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Modal>
+  <Modal v-if="bioUid">
     <ModalCloseButton @click="bioUid = ''" />
     <div class="bio-container">
       <User :uid="bioUid" />
       <p v-if="bio">
         {{ bio }}
       </p>
-      <p v-else>
-        This user has no bio
-      </p>
+      <p v-else>This user has no bio</p>
       <ResMsg :resMsg="resMsg" />
     </div>
   </Modal>
@@ -85,14 +84,16 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .bio-container {
-  margin-top: 3rem;
+  margin-top: var(--gap-lg);
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   gap: var(--gap-lg);
+  max-width: 15rem;
   p {
+  padding: var(--gap-md);
     margin: 0;
   }
 }

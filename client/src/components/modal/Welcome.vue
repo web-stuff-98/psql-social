@@ -67,7 +67,6 @@ defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
       width: 100%;
       font-size: var(--md);
       font-weight: 600;
-      border: 2px solid var(--border-heavy);
     }
   }
 }

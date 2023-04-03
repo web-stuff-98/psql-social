@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import useBackgroundProcess from "./composables/useBackgroundProcess";
 import useAuthStore from "./store/AuthStore";
 import Modal from "./components/modal/Modal.vue";
@@ -12,6 +12,7 @@ import { IResMsg } from "./interfaces/GeneralInterfaces";
 import ResMsg from "./components/shared/ResMsg.vue";
 import UserDropdown from "./components/userDropdown/UserDropdown.vue";
 import PendingCalls from "./components/pendingCalls/PendingCalls.vue";
+import Bio from "./components/modal/Bio.vue";
 
 const authStore = useAuthStore();
 
@@ -23,6 +24,10 @@ const noUserModalSection = ref<"WELCOME" | "LOGIN" | "REGISTER">("WELCOME");
 watch(authStore, (_, newVal) => {
   if (!newVal.uid) noUserModalSection.value = "WELCOME";
 });
+
+onMounted(() => {
+  document.body.classList.add("dark-mode")
+})
 </script>
 
 <template>
@@ -49,6 +54,7 @@ watch(authStore, (_, newVal) => {
     </Modal>
     <UserDropdown />
     <PendingCalls />
+    <Bio/>
   </div>
 </template>
 

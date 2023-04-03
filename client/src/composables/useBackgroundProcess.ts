@@ -141,6 +141,7 @@ export default function useBackgroundProcess({
         ...(inboxStore.convs[otherUser] || []),
         msg.data as IDirectMessage,
       ];
+      userStore.cacheUser(msg.data.author_id);
     }
     if (isDirectMsgUpdate(msg)) {
       const otherUser =
@@ -181,6 +182,7 @@ export default function useBackgroundProcess({
         ...(inboxStore.convs[otherUser] || []),
         msg.data as IFriendRequest,
       ];
+      userStore.cacheUser(otherUser);
     }
     if (isFriendRequestResponse(msg)) {
       const otherUser =
@@ -199,6 +201,7 @@ export default function useBackgroundProcess({
       //@ts-ignore
       newConv[i]["accepted"] = msg.data.accepted;
       inboxStore.convs[otherUser] = [...newConv];
+      userStore.cacheUser(otherUser);
     }
 
     if (isInvitation(msg)) {
@@ -210,6 +213,7 @@ export default function useBackgroundProcess({
         ...(inboxStore.convs[otherUser] || []),
         msg.data as IInvitation,
       ];
+      userStore.cacheUser(otherUser);
     }
     if (isInvitationResponse(msg)) {
       const otherUser =
@@ -229,6 +233,7 @@ export default function useBackgroundProcess({
       //@ts-ignore
       newConv[i]["accepted"] = msg.data.accepted;
       inboxStore.convs[otherUser] = [...newConv];
+      userStore.cacheUser(otherUser);
     }
 
     if (isBlock(msg)) {

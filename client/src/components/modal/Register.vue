@@ -66,7 +66,6 @@ async function handleSubmit(values: any) {
   width: 12rem;
   max-width: 12rem;
   button {
-    border: 2px solid var(--border-heavy);
     font-weight: 600;
     font-size: var(--md);
   }

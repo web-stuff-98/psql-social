@@ -27,6 +27,8 @@
 
   background: var(--base-colour);
 
+  --background-tile: url(/src/assets/crossbackground.png);
+
   /* Base sizes (not for margin/padding) */
   --xs: 0.8rem;
   --sm: 0.9rem;
@@ -36,12 +38,12 @@
 
   /* Base colours */
   --text-colour: black;
-  --base-colour: #ededed;
+  --base-colour: #f6f6f6;
   --base-colour-contrast: #1a1a1a;
   --hover: #e1e1f0;
   --hover-contrast: #242424;
-  --focus: #b5b3d9;
-  --focus-contrast: #383838;
+  --focus: #e2e1f4;
+  --focus-contrast: #1f1f1f;
   --button: hsl(22, 100%, 31%);
   --button-hover: hsl(22, 100%, 39%);
 
@@ -70,6 +72,27 @@
   --aside-width: 12rem;
 }
 
+.dark-mode {
+  /* Base colours */
+  --text-colour: white;
+
+  --base-colour: #111111;
+  --base-colour-contrast: #e7e7e7;
+  --hover: #23232b;
+  --hover-contrast: #c2cddc;
+  --focus: #1d1d24;
+  --focus-contrast: #d4d7e4;
+  --button: hsl(22, 100%, 31%);
+  --button-hover: hsl(22, 100%, 39%);
+
+  --border-pale: rgb(23, 23, 23);
+  --border-light: rgb(26, 26, 26);
+  --border-medium: rgb(33, 33, 33);
+  --border-heavy: rgb(37, 37, 37);
+
+  --background-tile: url(/src/assets/crossbackground_dark.png);
+}
+
 .input-label {
   display: flex;
   flex-direction: column;
@@ -90,21 +113,9 @@
   text-align: center;
 }
 
-button {
-  background: var(--button);
-  transition: background-color 100ms ease;
-  border: 1px solid var(--border-medium);
-  cursor: pointer;
-  color: white;
-  text-shadow: 0px 2px 3px black;
-  font-size: var(--md);
-}
-button:hover {
-  background: var(--button-hover);
-}
-
 body {
   margin: 0;
+  background: var(--background-tile);
 }
 
 input[type="file"] {
@@ -120,6 +131,20 @@ select {
   border-radius: var(--border-radius-sm);
   padding: var(--gap-md) var(--gap-sm);
 }
+
+button {
+  background: var(--button);
+  transition: background-color 100ms ease;
+  border: 2px solid var(--text-colour);
+  cursor: pointer;
+  color: white;
+  text-shadow: 0px 2px 3px black;
+  font-size: var(--md);
+}
+button:hover {
+  background: var(--button-hover);
+}
+
 
 input,
 textarea,

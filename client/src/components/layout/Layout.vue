@@ -49,14 +49,15 @@ const username = computed(
 
 <style lang="scss" scoped>
 .layout {
-  height: min(30rem, 100vh);
-  width: min(40rem, 100vw);
+  height: min(30rem, 95vh);
+  width: min(40rem, 95vw);
   display: flex;
   flex-direction: column;
   border-radius: var(--border-radius-lg);
   overflow: hidden;
   border: 2px solid var(--border-heavy);
   box-shadow: 0px 2px 16px rgba(0, 0, 0, 0.33);
+  background: var(--base-colour);
   nav {
     width: 100%;
     height: var(--nav-height);
@@ -65,6 +66,7 @@ const username = computed(
     justify-content: flex-end;
     align-items: center;
     padding: var(--gap-md);
+    border-bottom: 2px solid var(--border-medium);
     .name {
       flex-grow: 1;
       text-align: left;
