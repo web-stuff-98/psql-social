@@ -27,6 +27,8 @@ type SocketServer struct {
 	ConnectionSubscriptions    ConnectionSubscriptions
 	GetConnectionSubscriptions chan GetConnectionSubscriptions
 
+	MessageLoop chan Message
+
 	RegisterConn   chan ConnnectionData
 	UnregisterConn chan *websocket.Conn
 
@@ -90,6 +92,11 @@ type GetSubscriptionUids struct {
 }
 
 /* ------ GENERAL STRUCTS USED INTERNALLY AND EXTERNALLY ------ */
+
+type Message struct {
+	Conn *websocket.Conn
+	Data []byte
+}
 
 type ConnnectionData struct {
 	Uid  string
@@ -184,6 +191,8 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 		},
 		GetConnectionSubscriptions: make(chan GetConnectionSubscriptions),
 
+		MessageLoop: make(chan Message),
+
 		RegisterConn:   make(chan ConnnectionData),
 		UnregisterConn: make(chan *websocket.Conn),
 
@@ -218,6 +227,7 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	go connection(ss)
 	go disconnect(ss, csdc, cRTCsdc)
+	go messageLoop(ss)
 	go sendUserData(ss)
 	go sendConnData(ss)
 	go sendUsersData(ss)
@@ -236,12 +246,15 @@ func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	go getSubscriptionUids(ss)
 }
 
-func WriteMessage(t string, m interface{}, c *websocket.Conn) {
+func WriteMessage(t string, m interface{}, c *websocket.Conn, ss *SocketServer) {
 	withType := make(map[string]interface{})
 	withType["event_type"] = t
 	withType["data"] = m
 	if b, err := json.Marshal(withType); err == nil {
-		c.WriteMessage(1, b)
+		ss.MessageLoop <- Message{
+			Conn: c,
+			Data: b,
+		}
 	} else {
 		log.Println("Error marshalling message:", err)
 	}
@@ -320,6 +333,27 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	}
 }
 
+func messageLoop(ss *SocketServer) {
+	var failCount uint8
+	for {
+		defer func() {
+			r := recover()
+			if r != nil {
+				log.Println("Recovered from panic in ws message loop:", r)
+				if failCount < 10 {
+					go sendUserData(ss)
+				} else {
+					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
+				}
+				failCount++
+			}
+		}()
+
+		msg := <-ss.MessageLoop
+		msg.Conn.WriteMessage(1, msg.Data)
+	}
+}
+
 func sendUserData(ss *SocketServer) {
 	var failCount uint8
 	for {
@@ -339,7 +373,7 @@ func sendUserData(ss *SocketServer) {
 		data := <-ss.SendDataToUser
 		ss.ConnectionsByID.mutex.Lock()
 		if conn, ok := ss.ConnectionsByID.data[data.Uid]; ok {
-			WriteMessage(data.MessageType, data.Data, conn)
+			WriteMessage(data.MessageType, data.Data, conn, ss)
 		}
 		ss.ConnectionsByID.mutex.Unlock()
 	}
@@ -365,7 +399,7 @@ func sendUsersData(ss *SocketServer) {
 		ss.ConnectionsByID.mutex.Lock()
 		for _, v := range data.Uids {
 			if conn, ok := ss.ConnectionsByID.data[v]; ok {
-				WriteMessage(data.MessageType, data.Data, conn)
+				WriteMessage(data.MessageType, data.Data, conn, ss)
 			}
 		}
 		ss.ConnectionsByID.mutex.Unlock()
@@ -392,7 +426,7 @@ func sendConnData(ss *SocketServer) {
 		// Lock mutex is used to prevent multiple messages being sent to the same connection concurrently
 		ss.ConnectionsByWs.mutex.Lock()
 		if _, ok := ss.ConnectionsByWs.data[data.Conn]; ok {
-			WriteMessage(data.MessageType, data.Data, data.Conn)
+			WriteMessage(data.MessageType, data.Data, data.Conn, ss)
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
 	}
@@ -418,7 +452,7 @@ func sendConnsData(ss *SocketServer) {
 		ss.ConnectionsByWs.mutex.Lock()
 		for _, conn := range data.Conns {
 			if _, ok := ss.ConnectionsByWs.data[conn]; ok {
-				WriteMessage(data.MessageType, data.Data, conn)
+				WriteMessage(data.MessageType, data.Data, conn, ss)
 			}
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
@@ -605,7 +639,7 @@ func sendSubData(ss *SocketServer) {
 		ss.Subscriptions.mutex.Lock()
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
-				WriteMessage(data.MessageType, data.Data, c)
+				WriteMessage(data.MessageType, data.Data, c, ss)
 			}
 		}
 		ss.Subscriptions.mutex.Unlock()
@@ -634,7 +668,7 @@ func sendSubsData(ss *SocketServer) {
 			if _, ok := ss.Subscriptions.data[v]; ok {
 				if conns, ok := ss.Subscriptions.data[v]; ok {
 					for c := range conns {
-						WriteMessage(data.MessageType, data.Data, c)
+						WriteMessage(data.MessageType, data.Data, c, ss)
 					}
 				}
 			}
@@ -664,7 +698,7 @@ func sendDataToSubExcludeWss(ss *SocketServer) {
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
 				if _, ok := data.ExcludeConns[c]; !ok {
-					WriteMessage(data.MessageType, data.Data, c)
+					WriteMessage(data.MessageType, data.Data, c, ss)
 				}
 			}
 		}
@@ -695,7 +729,7 @@ func sendDataToSubExcludeIDs(ss *SocketServer) {
 			for c := range conns {
 				if id, ok := ss.ConnectionsByWs.data[c]; ok {
 					if _, ok := data.ExcludeUids[id]; !ok {
-						WriteMessage(data.MessageType, data.Data, c)
+						WriteMessage(data.MessageType, data.Data, c, ss)
 					}
 				}
 			}
@@ -729,7 +763,7 @@ func sendDataToSubsExcludeIDs(ss *SocketServer) {
 				for c := range conns {
 					if id, ok := ss.ConnectionsByWs.data[c]; ok {
 						if _, ok := data.ExcludeUids[id]; !ok {
-							WriteMessage(data.MessageType, data.Data, c)
+							WriteMessage(data.MessageType, data.Data, c, ss)
 						}
 					}
 				}
@@ -762,7 +796,7 @@ func sendDataToSubsExcludeWss(ss *SocketServer) {
 			if conns, ok := ss.Subscriptions.data[subName]; ok {
 				for c := range conns {
 					if _, ok := data.ExcludeConns[c]; !ok {
-						WriteMessage(data.MessageType, data.Data, c)
+						WriteMessage(data.MessageType, data.Data, c, ss)
 					}
 				}
 			}

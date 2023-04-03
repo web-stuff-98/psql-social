@@ -240,6 +240,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: var(--gap-md);
   box-sizing: border-box;
+  min-height: 67.5%;
   .vid-chat-users {
     display: flex;
     gap: 0.5rem;

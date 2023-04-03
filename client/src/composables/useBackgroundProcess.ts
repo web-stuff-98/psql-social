@@ -301,12 +301,13 @@ export default function useBackgroundProcess({
           (du) => !disappeared.includes(du.id)
         ),
       ];
-      disappeared.forEach((id) =>
-        socketStore.send({
-          event_type: "STOP_WATCHING",
-          data: { entity: "USER", id },
-        } as StopWatching)
-      );
+      disappeared.forEach((id) => {
+        if (id)
+          socketStore.send({
+            event_type: "STOP_WATCHING",
+            data: { entity: "USER", id },
+          } as StopWatching);
+      });
       currentlyWatching.value = currentlyWatching.value.filter(
         (id) => !disappeared.includes(id)
       );
@@ -325,12 +326,13 @@ export default function useBackgroundProcess({
           (dr) => !disappeared.includes(dr.id)
         ),
       ];
-      disappeared.forEach((id) =>
-        socketStore.send({
-          event_type: "STOP_WATCHING",
-          data: { entity: "ROOM", id },
-        } as StopWatching)
-      );
+      disappeared.forEach((id) => {
+        if (id)
+          socketStore.send({
+            event_type: "STOP_WATCHING",
+            data: { entity: "ROOM", id },
+          } as StopWatching);
+      });
       currentlyWatching.value = currentlyWatching.value.filter(
         (id) => !disappeared.includes(id)
       );
