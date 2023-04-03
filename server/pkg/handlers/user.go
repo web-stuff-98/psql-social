@@ -17,7 +17,7 @@ import (
 )
 
 func (h handler) GetUser(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -70,7 +70,7 @@ func (h handler) GetUser(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) GetUserByName(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -119,7 +119,7 @@ func (h handler) GetUserByName(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) GetUserBio(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -163,7 +163,7 @@ func (h handler) GetUserBio(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) GetUserPfp(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)

@@ -148,11 +148,7 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <!-- Loading spinner -->
-    <v-icon
-      v-show="!userMediaStreamID"
-      class="spinner"
-      name="pr-spinner"
-    />
+    <v-icon v-show="!userMediaStreamID" class="spinner" name="pr-spinner" />
   </Teleport>
 </template>
 
@@ -164,8 +160,8 @@ onBeforeUnmount(() => {
 
   .pfp {
     box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.166);
-    width: 9vh;
-    height: 9vh;
+    width: 6vh;
+    height: 6vh;
     border: 3px solid var(--base);
     border-radius: 50%;
     display: flex;
@@ -239,11 +235,11 @@ onBeforeUnmount(() => {
       border-radius: var(--border-radius-md);
     }
     .main-video {
-      width: 40vw;
-      max-width: min(15rem, 40vh);
+      width: 30vw;
+      max-width: min(9rem, 33vh);
     }
     .main-video-smaller {
-      width: 10rem;
+      width: 7rem;
     }
     .main-video-expanded {
       width: 100%;

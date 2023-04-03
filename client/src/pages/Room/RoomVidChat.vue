@@ -238,9 +238,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--gap-md);
+  padding: 5.5rem 0;
   box-sizing: border-box;
-  min-height: 67.5%;
   .vid-chat-users {
     display: flex;
     gap: 0.5rem;

@@ -87,8 +87,8 @@ defineProps<{
     border-radius: 50%;
     padding: 0;
     margin: 0;
-    width: max(5vh, 2rem);
-    height: max(5vh, 2rem);
+    width: max(3.5vh, 1.66rem);
+    height: max(3.5vh, 1.66rem);
     display: flex;
     align-items: center;
     justify-content: center;
