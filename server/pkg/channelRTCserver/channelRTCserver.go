@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	socketServer "github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
@@ -151,10 +151,10 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 		}
 		if channelUsers, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
 			// Send back uids of other users in the channel WebRTC chat
-			users := []socketmessages.ChannelWebRTCOutUser{}
+			users := []socketMessages.ChannelWebRTCOutUser{}
 			for id, user := range channelUsers {
 				if id != data.Uid {
-					users = append(users, socketmessages.ChannelWebRTCOutUser{
+					users = append(users, socketMessages.ChannelWebRTCOutUser{
 						Uid:               id,
 						UserMediaStreamID: user.UserMediaStreamID,
 						UserMediaVid:      user.UserMediaVid,
@@ -181,7 +181,7 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 
 				ss.SendDataToSub <- socketServer.SubscriptionMessageData{
 					SubName: fmt.Sprintf("channel:%v", data.ChannelID),
-					Data: socketmessages.RoomChannelWebRTCUserJoinedLeft{
+					Data: socketMessages.RoomChannelWebRTCUserJoinedLeft{
 						ChannelID: data.ChannelID,
 						Uid:       data.Uid,
 					},
@@ -192,7 +192,7 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 			}
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid: data.Uid,
-				Data: socketmessages.ChannelWebRTCAllUsers{
+				Data: socketMessages.ChannelWebRTCAllUsers{
 					Users: users,
 				},
 				MessageType: "CHANNEL_WEBRTC_ALL_USERS",
@@ -207,8 +207,8 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 			// Send back empty list of uids, since the user is the only one in the channel
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				MessageType: "CHANNEL_WEBRTC_ALL_USERS",
-				Data: socketmessages.ChannelWebRTCAllUsers{
-					Users: []socketmessages.ChannelWebRTCOutUser{},
+				Data: socketMessages.ChannelWebRTCAllUsers{
+					Users: []socketMessages.ChannelWebRTCOutUser{},
 				},
 				Uid: data.Uid,
 			}
@@ -266,7 +266,7 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 
 				ss.SendDataToSub <- socketServer.SubscriptionMessageData{
 					SubName: fmt.Sprintf("channel:%v", data.ChannelID),
-					Data: socketmessages.RoomChannelWebRTCUserJoinedLeft{
+					Data: socketMessages.RoomChannelWebRTCUserJoinedLeft{
 						ChannelID: data.ChannelID,
 						Uid:       data.Uid,
 					},
@@ -275,7 +275,7 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 				ss.SendDataToUsers <- socketServer.UsersMessageData{
 					Uids:        uids,
 					MessageType: "CHANNEL_WEBRTC_LEFT",
-					Data: socketmessages.ChannelWebRTCUserLeft{
+					Data: socketMessages.ChannelWebRTCUserLeft{
 						Uid: data.Uid,
 					},
 				}
@@ -310,7 +310,7 @@ func sendWebRTCSignals(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 		ss.SendDataToUser <- socketServer.UserMessageData{
 			MessageType: "CHANNEL_WEBRTC_JOINED",
 			Uid:         data.ToUid,
-			Data: socketmessages.ChannelWebRTCUserJoined{
+			Data: socketMessages.ChannelWebRTCUserJoined{
 				CallerUID:         data.Uid,
 				Signal:            data.Signal,
 				UserMediaStreamID: data.UserMediaStreamID,
@@ -342,7 +342,7 @@ func returningWebRTCSignals(ss *socketServer.SocketServer, cRTCs *ChannelRTCServ
 		ss.SendDataToUser <- socketServer.UserMessageData{
 			MessageType: "CHANNEL_WEBRTC_RETURN_SIGNAL_OUT",
 			Uid:         data.CallerID,
-			Data: socketmessages.ChannelWebRTCReturnSignal{
+			Data: socketMessages.ChannelWebRTCReturnSignal{
 				Signal:            data.Signal,
 				Uid:               data.Uid,
 				UserMediaStreamID: data.UserMediaStreamID,
@@ -415,7 +415,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer) 
 			ss.SendDataToUsers <- socketServer.UsersMessageData{
 				MessageType: "UPDATE_MEDIA_OPTIONS_OUT",
 				Uids:        uids,
-				Data: socketmessages.UpdateMediaOptions{
+				Data: socketMessages.UpdateMediaOptions{
 					UserMediaVid:      data.UserMediaVid,
 					DisplayMediaVid:   data.DisplayMediaVid,
 					UserMediaStreamID: data.UserMediaStreamID,
@@ -490,7 +490,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 
 					ss.SendDataToUsers <- socketServer.UsersMessageData{
 						Uids: uids,
-						Data: socketmessages.RoomChannelWebRTCUserJoinedLeft{
+						Data: socketMessages.RoomChannelWebRTCUserJoinedLeft{
 							Uid:       uid,
 							ChannelID: channelId,
 						},
@@ -498,7 +498,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 					}
 					ss.SendDataToUsers <- socketServer.UsersMessageData{
 						Uids: uidsInWebRTC,
-						Data: socketmessages.ChannelWebRTCUserLeft{
+						Data: socketMessages.ChannelWebRTCUserLeft{
 							Uid: uid,
 						},
 					}

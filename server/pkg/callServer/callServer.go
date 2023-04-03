@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
@@ -136,7 +136,7 @@ func callPending(ss *socketServer.SocketServer, cs *CallServer) {
 				Uids := []string{called, data.Caller}
 				ss.SendDataToUsers <- socketServer.UsersMessageData{
 					Uids: Uids,
-					Data: socketmessages.CallResponse{
+					Data: socketMessages.CallResponse{
 						Called: data.Called,
 						Caller: data.Caller,
 						Accept: false,
@@ -151,7 +151,7 @@ func callPending(ss *socketServer.SocketServer, cs *CallServer) {
 		Uids := []string{data.Called, data.Caller}
 		ss.SendDataToUsers <- socketServer.UsersMessageData{
 			Uids: Uids,
-			Data: socketmessages.CallAcknowledge{
+			Data: socketMessages.CallAcknowledge{
 				Caller: data.Caller,
 				Called: data.Called,
 			},
@@ -172,7 +172,7 @@ func timeoutCall(ss *socketServer.SocketServer, cs *CallServer, uid string) {
 		uids := []string{callPending, uid}
 		ss.SendDataToUsers <- socketServer.UsersMessageData{
 			Uids: uids,
-			Data: socketmessages.CallResponse{
+			Data: socketMessages.CallResponse{
 				Caller: uid,
 				Called: callPending,
 				Accept: false,
@@ -218,7 +218,7 @@ func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
 				Uids := []string{callerCalled, data.Caller}
 				ss.SendDataToUsers <- socketServer.UsersMessageData{
 					Uids:        Uids,
-					Data:        socketmessages.CallLeft{},
+					Data:        socketMessages.CallLeft{},
 					MessageType: "CALL_LEFT",
 				}
 				delete(cs.CallsActive.data, data.Caller)
@@ -228,7 +228,7 @@ func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
 				Uids := []string{calledCalled, data.Called}
 				ss.SendDataToUsers <- socketServer.UsersMessageData{
 					Uids:        Uids,
-					Data:        socketmessages.CallLeft{},
+					Data:        socketMessages.CallLeft{},
 					MessageType: "CALL_LEFT",
 				}
 				delete(cs.CallsActive.data, data.Called)
@@ -239,7 +239,7 @@ func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
 					if data.Caller == called {
 						Uids := []string{called, caller}
 						ss.SendDataToUsers <- socketServer.UsersMessageData{
-							Data:        socketmessages.CallLeft{},
+							Data:        socketMessages.CallLeft{},
 							Uids:        Uids,
 							MessageType: "CALL_LEFT",
 						}
@@ -254,7 +254,7 @@ func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
 					if data.Called == called {
 						Uids := []string{caller, called}
 						ss.SendDataToUsers <- socketServer.UsersMessageData{
-							Data:        socketmessages.CallLeft{},
+							Data:        socketMessages.CallLeft{},
 							Uids:        Uids,
 							MessageType: "CALL_LEFT",
 						}
@@ -272,7 +272,7 @@ func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
 		Uids := []string{data.Called, data.Caller}
 		ss.SendDataToUsers <- socketServer.UsersMessageData{
 			Uids: Uids,
-			Data: socketmessages.CallResponse{
+			Data: socketMessages.CallResponse{
 				Caller: data.Caller,
 				Called: data.Called,
 				Accept: data.Accept,
@@ -306,7 +306,7 @@ func leaveCall(ss *socketServer.SocketServer, cs *CallServer) {
 		if called, ok := cs.CallsActive.data[uid]; ok {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				MessageType: "CALL_LEFT",
-				Data:        socketmessages.CallLeft{},
+				Data:        socketMessages.CallLeft{},
 				Uid:         called,
 			}
 			delete(cs.CallsActive.data, uid)
@@ -315,7 +315,7 @@ func leaveCall(ss *socketServer.SocketServer, cs *CallServer) {
 				if called == uid {
 					ss.SendDataToUser <- socketServer.UserMessageData{
 						MessageType: "CALL_LEFT",
-						Data:        socketmessages.CallLeft{},
+						Data:        socketMessages.CallLeft{},
 						Uid:         caller,
 					}
 					delete(cs.CallsActive.data, caller)
@@ -349,7 +349,7 @@ func sendCallRecipientOffer(ss *socketServer.SocketServer, cs *CallServer) {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid:         called,
 				MessageType: "CALL_WEBRTC_OFFER_FROM_INITIATOR",
-				Data: socketmessages.CallWebRTCOfferFromInitiator{
+				Data: socketMessages.CallWebRTCOfferFromInitiator{
 					Signal: data.Signal,
 
 					UserMediaStreamID: data.UserMediaStreamID,
@@ -385,7 +385,7 @@ func sendCallerAnswer(ss *socketServer.SocketServer, cs *CallServer) {
 				ss.SendDataToUser <- socketServer.UserMessageData{
 					Uid:         caller,
 					MessageType: "CALL_WEBRTC_ANSWER_FROM_RECIPIENT",
-					Data: socketmessages.CallWebRTCOfferAnswer{
+					Data: socketMessages.CallWebRTCOfferAnswer{
 						Signal: data.Signal,
 
 						UserMediaStreamID: data.UserMediaStreamID,
@@ -423,7 +423,7 @@ func callRecipientRequestReInitialization(ss *socketServer.SocketServer, cs *Cal
 				ss.SendDataToUser <- socketServer.UserMessageData{
 					Uid:         caller,
 					MessageType: "CALL_WEBRTC_REQUESTED_REINITIALIZATION",
-					Data:        socketmessages.CallWebRTCRequestedReInitialization{},
+					Data:        socketMessages.CallWebRTCRequestedReInitialization{},
 				}
 				break
 			}
@@ -454,7 +454,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cs *CallServer) {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				MessageType: "UPDATE_MEDIA_OPTIONS_OUT",
 				Uid:         recipient,
-				Data: socketmessages.UpdateMediaOptions{
+				Data: socketMessages.UpdateMediaOptions{
 					UserMediaVid:      data.UserMediaVid,
 					DisplayMediaVid:   data.DisplayMediaVid,
 					UserMediaStreamID: data.UserMediaStreamID,
@@ -466,7 +466,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cs *CallServer) {
 					ss.SendDataToUser <- socketServer.UserMessageData{
 						MessageType: "UPDATE_MEDIA_OPTIONS_OUT",
 						Uid:         caller,
-						Data: socketmessages.UpdateMediaOptions{
+						Data: socketMessages.UpdateMediaOptions{
 							UserMediaVid:      data.UserMediaVid,
 							DisplayMediaVid:   data.DisplayMediaVid,
 							UserMediaStreamID: data.UserMediaStreamID,
@@ -502,7 +502,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan str
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid:         callPending,
 				MessageType: "CALL_USER_RESPONSE",
-				Data: socketmessages.CallResponse{
+				Data: socketMessages.CallResponse{
 					Caller: uid,
 					Called: callPending,
 					Accept: false,
@@ -515,7 +515,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan str
 				ss.SendDataToUser <- socketServer.UserMessageData{
 					Uid:         caller,
 					MessageType: "CALL_USER_RESPONSE",
-					Data: socketmessages.CallResponse{
+					Data: socketMessages.CallResponse{
 						Caller: caller,
 						Called: uid,
 						Accept: false,
@@ -531,7 +531,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan str
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid:         called,
 				MessageType: "CALL_LEFT",
-				Data:        socketmessages.CallLeft{},
+				Data:        socketMessages.CallLeft{},
 			}
 			delete(cs.CallsActive.data, uid)
 		} else {
@@ -540,7 +540,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan str
 					ss.SendDataToUser <- socketServer.UserMessageData{
 						MessageType: "CALL_LEFT",
 						Uid:         caller,
-						Data:        socketmessages.CallLeft{},
+						Data:        socketMessages.CallLeft{},
 					}
 					delete(cs.CallsActive.data, caller)
 					break

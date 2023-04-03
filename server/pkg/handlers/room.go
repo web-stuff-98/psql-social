@@ -13,7 +13,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
-	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
 )
@@ -94,7 +94,7 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 
 	h.SocketServer.SendDataToUser <- socketServer.UserMessageData{
 		Uid: uid,
-		Data: socketmessages.ChangeEvent{
+		Data: socketMessages.ChangeEvent{
 			Type:   "INSERT",
 			Entity: "ROOM",
 			Data:   outChangeData,
@@ -181,7 +181,7 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("room:%v", room_id),
-		Data: socketmessages.ChangeEvent{
+		Data: socketMessages.ChangeEvent{
 			Type:   "UPDATE",
 			Entity: "ROOM",
 			Data:   outChangeData,
@@ -322,7 +322,7 @@ func (h handler) UpdateRoomChannel(ctx *fasthttp.RequestCtx) {
 	}
 	h.SocketServer.SendDataToSubs <- socketServer.SubscriptionsMessageData{
 		SubNames: channel_sub_names,
-		Data: socketmessages.ChangeEvent{
+		Data: socketMessages.ChangeEvent{
 			Type:   "UPDATE",
 			Entity: "CHANNEL",
 			Data:   changeData,
@@ -434,7 +434,7 @@ func (h handler) DeleteRoomChannel(ctx *fasthttp.RequestCtx) {
 	changeData["ID"] = channel_id
 	h.SocketServer.SendDataToSubs <- socketServer.SubscriptionsMessageData{
 		SubNames: channel_sub_names,
-		Data: socketmessages.ChangeEvent{
+		Data: socketMessages.ChangeEvent{
 			Type:   "DELETE",
 			Entity: "CHANNEL",
 			Data:   changeData,
@@ -565,7 +565,7 @@ func (h handler) CreateRoomChannel(ctx *fasthttp.RequestCtx) {
 	changeData["main"] = body.Main
 	h.SocketServer.SendDataToSubs <- socketServer.SubscriptionsMessageData{
 		SubNames: channel_sub_names,
-		Data: socketmessages.ChangeEvent{
+		Data: socketMessages.ChangeEvent{
 			Type:   "INSERT",
 			Entity: "CHANNEL",
 			Data:   changeData,
@@ -820,7 +820,7 @@ func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
 
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("room:%v", room_id),
-		Data: socketmessages.ChangeEvent{
+		Data: socketMessages.ChangeEvent{
 			Data:   outChangeData,
 			Entity: "ROOM",
 			Type:   "DELETE",

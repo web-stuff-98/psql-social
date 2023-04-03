@@ -19,7 +19,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
-	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
 	"golang.org/x/crypto/bcrypt"
@@ -231,7 +231,7 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 		msgData["ID"] = uid
 		h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 			SubName: fmt.Sprintf("bio:%v", uid),
-			Data: socketmessages.ChangeEvent{
+			Data: socketMessages.ChangeEvent{
 				Type:   "DELETE",
 				Entity: "BIO",
 				Data:   msgData,
@@ -246,7 +246,7 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 		msgData["content"] = content
 		h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 			SubName: fmt.Sprintf("bio:%v", uid),
-			Data: socketmessages.ChangeEvent{
+			Data: socketMessages.ChangeEvent{
 				Type:   "UPDATE",
 				Entity: "BIO",
 				Data:   msgData,
@@ -371,7 +371,7 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 	msgData["ID"] = uid
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("user:%v", uid),
-		Data: socketmessages.ChangeEvent{
+		Data: socketMessages.ChangeEvent{
 			Type:   "UPDATE_IMAGE",
 			Entity: "USER",
 			Data:   msgData,

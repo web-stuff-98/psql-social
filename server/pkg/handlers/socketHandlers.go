@@ -11,11 +11,11 @@ import (
 	"github.com/fasthttp/websocket"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
-	callserver "github.com/web-stuff-98/psql-social/pkg/callServer"
+	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
 	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
-	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
-	socketvalidation "github.com/web-stuff-98/psql-social/pkg/socketValidation"
+	socketValidation "github.com/web-stuff-98/psql-social/pkg/socketValidation"
 )
 
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {
@@ -120,7 +120,7 @@ func UnmarshalMap(m map[string]interface{}, s interface{}) error {
 }
 
 func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.JoinLeaveRoomData{}
+	data := &socketValidation.JoinLeaveRoomData{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -205,7 +205,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 }
 
 func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.JoinLeaveRoomData{}
+	data := &socketValidation.JoinLeaveRoomData{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -262,7 +262,7 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 }
 
 func joinChannel(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.JoinLeaveChannel{}
+	data := &socketValidation.JoinLeaveChannel{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -306,7 +306,7 @@ func joinChannel(inData map[string]interface{}, h handler, uid string, c *websoc
 }
 
 func leaveChannel(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.JoinLeaveChannel{}
+	data := &socketValidation.JoinLeaveChannel{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -321,7 +321,7 @@ func leaveChannel(inData map[string]interface{}, h handler, uid string, c *webso
 }
 
 func roomMessage(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.RoomMessage{}
+	data := &socketValidation.RoomMessage{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -387,7 +387,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("channel:%v", data.ChannelID),
-		Data: socketmessages.RoomMessage{
+		Data: socketMessages.RoomMessage{
 			ID:        id,
 			Content:   content,
 			CreatedAt: time.Now().Format(time.RFC3339),
@@ -400,7 +400,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 }
 
 func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.RoomMessageUpdate{}
+	data := &socketValidation.RoomMessageUpdate{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -446,7 +446,7 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		MessageType: "ROOM_MESSAGE_UPDATE",
-		Data: socketmessages.RoomMessageUpdate{
+		Data: socketMessages.RoomMessageUpdate{
 			ID:      data.MsgID,
 			Content: content,
 		},
@@ -457,7 +457,7 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 }
 
 func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.RoomMessageDelete{}
+	data := &socketValidation.RoomMessageDelete{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -501,7 +501,7 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		MessageType: "ROOM_MESSAGE_DELETE",
-		Data: socketmessages.RoomMessageDelete{
+		Data: socketMessages.RoomMessageDelete{
 			ID: data.MsgID,
 		},
 		SubName: channelName,
@@ -511,7 +511,7 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 }
 
 func directMessage(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.DirectMessage{}
+	data := &socketValidation.DirectMessage{}
 	if err := UnmarshalMap(inData, data); err != nil {
 		return err
 	}
@@ -552,7 +552,7 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
-		Data: socketmessages.DirectMessage{
+		Data: socketMessages.DirectMessage{
 			ID:          id,
 			Content:     content,
 			CreatedAt:   time.Now().Format(time.RFC3339),
@@ -566,7 +566,7 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 }
 
 func directMessageUpdate(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.DirectMessageUpdate{}
+	data := &socketValidation.DirectMessageUpdate{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -604,7 +604,7 @@ func directMessageUpdate(inData map[string]interface{}, h handler, uid string, c
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, recipient_id},
-		Data: socketmessages.DirectMessageUpdate{
+		Data: socketMessages.DirectMessageUpdate{
 			ID:          data.MsgID,
 			Content:     content,
 			AuthorID:    uid,
@@ -617,7 +617,7 @@ func directMessageUpdate(inData map[string]interface{}, h handler, uid string, c
 }
 
 func directMessageDelete(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.DirectMessageDelete{}
+	data := &socketValidation.DirectMessageDelete{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -653,7 +653,7 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, recipient_id},
-		Data: socketmessages.DirectMessageDelete{
+		Data: socketMessages.DirectMessageDelete{
 			ID:          data.MsgID,
 			AuthorID:    uid,
 			RecipientID: recipient_id,
@@ -665,7 +665,7 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 }
 
 func friendRequest(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.FriendRequest{}
+	data := &socketValidation.FriendRequest{}
 	if err := UnmarshalMap(inData, data); err != nil {
 		return err
 	}
@@ -738,7 +738,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
-		Data: socketmessages.FriendRequest{
+		Data: socketMessages.FriendRequest{
 			Friender:  uid,
 			Friended:  data.Uid,
 			CreatedAt: time.Now().Format(time.RFC3339),
@@ -750,7 +750,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 }
 
 func friendRequestResponse(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.FriendRequestResponse{}
+	data := &socketValidation.FriendRequestResponse{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -837,7 +837,7 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids:        []string{uid, data.Friender},
 		MessageType: "FRIEND_REQUEST_RESPONSE",
-		Data: socketmessages.FriendRequestResponse{
+		Data: socketMessages.FriendRequestResponse{
 			Accepted: data.Accepted,
 			Friended: uid,
 			Friender: data.Friender,
@@ -848,7 +848,7 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 }
 
 func invitation(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.Invitation{}
+	data := &socketValidation.Invitation{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -922,7 +922,7 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
-		Data: socketmessages.Invitation{
+		Data: socketMessages.Invitation{
 			Inviter:   uid,
 			Invited:   data.Uid,
 			RoomID:    data.RoomID,
@@ -935,7 +935,7 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 }
 
 func invitationResponse(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.InvitationResponse{}
+	data := &socketValidation.InvitationResponse{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1022,7 +1022,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids:        []string{uid, data.Inviter},
 		MessageType: "INVITATION_RESPONSE",
-		Data: socketmessages.InvitationResponse{
+		Data: socketMessages.InvitationResponse{
 			Accepted: data.Accepted,
 			Invited:  uid,
 			Inviter:  data.Inviter,
@@ -1034,7 +1034,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 }
 
 func ban(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.BanUnban{}
+	data := &socketValidation.BanUnban{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1108,7 +1108,7 @@ func ban(inData map[string]interface{}, h handler, uid string, c *websocket.Conn
 
 		h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 			SubName: fmt.Sprintf("channel:%v", id),
-			Data: socketmessages.Ban{
+			Data: socketMessages.Ban{
 				UserID: data.Uid,
 				RoomID: data.RoomID,
 			},
@@ -1120,7 +1120,7 @@ func ban(inData map[string]interface{}, h handler, uid string, c *websocket.Conn
 }
 
 func unban(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.BanUnban{}
+	data := &socketValidation.BanUnban{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1171,7 +1171,7 @@ func unban(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 }
 
 func block(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.BlockUnBlock{}
+	data := &socketValidation.BlockUnBlock{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1230,7 +1230,7 @@ func block(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
-		Data: socketmessages.Block{
+		Data: socketMessages.Block{
 			Blocker: uid,
 			Blocked: data.Uid,
 		},
@@ -1241,7 +1241,7 @@ func block(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 }
 
 func unblock(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.BlockUnBlock{}
+	data := &socketValidation.BlockUnBlock{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1284,7 +1284,7 @@ func unblock(inData map[string]interface{}, h handler, uid string, c *websocket.
 }
 
 func callUser(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.CallUser{}
+	data := &socketValidation.CallUser{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1329,7 +1329,7 @@ func callUser(inData map[string]interface{}, h handler, uid string, c *websocket
 
 	log.Println("Sending to pending calls chan")
 
-	h.CallServer.CallsPendingChan <- callserver.InCall{
+	h.CallServer.CallsPendingChan <- callServer.InCall{
 		Caller: uid,
 		Called: data.Uid,
 	}
@@ -1340,7 +1340,7 @@ func callUser(inData map[string]interface{}, h handler, uid string, c *websocket
 }
 
 func callUserResponse(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.CallResponse{}
+	data := &socketValidation.CallResponse{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1361,7 +1361,7 @@ func callUserResponse(inData map[string]interface{}, h handler, uid string, c *w
 
 	log.Println("Sending to calls response chan")
 
-	h.CallServer.ResponseToCallChan <- callserver.InCallResponse{
+	h.CallServer.ResponseToCallChan <- callServer.InCallResponse{
 		Caller: data.Caller,
 		Called: data.Called,
 		Accept: data.Accept,
@@ -1373,7 +1373,7 @@ func callUserResponse(inData map[string]interface{}, h handler, uid string, c *w
 }
 
 func callLeave(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.CallLeave{}
+	data := &socketValidation.CallLeave{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1385,13 +1385,13 @@ func callLeave(inData map[string]interface{}, h handler, uid string, c *websocke
 }
 
 func callOffer(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.CallOfferAndAnswer{}
+	data := &socketValidation.CallOfferAndAnswer{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
 	}
 
-	h.CallServer.SendCallRecipientOffer <- callserver.CallerSignal{
+	h.CallServer.SendCallRecipientOffer <- callServer.CallerSignal{
 		Caller:            uid,
 		Signal:            data.Signal,
 		UserMediaStreamID: data.UserMediaStreamID,
@@ -1403,13 +1403,13 @@ func callOffer(inData map[string]interface{}, h handler, uid string, c *websocke
 }
 
 func callAnswer(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.CallOfferAndAnswer{}
+	data := &socketValidation.CallOfferAndAnswer{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
 	}
 
-	h.CallServer.SendCalledAnswer <- callserver.CalledSignal{
+	h.CallServer.SendCalledAnswer <- callServer.CalledSignal{
 		Called:            uid,
 		Signal:            data.Signal,
 		UserMediaStreamID: data.UserMediaStreamID,
@@ -1421,13 +1421,13 @@ func callAnswer(inData map[string]interface{}, h handler, uid string, c *websock
 }
 
 func callUpdateMediaOptions(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.CallUpdateMediaOptions{}
+	data := &socketValidation.CallUpdateMediaOptions{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
 	}
 
-	h.CallServer.UpdateMediaOptions <- callserver.UpdateMediaOptions{
+	h.CallServer.UpdateMediaOptions <- callServer.UpdateMediaOptions{
 		Uid:               uid,
 		UserMediaStreamID: data.UserMediaStreamID,
 		UserMediaVid:      data.UserMediaVid,
@@ -1438,7 +1438,7 @@ func callUpdateMediaOptions(inData map[string]interface{}, h handler, uid string
 }
 
 func callRequestReinitialization(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.CallRequestReinitialization{}
+	data := &socketValidation.CallRequestReinitialization{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1450,7 +1450,7 @@ func callRequestReinitialization(inData map[string]interface{}, h handler, uid s
 }
 
 func channelWebRTCJoin(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.ChannelWebRTCJoin{}
+	data := &socketValidation.ChannelWebRTCJoin{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1468,7 +1468,7 @@ func channelWebRTCJoin(inData map[string]interface{}, h handler, uid string, c *
 }
 
 func channelWebRTCLeave(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.ChannelWebRTCLeave{}
+	data := &socketValidation.ChannelWebRTCLeave{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1483,7 +1483,7 @@ func channelWebRTCLeave(inData map[string]interface{}, h handler, uid string, c 
 }
 
 func channelWebRTCSendingSignal(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.ChannelWebRTCSendingSignal{}
+	data := &socketValidation.ChannelWebRTCSendingSignal{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1502,7 +1502,7 @@ func channelWebRTCSendingSignal(inData map[string]interface{}, h handler, uid st
 }
 
 func channelWebRTCReturningSignal(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.ChannelWebRTCReturningSignal{}
+	data := &socketValidation.ChannelWebRTCReturningSignal{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1521,7 +1521,7 @@ func channelWebRTCReturningSignal(inData map[string]interface{}, h handler, uid 
 }
 
 func channelWebRTCUpdateMediaOptions(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.ChannelUpdateMediaOptions{}
+	data := &socketValidation.ChannelUpdateMediaOptions{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1539,7 +1539,7 @@ func channelWebRTCUpdateMediaOptions(inData map[string]interface{}, h handler, u
 }
 
 func startWatching(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.StartStopWatching{}
+	data := &socketValidation.StartStopWatching{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
@@ -1567,7 +1567,7 @@ func startWatching(inData map[string]interface{}, h handler, uid string, c *webs
 }
 
 func stopWatching(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
-	data := &socketvalidation.StartStopWatching{}
+	data := &socketValidation.StartStopWatching{}
 	var err error
 	if err = UnmarshalMap(inData, data); err != nil {
 		return err
