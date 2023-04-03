@@ -145,7 +145,7 @@ type ChannelWebRTCUserJoined struct {
 	UserMediaStreamID string `json:"um_stream_id"`
 	UserMediaVid      bool   `json:"um_vid"`
 	DisplayMediaVid   bool   `json:"dm_vid"`
-	CallerUID         string `json:"caller_id"`
+	CallerID          string `json:"caller_id"`
 }
 
 // TYPE: CHANNEL_WEBRTC_LEFT

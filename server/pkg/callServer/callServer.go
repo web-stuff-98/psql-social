@@ -416,10 +416,10 @@ func callRecipientRequestReInitialization(ss *socketServer.SocketServer, cs *Cal
 			}
 		}()
 
-		callerUid := <-cs.CallRecipientRequestedReInitialization
+		callerId := <-cs.CallRecipientRequestedReInitialization
 		cs.CallsActive.mutex.RLock()
-		for caller, oi2 := range cs.CallsActive.data {
-			if oi2 == callerUid {
+		for caller, uid := range cs.CallsActive.data {
+			if uid == callerId {
 				ss.SendDataToUser <- socketServer.UserMessageData{
 					Uid:         caller,
 					MessageType: "CALL_WEBRTC_REQUESTED_REINITIALIZATION",

@@ -141,7 +141,7 @@ type ChannelWebRTCReturningSignal struct {
 	UserMediaStreamID string `json:"um_stream_id" validation:"lte=45"`
 	UserMediaVid      bool   `json:"um_vid"`
 	DisplayMediaVid   bool   `json:"dm_vid"`
-	CallerUID         string `json:"caller_id"`
+	CallerID          string `json:"caller_id"`
 }
 
 // CHANNEL_WEBRTC_JOIN

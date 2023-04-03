@@ -311,7 +311,7 @@ func sendWebRTCSignals(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 			MessageType: "CHANNEL_WEBRTC_JOINED",
 			Uid:         data.ToUid,
 			Data: socketMessages.ChannelWebRTCUserJoined{
-				CallerUID:         data.Uid,
+				CallerID:          data.Uid,
 				Signal:            data.Signal,
 				UserMediaStreamID: data.UserMediaStreamID,
 				UserMediaVid:      data.UserMediaVid,

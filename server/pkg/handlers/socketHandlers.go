@@ -1510,7 +1510,7 @@ func channelWebRTCReturningSignal(inData map[string]interface{}, h handler, uid 
 
 	h.ChannelRTCServer.ReturnSignalRTC <- channelRTCserver.ReturnSignalRTC{
 		Signal:            data.Signal,
-		CallerID:          data.CallerUID,
+		CallerID:          data.CallerID,
 		Uid:               uid,
 		UserMediaStreamID: data.UserMediaStreamID,
 		UserMediaVid:      data.UserMediaVid,
