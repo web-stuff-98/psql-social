@@ -238,7 +238,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--padding);
+  padding: var(--gap-md);
   box-sizing: border-box;
   .vid-chat-users {
     display: flex;

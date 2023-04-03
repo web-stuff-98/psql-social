@@ -91,6 +91,19 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 	case "CALL_UPDATE_MEDIA_OPTIONS":
 		err = callUpdateMediaOptions(data, h, uid, c)
 
+		/*
+			case "CHANNEL_WEBRTC_JOIN":
+				err = channelWebRTCJoin(data, conn, uid, cRTCs, colls)
+			case "CHANNEL_WEBRTC_LEAVE":
+				err = channelWebRTCLeave(data, conn, uid, cRTCs)
+			case "CHANNEL_WEBRTC_SENDING_SIGNAL":
+				err = channelWebRTCSendingSignal(data, conn, uid, cRTCs)
+			case "CHANNEL_WEBRTC_RETURNING_SIGNAL":
+				err = channelWebRTCReturningSignal(data, conn, uid, cRTCs)
+			case "CHANNEL_WEBRTC_UPDATE_MEDIA_OPTIONS":
+				err = channelWebRTCUpdateMediaOptions(data, conn, uid, cRTCs)
+		*/
+
 	default:
 		return fmt.Errorf("Unrecognized event type")
 	}

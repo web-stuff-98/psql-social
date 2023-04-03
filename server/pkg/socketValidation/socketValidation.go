@@ -117,3 +117,29 @@ type CallUpdateMediaOptions struct {
 	UserMediaVid      bool   `json:"um_vid"`
 	DisplayMediaVid   bool   `json:"dm_vid"`
 }
+
+// CHANNEL_WEBRTC_SENDING_SIGNAL
+type ChannelWebRTCSendingSignal struct {
+	Signal            string `json:"signal" validation:"required,lte=4000"`
+	UserMediaStreamID string `json:"um_stream_id" validation:"lte=45"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+	Uid               string `json:"to_uid"`
+}
+
+// CHANNEL_WEBRTC_RETURNING_SIGNAL
+type ChannelWebRTCReturningSignal struct {
+	Signal            string `json:"signal" validation:"required,lte=4000"`
+	UserMediaStreamID string `json:"um_stream_id" validation:"lte=45"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+	CallerUID         string `json:"caller_id"`
+}
+
+// CHANNEL_WEBRTC_JOIN
+type ChannelWebRTCJoin struct {
+	ChannelID         string `json:"channel_id"`
+	UserMediaStreamID string `json:"um_stream_id" validation:"lte=45"`
+	UserMediaVid      bool   `json:"um_vid"`
+	DisplayMediaVid   bool   `json:"dm_vid"`
+}

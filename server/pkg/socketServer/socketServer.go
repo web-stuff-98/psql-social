@@ -170,7 +170,7 @@ type SubscriptionsMessageDataExcludeByIDs struct {
 	ExcludeUids map[string]struct{}
 }
 
-func Init(csdc chan string) *SocketServer {
+func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 	ss := &SocketServer{
 		ConnectionsByWs: ConnectionsByWs{
 			data: map[*websocket.Conn]string{},
@@ -210,14 +210,14 @@ func Init(csdc chan string) *SocketServer {
 		},
 		GetSubscriptionUids: make(chan GetSubscriptionUids),
 	}
-	go runServer(ss, csdc)
+	go runServer(ss, csdc, cRTCsdc)
 	log.Println("Socket server initialized")
 	return ss
 }
 
-func runServer(ss *SocketServer, csdc chan string) {
+func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	go connection(ss)
-	go disconnect(ss, csdc)
+	go disconnect(ss, csdc, cRTCsdc)
 	go sendUserData(ss)
 	go sendConnData(ss)
 	go sendUsersData(ss)
@@ -275,7 +275,7 @@ func connection(ss *SocketServer) {
 	}
 }
 
-func disconnect(ss *SocketServer, csdc chan string) {
+func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	var failCount uint8
 	for {
 		defer func() {
@@ -283,7 +283,7 @@ func disconnect(ss *SocketServer, csdc chan string) {
 			if r != nil {
 				log.Println("Recovered from panic in ws disconnect loop:", r)
 				if failCount < 10 {
-					go disconnect(ss, csdc)
+					go disconnect(ss, csdc, cRTCsdc)
 				} else {
 					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
 				}
@@ -292,8 +292,12 @@ func disconnect(ss *SocketServer, csdc chan string) {
 		}()
 
 		conn := <-ss.UnregisterConn
+
 		ss.ConnectionsByWs.mutex.Lock()
 		if uid, ok := ss.ConnectionsByWs.data[conn]; ok {
+			csdc <- uid
+			cRTCsdc <- uid
+
 			ss.ConnectionsByID.mutex.Lock()
 			delete(ss.ConnectionsByID.data, uid)
 			ss.ConnectionsByID.mutex.Unlock()

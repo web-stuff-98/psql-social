@@ -454,7 +454,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cs *CallServer) {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				MessageType: "UPDATE_MEDIA_OPTIONS_OUT",
 				Uid:         recipient,
-				Data: socketmessages.CallUpdateMediaOptions{
+				Data: socketmessages.UpdateMediaOptions{
 					UserMediaVid:      data.UserMediaVid,
 					DisplayMediaVid:   data.DisplayMediaVid,
 					UserMediaStreamID: data.UserMediaStreamID,
@@ -466,7 +466,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cs *CallServer) {
 					ss.SendDataToUser <- socketServer.UserMessageData{
 						MessageType: "UPDATE_MEDIA_OPTIONS_OUT",
 						Uid:         caller,
-						Data: socketmessages.CallUpdateMediaOptions{
+						Data: socketmessages.UpdateMediaOptions{
 							UserMediaVid:      data.UserMediaVid,
 							DisplayMediaVid:   data.DisplayMediaVid,
 							UserMediaStreamID: data.UserMediaStreamID,

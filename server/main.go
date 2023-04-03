@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/valyala/fasthttp"
 	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
+	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
 	"github.com/web-stuff-98/psql-social/pkg/db"
 	"github.com/web-stuff-98/psql-social/pkg/handlers"
 	rdb "github.com/web-stuff-98/psql-social/pkg/redis"
@@ -24,7 +25,9 @@ func main() {
 	db := db.Init()
 	rdb := rdb.Init()
 	csdc := make(chan string)
-	ss := socketServer.Init(csdc)
+	cRTCsdc := make(chan string)
+	ss := socketServer.Init(csdc, cRTCsdc)
+	cRTCs := channelRTCserver.Init(ss, db, cRTCsdc)
 	cs := callServer.Init(ss, csdc)
 
 	defer db.Close()
