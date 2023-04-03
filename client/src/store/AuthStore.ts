@@ -17,7 +17,6 @@ const useAuthStore = defineStore("auth", {
         data: { username, password, policy },
         responseType: "text",
       });
-      console.log(uid);
       this.$state.uid = uid;
     },
     async register(username: string, password: string, policy: boolean) {
@@ -26,7 +25,6 @@ const useAuthStore = defineStore("auth", {
         data: { username, password, policy },
         responseType: "text",
       });
-      console.log(uid);
       this.$state.uid = uid;
     },
     async logout() {

@@ -37,6 +37,11 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	if !body.Policy {
+		ResponseMessage(ctx, "You must agree to the policy", fasthttp.StatusBadRequest)
+		return
+	}
+
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
@@ -91,6 +96,11 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	}
 	if err := v.Struct(body); err != nil {
 		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
+		return
+	}
+
+	if !body.Policy {
+		ResponseMessage(ctx, "You must agree to the policy", fasthttp.StatusBadRequest)
 		return
 	}
 
