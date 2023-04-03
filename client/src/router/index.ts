@@ -1,6 +1,6 @@
-import Home from "../pages/Home.vue";
-import Call from "../pages/Call.vue";
-import Room from "../pages/Room/Room.vue";
+import Home from "../components/pages/Home.vue";
+import Call from "../components/pages/Call.vue";
+import Room from "../components/pages/Room/Room.vue";
 import { createRouter, createWebHashHistory } from "vue-router";
 
 const router = createRouter({

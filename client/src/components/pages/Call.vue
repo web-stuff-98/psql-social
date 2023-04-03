@@ -1,26 +1,26 @@
 <script lang="ts" setup>
 import { toRef, onMounted, onBeforeUnmount, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { mediaOptions } from "../store/DeviceSettingsStore";
+import { mediaOptions } from "../../store/DeviceSettingsStore";
 import {
   isCallLeft,
   isCallOfferFromInitiator,
   isCallAnswerFromRecipient,
   isCallRequestedReInitialization,
   isUpdateMediaOptions,
-} from "../socketHandling/InterpretEvent";
-import useSocketStore from "../store/SocketStore";
-import { useChatMedia } from "../composables/useChatMedia";
-import VidChatUser from "../components/shared/vidChat/VidChatUser.vue";
-import VidChatControls from "../components/shared/vidChat/VidChatControls.vue";
+} from "../../socketHandling/InterpretEvent";
+import useSocketStore from "../../store/SocketStore";
+import { useChatMedia } from "../../composables/useChatMedia";
+import VidChatUser from "../../components/shared/vidChat/VidChatUser.vue";
+import VidChatControls from "../../components/shared/vidChat/VidChatControls.vue";
 import {
   CallWebRTCRequestReInitialization,
   CallWebRTCOffer,
   CallWebRTCAnswer,
   CallLeave,
-} from "../socketHandling/OutEvents";
+} from "../../socketHandling/OutEvents";
 import Peer from "simple-peer";
-import useAuthStore from "../store/AuthStore";
+import useAuthStore from "../../store/AuthStore";
 
 const socketStore = useSocketStore();
 const authStore = useAuthStore();

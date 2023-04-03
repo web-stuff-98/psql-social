@@ -1,26 +1,26 @@
 <script lang="ts" setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import { useChatMedia } from "../../composables/useChatMedia";
-import { mediaOptions } from "../../store/DeviceSettingsStore";
-import VidChatControls from "../../components/shared/vidChat/VidChatControls.vue";
-import VidChatUser from "../../components/shared/vidChat/VidChatUser.vue";
-import useRoomChannelStore from "../../store/RoomChannelStore";
-import useAuthStore from "../../store/AuthStore";
-import useSocketStore from "../../store/SocketStore";
+import { useChatMedia } from "../../../composables/useChatMedia";
+import { mediaOptions } from "../../../store/DeviceSettingsStore";
+import VidChatControls from "../../../components/shared/vidChat/VidChatControls.vue";
+import VidChatUser from "../../../components/shared/vidChat/VidChatUser.vue";
+import useRoomChannelStore from "../../../store/RoomChannelStore";
+import useAuthStore from "../../../store/AuthStore";
+import useSocketStore from "../../../store/SocketStore";
 import Peer from "simple-peer";
 import {
   ChannelWebRTCLeave,
   ChannelWebRTCSendingSignal,
   ChannelWebRTCReturningSignal,
   ChannelWebRTCJoin,
-} from "../../socketHandling/OutEvents";
+} from "../../../socketHandling/OutEvents";
 import {
   isChannelWebRTCAllUsers,
   isChannelWebRTCReceivingReturnedSignal,
   isChannelWebRTCUserJoined,
   isChannelWebRTCUserLeft,
   isUpdateMediaOptions,
-} from "../../socketHandling/InterpretEvent";
+} from "../../../socketHandling/InterpretEvent";
 
 defineProps<{
   exitButtonClicked: Function;

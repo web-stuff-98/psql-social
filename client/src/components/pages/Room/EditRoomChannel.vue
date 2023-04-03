@@ -1,14 +1,14 @@
 <script lang="ts" setup>
 import { toRefs, ref } from "vue";
-import ModalCloseButton from "../../components/shared/ModalCloseButton.vue";
-import Modal from "../../components/modal/Modal.vue";
-import useRoomChannelStore from "../../store/RoomChannelStore";
-import { validateChannelName } from "../../validators/validators";
-import ErrorMessage from "../../components/shared/ErrorMessage.vue";
+import ModalCloseButton from "../../../components/shared/ModalCloseButton.vue";
+import Modal from "../../../components/modal/Modal.vue";
+import useRoomChannelStore from "../../../store/RoomChannelStore";
+import { validateChannelName } from "../../../validators/validators";
+import ErrorMessage from "../../../components/shared/ErrorMessage.vue";
 import { Field, Form } from "vee-validate";
-import CustomCheckbox from "../../components/shared/CustomCheckbox.vue";
-import { IResMsg } from "../../interfaces/GeneralInterfaces";
-import { updateRoomChannel } from "../../services/room";
+import CustomCheckbox from "../../../components/shared/CustomCheckbox.vue";
+import { IResMsg } from "../../../interfaces/GeneralInterfaces";
+import { updateRoomChannel } from "../../../services/room";
 
 const roomChannelStore = useRoomChannelStore();
 

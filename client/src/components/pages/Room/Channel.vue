@@ -1,7 +1,6 @@
 <script lang="ts" setup>
-import { IRoomChannel } from "../../interfaces/GeneralInterfaces";
-import { deleteRoomChannel } from "../../services/room";
-import useRoomChannelStore from "../../store/RoomChannelStore";
+import { IRoomChannel } from "../../../interfaces/GeneralInterfaces";
+import useRoomChannelStore from "../../../store/RoomChannelStore";
 
 const roomChannelStore = useRoomChannelStore();
 

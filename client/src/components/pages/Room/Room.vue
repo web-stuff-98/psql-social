@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { IResMsg, IRoomChannel } from "../../interfaces/GeneralInterfaces";
+import { IResMsg, IRoomChannel } from "../../../interfaces/GeneralInterfaces";
 import { onBeforeUnmount, onMounted, toRef, ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import {
@@ -8,26 +8,26 @@ import {
   RoomMessage as RoomMessageEvent,
   JoinChannel,
   LeaveChannel,
-} from "../../socketHandling/OutEvents";
-import { deleteRoomChannel, getRoomChannel } from "../../services/room";
+} from "../../../socketHandling/OutEvents";
+import { deleteRoomChannel, getRoomChannel } from "../../../services/room";
 import {
   isBan,
   isChangeEvent,
   isRoomMsg,
   isRoomMsgDelete,
   isRoomMsgUpdate,
-} from "../../socketHandling/InterpretEvent";
-import { IRoomMessage } from "../../interfaces/GeneralInterfaces";
-import MessageForm from "../../components/shared/MessageForm.vue";
-import useSocketStore from "../../store/SocketStore";
-import useRoomStore from "../../store/RoomStore";
-import useUserStore from "../../store/UserStore";
-import useRoomChannelStore from "../../store/RoomChannelStore";
-import ResMsg from "../../components/shared/ResMsg.vue";
-import RoomMessage from "../../components/shared/Message.vue";
+} from "../../../socketHandling/InterpretEvent";
+import { IRoomMessage } from "../../../interfaces/GeneralInterfaces";
+import MessageForm from "../../../components/shared/MessageForm.vue";
+import useSocketStore from "../../../store/SocketStore";
+import useRoomStore from "../../../store/RoomStore";
+import useUserStore from "../../../store/UserStore";
+import useRoomChannelStore from "../../../store/RoomChannelStore";
+import ResMsg from "../../../components/shared/ResMsg.vue";
+import RoomMessage from "../../../components/shared/Message.vue";
 import Channel from "./Channel.vue";
-import useAuthStore from "../../store/AuthStore";
-import router from "../../router";
+import useAuthStore from "../../../store/AuthStore";
+import router from "../../../router";
 import EditRoomChannel from "./EditRoomChannel.vue";
 import CreateRoomChannel from "./CreateRoomChannel.vue";
 import RoomVidChat from "./RoomVidChat.vue";
