@@ -155,6 +155,7 @@ function handleSubmitEdit(values: any) {
     display: flex;
     align-items: center;
     width: 100%;
+    gap:var(--gap-md);
     .content {
       font-size: var(--xs);
       flex-grow: 1;
