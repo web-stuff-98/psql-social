@@ -102,6 +102,7 @@ type CallLeft = { data: {} };
 type CallWebRTCRequestedReInitialization = { data: {} };
 type CallUpdateMediaOptions = {
   data: {
+    uid: string;
     um_stream_id: string;
     um_vid: boolean;
     dm_vid: boolean;
@@ -134,6 +135,37 @@ type CallResponse = {
     caller: string;
     called: string;
     accept: boolean;
+  };
+};
+
+type ChannelWebRTCAllUsers = {
+  data: {
+    users: {
+      uid: string;
+      um_stream_id: string;
+      um_vid: boolean;
+      dm_vid: boolean;
+    }[];
+  };
+};
+type ChannelWebRTCReceivingReturnedSignalData = {
+  data: {
+    uid: string;
+    signal: string;
+  };
+};
+type ChannelWebRTCUserJoined = {
+  data: {
+    signal: string;
+    um_stream_id: string;
+    um_vid: boolean;
+    dm_vid: boolean;
+    caller_id: string;
+  };
+};
+type ChannelWebRTCUserLeft = {
+  data: {
+    uid: string;
   };
 };
 
@@ -212,6 +244,27 @@ export function isCallAcknowledge(object: any): object is CallAcknowledge {
 }
 export function isCallResponse(object: any): object is CallResponse {
   return object.event_type === "CALL_USER_RESPONSE";
+}
+
+export function isChannelWebRTCAllUsers(
+  object: any
+): object is ChannelWebRTCAllUsers {
+  return object.event_type === "CHANNEL_WEBRTC_ALL_USERS";
+}
+export function isChannelWebRTCReceivingReturnedSignal(
+  object: any
+): object is ChannelWebRTCReceivingReturnedSignalData {
+  return object.event_type === "CHANNEL_WEBRTC_RETURN_SIGNAL_OUT";
+}
+export function isChannelWebRTCUserJoined(
+  object: any
+): object is ChannelWebRTCUserJoined {
+  return object.event_type === "CHANNEL_WEBRTC_JOINED";
+}
+export function isChannelWebRTCUserLeft(
+  object: any
+): object is ChannelWebRTCUserLeft {
+  return object.event_type === "CHANNEL_WEBRTC_LEFT";
 }
 
 export function isUpdateMediaOptions(

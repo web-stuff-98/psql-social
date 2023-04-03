@@ -157,3 +157,36 @@ export type ChannelWebRTCUpdateMediaOptions = {
     channel_id: string;
   };
 };
+export type ChannelWebRTCLeave = {
+  event_type: "CHANNEL_WEBRTC_LEAVE";
+  data: { channel_id: string };
+};
+export type ChannelWebRTCSendingSignal = {
+  event_type: "CHANNEL_WEBRTC_SENDING_SIGNAL";
+  data: {
+    signal: string;
+    to_uid: string;
+    um_stream_id: string;
+    um_vid: boolean;
+    dm_vid: boolean;
+  };
+};
+export type ChannelWebRTCReturningSignal = {
+  event_type: "CHANNEL_WEBRTC_RETURNING_SIGNAL";
+  data: {
+    signal: string;
+    caller_id: string;
+    um_stream_id: string;
+    um_vid: boolean;
+    dm_vid: boolean;
+  };
+};
+export type ChannelWebRTCJoin = {
+  event_type: "CHANNEL_WEBRTC_JOIN";
+  data: {
+    channel_id: string;
+    um_stream_id: string;
+    um_vid: boolean;
+    dm_vid: boolean;
+  };
+};
