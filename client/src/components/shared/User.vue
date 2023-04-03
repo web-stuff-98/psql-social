@@ -107,8 +107,8 @@ onBeforeUnmount(() => {
     align-items: flex-start;
     .name {
       font-weight: 600;
-      line-height: 0.866;
-      font-size: var(--md);
+      line-height: 1;
+      font-size: var(--sm);
       text-shadow: 0px 2px 1px rgba(0, 0, 0, 0.166);
     }
     .date,
