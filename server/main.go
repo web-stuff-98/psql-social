@@ -8,6 +8,7 @@ import (
 	"github.com/fasthttp/router"
 	"github.com/joho/godotenv"
 	"github.com/valyala/fasthttp"
+	attachmentServer "github.com/web-stuff-98/psql-social/pkg/attachmentServer"
 	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
 	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
 	"github.com/web-stuff-98/psql-social/pkg/db"
@@ -29,10 +30,11 @@ func main() {
 	ss := socketServer.Init(csdc, cRTCsdc)
 	cRTCs := channelRTCserver.Init(ss, db, cRTCsdc)
 	cs := callServer.Init(ss, csdc)
+	as := attachmentServer.Init(ss, db)
 
 	defer db.Close()
 
-	h := handlers.New(db, rdb, ss, cs, cRTCs)
+	h := handlers.New(db, rdb, ss, cs, cRTCs, as)
 
 	r := router.New()
 

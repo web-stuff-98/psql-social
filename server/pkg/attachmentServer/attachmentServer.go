@@ -39,7 +39,6 @@ const AttachmentMaxSize = 20 * 1024 * 1024
 type AttachmentServer struct {
 	Uploaders Uploaders
 
-	// first 36 bytes are msg id
 	ChunkChan chan ChunkData
 	FailChan  chan Failure
 }

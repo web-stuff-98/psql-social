@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"os"
 
 	"github.com/fasthttp/websocket"
 	"github.com/valyala/fasthttp"
@@ -12,22 +11,12 @@ import (
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
-var upgrader = websocket.FastHTTPUpgrader{
-	ReadBufferSize:  8192,
-	WriteBufferSize: 8192,
-	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {
-		if os.Getenv("ENVIRONMENT") != "PRODUCTION" {
-			return true
-		} else {
-			// need to add rule here before deploying
-			return true
-		}
-	},
-}
-
 /*
 	Messages come in like this, different to my last go projects:
 	{ "event_type":string , "data":json }
+
+	There is a seperate websocket endpoint for attachment chunk
+	data
 */
 
 type decodedMsg struct {
@@ -69,7 +58,7 @@ func handleConnection(h handler, ctx *fasthttp.RequestCtx, uid string, c *websoc
 }
 
 func (h handler) WebSocketEndpoint(ctx *fasthttp.RequestCtx) {
-	if uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, context.TODO(), h.DB); err != nil {
+	if uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, context.Background(), h.DB); err != nil {
 		ResponseMessage(ctx, "Forbidden - Log in to gain access", fasthttp.StatusForbidden)
 	} else {
 		if err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {

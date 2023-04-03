@@ -178,3 +178,8 @@ type RoomChannelWebRTCUserJoinedLeft struct {
 	ChannelID string `json:"channel_id"`
 	Uid       string `json:"uid"`
 }
+
+// TYPE: ATTACHMENT_CHUNK_FAILED
+type AttachmentChunkFailed struct {
+	MsgID string `json:"id"`
+}
