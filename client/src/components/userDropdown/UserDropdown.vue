@@ -19,6 +19,7 @@ import {
 } from "../../socketHandling/OutEvents";
 import { Ban } from "../../socketHandling/OutEvents";
 import useRoomStore from "../../store/RoomStore";
+import { bioUid } from "../../store/ViewBioStore";
 
 enum EUserdropdownMenuSection {
   "MENU" = "Menu",
@@ -141,6 +142,11 @@ function callClicked() {
   userdropdownStore.open = false;
 }
 
+function bioClicked() {
+  bioUid.value = userdropdownStore.subject;
+  userdropdownStore.open = false;
+}
+
 const msgInputRef = ref<HTMLElement | null>();
 function submitDirectMessage(values: any) {
   //@ts-ignore
@@ -171,6 +177,7 @@ function submitDirectMessage(values: any) {
       <button @click="directMessageClicked">Direct message</button>
       <button @click="friendRequestClicked">Friend request</button>
       <button @click="blockClicked">Block</button>
+      <button @click="bioClicked">Bio</button>
       <button
         v-if="userdropdownStore.roomId && roomStore.getRoom(userdropdownStore.roomId)?.author_id! === authStore.uid"
         @click="banClicked"
