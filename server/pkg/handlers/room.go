@@ -19,7 +19,7 @@ import (
 )
 
 func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -108,7 +108,7 @@ func (h handler) CreateRoom(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -193,7 +193,7 @@ func (h handler) UpdateRoom(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) UpdateRoomChannel(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -334,7 +334,7 @@ func (h handler) UpdateRoomChannel(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) DeleteRoomChannel(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -446,7 +446,7 @@ func (h handler) DeleteRoomChannel(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) CreateRoomChannel(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -577,7 +577,7 @@ func (h handler) CreateRoomChannel(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -670,7 +670,7 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 
 // Retrieve the users own rooms, and rooms they are a member of
 func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -778,7 +778,7 @@ func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -832,7 +832,7 @@ func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -971,7 +971,7 @@ func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {
 
 // Retrieves the channels for a room, excluding messages
 func (h handler) GetRoomChannels(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)

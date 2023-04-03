@@ -126,7 +126,7 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -221,7 +221,7 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -278,7 +278,7 @@ func joinChannel(inData map[string]interface{}, h handler, uid string, c *websoc
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -337,7 +337,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -416,7 +416,7 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -473,7 +473,7 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -526,7 +526,7 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -582,7 +582,7 @@ func directMessageUpdate(inData map[string]interface{}, h handler, uid string, c
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -633,7 +633,7 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -680,7 +680,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -766,7 +766,7 @@ func friendRequestResponse(inData map[string]interface{}, h handler, uid string,
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -864,7 +864,7 @@ func invitation(inData map[string]interface{}, h handler, uid string, c *websock
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -951,7 +951,7 @@ func invitationResponse(inData map[string]interface{}, h handler, uid string, c 
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -1054,7 +1054,7 @@ func ban(inData map[string]interface{}, h handler, uid string, c *websocket.Conn
 		return fmt.Errorf("You cannot ban yourself")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	var author_id string
@@ -1140,7 +1140,7 @@ func unban(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 		return fmt.Errorf("You cannot unban yourself")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	var author_id string
@@ -1191,7 +1191,7 @@ func block(inData map[string]interface{}, h handler, uid string, c *websocket.Co
 		return fmt.Errorf("You cannot block yourself")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -1261,7 +1261,7 @@ func unblock(inData map[string]interface{}, h handler, uid string, c *websocket.
 		return fmt.Errorf("You cannot unblock yourself")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -1304,7 +1304,7 @@ func callUser(inData map[string]interface{}, h handler, uid string, c *websocket
 		return fmt.Errorf("You cannot call yourself")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
@@ -1360,7 +1360,7 @@ func callUserResponse(inData map[string]interface{}, h handler, uid string, c *w
 		return fmt.Errorf("Unauthorized")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	conn, err := h.DB.Acquire(ctx)
