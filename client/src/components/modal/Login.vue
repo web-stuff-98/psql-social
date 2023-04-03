@@ -11,12 +11,17 @@ import { ref } from "vue";
 import ResMsg from "../shared/ResMsg.vue";
 import useSocketStore from "../../store/SocketStore";
 import useUserStore from "../../store/UserStore";
+import Policy from "../shared/Policy.vue";
+import Modal from "./Modal.vue";
+import ModalCloseButton from "../shared/ModalCloseButton.vue";
+import CustomCheckbox from "../shared/CustomCheckbox.vue";
 
 const authStore = useAuthStore();
 const socketStore = useSocketStore();
 const userStore = useUserStore();
 
 const resMsg = ref<IResMsg>({});
+const showPolicy = ref(false);
 
 async function handleSubmit(values: any) {
   try {
@@ -53,7 +58,21 @@ async function handleSubmit(values: any) {
       />
       <ErrorMessage name="password" />
     </div>
+    <div class="input-label">
+      <label class="underlined" @click="showPolicy = true" for="password"
+        >You agree to the policy</label
+      >
+      <CustomCheckbox
+        :rules="((v:boolean) => v ? true : 'You must agree to the policy') as any"
+        name="policy"
+      />
+      <ErrorMessage name="policy" />
+    </div>
     <button type="submit">Login</button>
+    <Modal v-if="showPolicy">
+      <ModalCloseButton @click="showPolicy = false" />
+      <Policy />
+    </Modal>
     <ResMsg :resMsg="resMsg" />
   </Form>
 </template>

@@ -36,6 +36,9 @@ const username = computed(
       <div class="name">{{ username }}</div>
       <div class="nav-items">
         <button type="button" class="nav-item" @click="logout">Logout</button>
+        <RouterLink to="/policy">
+          <button type="button" class="nav-item">Policy</button>
+        </RouterLink>
       </div>
     </nav>
     <div class="aside-main">

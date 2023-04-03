@@ -10,11 +10,15 @@ const props = defineProps({
   value: {
     type: Boolean,
   },
+  rules: {
+    type: String,
+    default: undefined,
+  },
 });
 
-const { name } = toRefs(props);
+const { name, rules } = toRefs(props);
 //@ts-ignore
-const { checked, handleChange } = useField(name, undefined, {
+const { checked, handleChange } = useField(name, rules, {
   type: "checkbox",
   checkedValue: true,
   uncheckedValue: false,

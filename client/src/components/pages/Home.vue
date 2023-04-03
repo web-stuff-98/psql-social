@@ -7,7 +7,7 @@ const authStore = useAuthStore();
   <div class="home">
     <h1>pSQL-Social</h1>
     <hr />
-    <h2>Voip, video chat, screensharing & filesharing... faster and written better than previously.</h2>
+    <h2>Voip, video chat, screensharing & filesharing using Vue 3, postgres & Go.</h2>
     <p><b>Hint:</b> Click on a user to open an action dropdown menu</p>
   </div>
 </template>
