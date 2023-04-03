@@ -169,6 +169,8 @@ type ChannelWebRTCUserLeft = {
   };
 };
 
+type RequestAttachment = { data: { ID: string } };
+
 export function isChangeEvent(object: any): object is ChangeEventData {
   return object.event_type === "CHANGE";
 }
@@ -271,4 +273,8 @@ export function isUpdateMediaOptions(
   object: any
 ): object is CallUpdateMediaOptions {
   return object.event_type === "UPDATE_MEDIA_OPTIONS_OUT";
+}
+
+export function isRequestAttachment(object: any): object is RequestAttachment {
+  return object.event_type === "REQUEST_ATTACHMENT";
 }

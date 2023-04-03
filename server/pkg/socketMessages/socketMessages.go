@@ -4,10 +4,11 @@ package socketmessages
 
 // TYPE: ROOM_MESSAGE
 type RoomMessage struct {
-	ID        string `json:"ID"`
-	Content   string `json:"content"`
-	CreatedAt string `json:"created_at"`
-	AuthorID  string `json:"author_id"`
+	ID            string `json:"ID"`
+	Content       string `json:"content"`
+	CreatedAt     string `json:"created_at"`
+	AuthorID      string `json:"author_id"`
+	HasAttachment bool   `json:"has_attachment"`
 }
 
 // TYPE: ROOM_MESSAGE_UPDATE
@@ -29,11 +30,12 @@ type Ban struct {
 
 // TYPE: DIRECT_MESSAGE
 type DirectMessage struct {
-	ID          string `json:"ID"`
-	Content     string `json:"content"`
-	CreatedAt   string `json:"created_at"`
-	AuthorID    string `json:"author_id"`
-	RecipientID string `json:"recipient_id"`
+	ID            string `json:"ID"`
+	Content       string `json:"content"`
+	CreatedAt     string `json:"created_at"`
+	AuthorID      string `json:"author_id"`
+	RecipientID   string `json:"recipient_id"`
+	HasAttachment bool   `json:"has_attachment"`
 }
 
 // TYPE: DIRECT_MESSAGE_UPDATE
@@ -182,4 +184,9 @@ type RoomChannelWebRTCUserJoinedLeft struct {
 // TYPE: ATTACHMENT_CHUNK_FAILED
 type AttachmentChunkFailed struct {
 	MsgID string `json:"id"`
+}
+
+// TYPE: REQUEST_ATTACHMENT
+type RequestAttachment struct {
+	ID string `json:"ID"`
 }

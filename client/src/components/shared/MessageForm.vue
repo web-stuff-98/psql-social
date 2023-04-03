@@ -1,17 +1,59 @@
 <script lang="ts" setup>
+import { ref, toRefs } from "vue";
 import { Field, Form } from "vee-validate";
-defineProps<{ handleSubmit: (values: any) => void }>();
+import messageModalStore from "../../store/MessageModalStore";
+
+const props = defineProps<{
+  handleSubmit: (values: any, file?: File) => void;
+}>();
+const { handleSubmit } = toRefs(props);
+
+const attachmentFile = ref<File>();
+const inputRef = ref<HTMLElement>();
+const attachmentInputRef = ref<HTMLElement>();
+
+const submit = (values: any) => {
+  handleSubmit.value(values, attachmentFile.value);
+  attachmentFile.value = undefined;
+  //@ts-ignore
+  inputRef.value = "";
+};
+
+function selectAttachment(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (!target.files || !target.files[0]) {
+    attachmentFile.value = undefined
+    return
+  };
+  if (target.files[0].size > 20 * 1024 * 1024) {
+    messageModalStore.msg = {
+      msg: "File too large. Max 20mb.",
+      err: true,
+      pen: false,
+    };
+    messageModalStore.show = true;
+    messageModalStore.cancellationCallback = undefined;
+    messageModalStore.confirmationCallback = () =>
+      (messageModalStore.show = false);
+    return;
+  }
+  attachmentFile.value = target.files[0];
+}
 </script>
 
 <template>
-  <Form @submit="handleSubmit">
-    <Field ref="field" name="message" />
+  <Form @submit="submit">
+    <Field ref="inputRef" name="message" />
     <button type="submit">
       <v-icon name="io-send" />
     </button>
-    <button type="button">
-      <v-icon name="bi-paperclip" />
+    <button @click="attachmentInputRef?.click()" type="button">
+      <v-icon
+        :style="attachmentFile ? { fill: 'green', color: 'green' } : {}"
+        name="bi-paperclip"
+      />
     </button>
+    <input @change="selectAttachment" ref="attachmentInputRef" type="file" />
   </Form>
 </template>
 

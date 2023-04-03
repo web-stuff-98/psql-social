@@ -12,8 +12,9 @@ type JoinLeaveChannel struct {
 
 // ROOM_MESSAGE
 type RoomMessage struct {
-	Content   string `json:"content" validate:"required,lte=200"`
-	ChannelID string `json:"channel_id" validate:"required,lte=36"`
+	Content       string `json:"content" validate:"required,lte=200"`
+	ChannelID     string `json:"channel_id" validate:"required,lte=36"`
+	HasAttachment bool   `json:"has_attachment"`
 }
 
 // ROOM_MESSAGE_UPDATE
@@ -35,8 +36,9 @@ type StartStopWatching struct {
 
 // DIRECT_MESSAGE
 type DirectMessage struct {
-	Content string `json:"content" validate:"required,lte=200"`
-	Uid     string `json:"uid" validate:"required,lte=36"`
+	Content       string `json:"content" validate:"required,lte=200"`
+	Uid           string `json:"uid" validate:"required,lte=36"`
+	HasAttachment bool   `json:"has_attachment"`
 }
 
 // DIRECT_MESSAGE_UPDATE

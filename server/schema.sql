@@ -69,7 +69,8 @@ CREATE TABLE room_messages (
     content TEXT NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     room_channel_id UUID REFERENCES room_channels(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    has_attachment BOOLEAN NOT NULL
 );
 
 CREATE TABLE direct_messages (
@@ -77,7 +78,8 @@ CREATE TABLE direct_messages (
     content VARCHAR(200) NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     recipient_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    has_attachment BOOLEAN NOT NULL
 );
 
 CREATE TABLE bans (

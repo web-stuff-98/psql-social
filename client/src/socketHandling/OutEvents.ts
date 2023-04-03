@@ -17,6 +17,7 @@ export type DirectMessage = {
   data: {
     content: string;
     uid: string;
+    has_attachment?: boolean;
   };
 };
 export type DirectMessageUpdate = {
@@ -75,6 +76,7 @@ export type RoomMessage = {
   data: {
     content: string;
     channel_id: string;
+    has_attachment?: boolean;
   };
 };
 export type RoomMessageUpdate = {

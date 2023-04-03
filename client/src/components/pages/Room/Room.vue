@@ -16,6 +16,7 @@ import {
   isRoomMsg,
   isRoomMsgDelete,
   isRoomMsgUpdate,
+  isRequestAttachment,
 } from "../../../socketHandling/InterpretEvent";
 import { IRoomMessage } from "../../../interfaces/GeneralInterfaces";
 import MessageForm from "../../../components/shared/MessageForm.vue";
@@ -40,6 +41,7 @@ const authStore = useAuthStore();
 
 const route = useRoute();
 const roomId = toRef(route.params, "id");
+const pendingAttachmentFile = ref<File>();
 
 const isEditingChannel = ref("");
 const isCreatingChannel = ref(false);
@@ -123,7 +125,7 @@ async function joinChannel(channelId: string) {
   }
 }
 
-function handleMessages(e: MessageEvent) {
+async function handleMessages(e: MessageEvent) {
   const msg = JSON.parse(e.data);
   if (!msg) return;
 
@@ -200,15 +202,28 @@ function handleMessages(e: MessageEvent) {
       }
     }
   }
+
+  if (isRequestAttachment(msg)) {
+    if (pendingAttachmentFile.value) console.log("UPLOAD");
+    else
+      console.warn(
+        "Server requested attachment file, but attachment file is undefined"
+      );
+  }
 }
 
-function handleSubmit(values: any) {
+function handleSubmit(values: any, file?: File) {
   if (!roomChannelStore.current) return;
   const content: string = values.message;
   socketStore.send({
     event_type: "ROOM_MESSAGE",
-    data: { content, channel_id: roomChannelStore.current },
+    data: {
+      content,
+      channel_id: roomChannelStore.current,
+      has_attachment: Boolean(file),
+    },
   } as RoomMessageEvent);
+  pendingAttachmentFile.value = file;
 }
 </script>
 

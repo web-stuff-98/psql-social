@@ -383,7 +383,7 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 		}
 	}
 
-	insertStmt, err := conn.Conn().Prepare(ctx, "insert_room_message_stmt", "INSERT INTO room_messages (content,author_id,room_channel_id) VALUES($1, $2, $3) RETURNING id")
+	insertStmt, err := conn.Conn().Prepare(ctx, "insert_room_message_stmt", "INSERT INTO room_messages (content, author_id, room_channel_id, has_attachment) VALUES($1, $2, $3, $4) RETURNING id")
 	if err != nil {
 		return fmt.Errorf("Internal error")
 	}
@@ -391,19 +391,30 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 	content := strings.TrimSpace(data.Content)
 
 	var id string
-	if err := conn.QueryRow(ctx, insertStmt.Name, content, uid, data.ChannelID).Scan(&id); err != nil {
+	if err := conn.QueryRow(ctx, insertStmt.Name, content, uid, data.ChannelID, data.HasAttachment).Scan(&id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("channel:%v", data.ChannelID),
 		Data: socketMessages.RoomMessage{
-			ID:        id,
-			Content:   content,
-			CreatedAt: time.Now().Format(time.RFC3339),
-			AuthorID:  uid,
+			ID:            id,
+			Content:       content,
+			CreatedAt:     time.Now().Format(time.RFC3339),
+			AuthorID:      uid,
+			HasAttachment: data.HasAttachment,
 		},
 		MessageType: "ROOM_MESSAGE",
+	}
+
+	if data.HasAttachment {
+		h.SocketServer.SendDataToUser <- socketServer.UserMessageData{
+			Uid: uid,
+			Data: socketMessages.RequestAttachment{
+				ID: id,
+			},
+			MessageType: "REQUEST_ATTACHMENT",
+		}
 	}
 
 	return nil
@@ -553,23 +564,34 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 		return fmt.Errorf("This user has blocked your account")
 	}
 
-	createMsgStmt := "INSERT INTO direct_messages (content, author_id, recipient_id) VALUES ($1, $2, $3) RETURNING id"
+	createMsgStmt := "INSERT INTO direct_messages (content, author_id, recipient_id, has_attachment) VALUES ($1, $2, $3, $4) RETURNING id"
 	var id string
 	content := strings.TrimSpace(data.Content)
-	if err := conn.QueryRow(ctx, createMsgStmt, content, uid, data.Uid).Scan(&id); err != nil {
+	if err := conn.QueryRow(ctx, createMsgStmt, content, uid, data.Uid, data.HasAttachment).Scan(&id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
 		Data: socketMessages.DirectMessage{
-			ID:          id,
-			Content:     content,
-			CreatedAt:   time.Now().Format(time.RFC3339),
-			AuthorID:    uid,
-			RecipientID: data.Uid,
+			ID:            id,
+			Content:       content,
+			CreatedAt:     time.Now().Format(time.RFC3339),
+			AuthorID:      uid,
+			RecipientID:   data.Uid,
+			HasAttachment: data.HasAttachment,
 		},
 		MessageType: "DIRECT_MESSAGE",
+	}
+
+	if data.HasAttachment {
+		h.SocketServer.SendDataToUser <- socketServer.UserMessageData{
+			Uid: uid,
+			Data: socketMessages.RequestAttachment{
+				ID: id,
+			},
+			MessageType: "REQUEST_ATTACHMENT",
+		}
 	}
 
 	return nil
