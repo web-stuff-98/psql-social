@@ -26,7 +26,7 @@ const showPolicy = ref(false);
 async function handleSubmit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    await authStore.login(values.username, values.password);
+    await authStore.login(values.username, values.password, values.policy);
     await socketStore.connectSocket();
     await userStore.cacheUser(authStore.uid!, true);
     resMsg.value = { msg: "", err: false, pen: false };

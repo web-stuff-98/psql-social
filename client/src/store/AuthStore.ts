@@ -11,22 +11,22 @@ const useAuthStore = defineStore("auth", {
       uid: undefined,
     } as AuthStoreState),
   actions: {
-    async login(username: string, password: string) {
+    async login(username: string, password: string, policy: boolean) {
       const uid: string = await makeRequest("/api/acc/login", {
         method: "POST",
-        data: { username, password },
+        data: { username, password, policy },
         responseType: "text",
       });
       console.log(uid);
       this.$state.uid = uid;
     },
-    async register(username: string, password: string) {
+    async register(username: string, password: string, policy: boolean) {
       const uid: string = await makeRequest("/api/acc/register", {
         method: "POST",
-        data: { username, password },
-        responseType:"text"
+        data: { username, password, policy },
+        responseType: "text",
       });
-      console.log(uid)
+      console.log(uid);
       this.$state.uid = uid;
     },
     async logout() {

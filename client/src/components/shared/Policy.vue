@@ -19,10 +19,11 @@
 
 <style lang="scss" scoped>
 .policy-container {
-    max-width: 15rem;
-    text-align: center;
-    h1,h2 {
-        margin-bottom: var(--gap-md);
-    }
+  max-width: 15rem;
+  text-align: center;
+  h1,
+  h2 {
+    margin-bottom: var(--gap-md);
+  }
 }
 </style>

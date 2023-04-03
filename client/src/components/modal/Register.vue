@@ -26,7 +26,7 @@ const showPolicy = ref(false);
 async function handleSubmit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    await authStore.register(values.username, values.password);
+    await authStore.register(values.username, values.password, values.policy);
     await socketStore.connectSocket();
     await userStore.cacheUser(authStore.uid!, true);
     resMsg.value = { msg: "", err: false, pen: false };
@@ -60,7 +60,9 @@ async function handleSubmit(values: any) {
     </div>
     <button type="submit">Register</button>
     <div class="input-label">
-      <label class="underlined" @click="showPolicy = true" for="password">You agree to the policy</label>
+      <label class="underlined" @click="showPolicy = true" for="password"
+        >You agree to the policy</label
+      >
       <CustomCheckbox
         :rules="((v:boolean) => v ? true : 'You must agree to the policy') as any"
         name="policy"
