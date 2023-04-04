@@ -10,6 +10,14 @@ export interface IResMsg {
   err?: boolean;
   pen?: boolean;
 }
+export interface IAttachmentMetadata {
+  ID: string;
+  meta: string;
+  name: string;
+  size: number;
+  ratio: number;
+  failed: boolean;
+}
 export interface IRoom {
   ID: string;
   name: string;

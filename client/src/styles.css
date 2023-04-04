@@ -85,10 +85,10 @@
   --button: hsl(22, 100%, 31%);
   --button-hover: hsl(22, 100%, 39%);
 
-  --border-pale: rgb(23, 23, 23);
-  --border-light: rgb(26, 26, 26);
-  --border-medium: rgb(33, 33, 33);
-  --border-heavy: rgb(37, 37, 37);
+  --border-pale: rgb(29, 29, 29);
+  --border-light: rgb(32, 32, 32);
+  --border-medium: rgb(38, 38, 38);
+  --border-heavy: rgb(43, 43, 43);
 
   --background-tile: url(/src/assets/crossbackground_dark.png);
 }

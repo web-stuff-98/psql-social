@@ -130,6 +130,7 @@ CREATE TABLE room_message_attachment_metadata (
     message_id UUID REFERENCES room_messages(id) ON DELETE CASCADE
 );
 
+/* Mime kept here incase I want to store pfps as pngs with transparency */
 CREATE TABLE profile_pictures (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,

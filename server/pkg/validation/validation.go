@@ -23,3 +23,11 @@ type CreateUpdateChannel struct {
 	Name string `json:"name" validate:"required,lte=16,gte=2"`
 	Main bool   `json:"main"`
 }
+
+type CreateAttachmentMetadata struct {
+	Name      string `json:"name"`
+	Mime      string `json:"mime"`
+	Size      int    `json:"size"`
+	ID        string `json:"msg_id"`
+	IsRoomMsg bool   `json:"room_msg"`
+}

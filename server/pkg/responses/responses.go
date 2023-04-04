@@ -56,3 +56,12 @@ type Conversation struct {
 	Invitations    []Invitation    `json:"invitations"`
 	FriendRequests []FriendRequest `json:"friend_requests"`
 }
+
+type AttachmentMetadata struct {
+	ID     string  `json:"ID"`
+	Meta   string  `json:"meta"`
+	Name   string  `json:"name"`
+	Size   int     `json:"size"`
+	Ratio  float32 `json:"ratio"`
+	Failed bool    `json:"failed"`
+}

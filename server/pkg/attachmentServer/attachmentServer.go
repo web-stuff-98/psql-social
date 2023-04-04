@@ -97,11 +97,6 @@ func runServer(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpool.
 					}
 				}
 				as.Uploaders.mutex.Unlock()
-				ctx, err := context.WithTimeout(context.Background(), time.Second*8)
-				if err != nil {
-					log.Println("Error acquiring context in attachment server cleanup loop:", err)
-					continue
-				}
 				for uid, uploads := range timedOut {
 					for _, id := range uploads {
 						// don't use the delete channel because it also deletes the attachment metadata document
@@ -116,7 +111,7 @@ func runServer(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpool.
 								} else {
 									table = "direct_messages_attachment_metadata"
 								}
-								if _, err := db.Exec(ctx, `UPDATE "$1" SET failed = TRUE where id = $2;`, table, id); err != nil {
+								if _, err := db.Exec(context.TODO(), `UPDATE "$1" SET failed = TRUE where id = $2;`, table, id); err != nil {
 									log.Println("Error updating failed field in attachment server cleanup loop:", err)
 								}
 							}
@@ -141,11 +136,8 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 			go handleChunks(as, ss, db)
 		}()
 		chunk := <-as.ChunkChan
-		ctx, err := context.WithTimeout(context.Background(), time.Second*8)
-		if err != nil {
-			log.Println("Error acquiring context in attachment server chunk loop:", err)
-			continue
-		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+		defer cancel()
 		as.Uploaders.mutex.Lock()
 		var size int
 		var failed bool
@@ -217,9 +209,9 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 			}
 			var chunkTable string
 			if as.Uploaders.data[chunk.Uid][chunk.MsgId].IsRoomMsg {
-				chunkTable = "room_messages_attachment_metadata"
+				chunkTable = "room_messages_attachment_chunks"
 			} else {
-				chunkTable = "direct_messages_attachment_metadata"
+				chunkTable = "direct_messages_attachment_chunks"
 			}
 			// Write chunk
 			insertStmt, err := conn.Conn().Prepare(ctx, "attachment_server_insert_chunk_stmt", `INSERT INTO "$1" (id,bytes,message_id,next_chunk) VALUES($1,$2,$3,$4,$5)`)
@@ -348,11 +340,8 @@ func deleteAttachment(as *AttachmentServer, ss *socketServer.SocketServer, db *p
 			go deleteAttachment(as, ss, db)
 		}()
 		deleteData := <-as.DeleteChan
-		ctx, err := context.WithTimeout(context.Background(), time.Second*8)
-		if err != nil {
-			log.Println("Error acquiring context in attachment server chunk loop:", err)
-			continue
-		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+		defer cancel()
 		as.Uploaders.mutex.Lock()
 		if conn, err := db.Acquire(ctx); err != nil {
 			log.Println("Error acquiring connection in delete attachment chunk loop:", err)
@@ -433,11 +422,8 @@ func deleteAttachmentChunks(chunkId string, uid string, msgId string, as *Attach
 			delete(as.Uploaders.data, uid)
 		}
 	}
-	ctx, err := context.WithTimeout(context.Background(), time.Second*8)
-	if err != nil {
-		log.Println("Error acquiring context in attachment server chunk loop:", err)
-		errored()
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
 	var isRoomMsg bool
 	if err := db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM room_messages_attachment_metadata);").Scan(&isRoomMsg); err != nil {
 		log.Println("Error in select room message attachment data in delete attachment metadata loop:", err)

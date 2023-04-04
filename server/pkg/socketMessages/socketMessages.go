@@ -192,3 +192,11 @@ type AttachmentProgress struct {
 	Failed bool    `json:"failed"`
 	MsgID  string  `json:"ID"`
 }
+
+// TYPE: ATTACHMENT_METADATA_CREATED
+type AttachmentMetadataCreated struct {
+	Mime string `json:"mime"`
+	Size int    `json:"size"`
+	Name string `json:"name"`
+	ID   string `json:"ID"`
+}
