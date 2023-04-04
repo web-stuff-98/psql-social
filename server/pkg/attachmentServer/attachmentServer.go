@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	socketServer "github.com/web-stuff-98/psql-social/pkg/socketServer"
@@ -48,7 +47,6 @@ type Upload struct {
 	Index      uint16
 	TotalBytes uint32
 	IsRoomMsg  bool
-	NextId     string
 	MsgId      string
 	LastChunk  time.Time
 	// if timed out, the last chunk was received too long ago. upload has failed
@@ -90,7 +88,6 @@ func runServer(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpool.
 								IsRoomMsg:  u.IsRoomMsg,
 								Index:      u.Index,
 								TotalBytes: u.TotalBytes,
-								NextId:     u.NextId,
 								LastChunk:  u.LastChunk,
 							}
 							timedOut[uid] = append(timedOut[uid], u.MsgId)
@@ -124,8 +121,6 @@ func runServer(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpool.
 		}
 	}()
 }
-
-/* Spaghetti below, had to put an if statement around connection acquire or it would error for some reason */
 
 func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpool.Pool) {
 	for {
@@ -186,13 +181,11 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 				continue
 			}
 
-			nextId := uuid.New().String()
 			if _, ok := as.Uploaders.data[chunk.Uid]; !ok {
 				// Create uploader data
 				uploaderData := make(map[string]Upload)
 				uploaderData[chunk.MsgId] = Upload{
 					Index:      0,
-					NextId:     nextId,
 					TotalBytes: uint32(size),
 					IsRoomMsg:  chunk.IsRoomMsg,
 					LastChunk:  time.Now(),
@@ -201,15 +194,6 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 				as.Uploaders.data[chunk.Uid] = uploaderData
 			}
 			lastChunk := len(chunk.Data) < 4*1024*1024
-			var chunkId string
-			if lastChunk {
-				nextId = ""
-			}
-			if as.Uploaders.data[chunk.Uid][chunk.MsgId].Index == 0 {
-				chunkId = chunk.MsgId
-			} else {
-				chunkId = as.Uploaders.data[chunk.Uid][chunk.MsgId].NextId
-			}
 			var metaTable string
 			if as.Uploaders.data[chunk.Uid][chunk.MsgId].IsRoomMsg {
 				metaTable = "room_message_attachment_metadata"
@@ -223,7 +207,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 				chunkTable = "direct_message_attachment_chunks"
 			}
 			// Write chunk
-			insertStmt, err := conn.Conn().Prepare(ctx, "attachment_server_insert_chunk_stmt", fmt.Sprintf("INSERT INTO %v (id,bytes,message_id,next_chunk) VALUES($1,$2,$3,$4)", chunkTable))
+			insertStmt, err := conn.Conn().Prepare(ctx, "attachment_server_insert_chunk_stmt", fmt.Sprintf("INSERT INTO %v (bytes,message_id,chunk_index) VALUES($1,$2,$3)", chunkTable))
 			if err != nil {
 				log.Println("Error preparing insert chunk statement in attachmentServer chunk loop:", err)
 				as.Uploaders.mutex.Unlock()
@@ -234,7 +218,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 				chunk.RecvChan <- false
 				continue
 			} else {
-				if _, err = conn.Conn().Exec(ctx, insertStmt.Name, chunkId, chunk.Data, chunk.MsgId, nextId); err != nil {
+				if _, err = conn.Conn().Exec(ctx, insertStmt.Name, chunk.Data, chunk.MsgId, as.Uploaders.data[chunk.Uid][chunk.MsgId].Index); err != nil {
 					log.Println("Error inserting chunk in attachmentServer chunk loop:", err)
 					as.Uploaders.mutex.Unlock()
 					as.DeleteChan <- Delete{
@@ -326,7 +310,6 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 							Index:      upload.Index + 1,
 							TotalBytes: upload.TotalBytes,
 							IsRoomMsg:  upload.IsRoomMsg,
-							NextId:     nextId,
 							LastChunk:  time.Now(),
 							MsgId:      chunk.MsgId,
 						}
