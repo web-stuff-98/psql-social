@@ -98,7 +98,7 @@ CREATE TABLE direct_message_attachment_chunks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     bytes BYTEA NOT NULL,
     message_id UUID REFERENCES direct_messages(id) ON DELETE CASCADE,
-    next_chunk UUID REFERENCES direct_message_attachment_chunks(id)
+    previous_chunk UUID REFERENCES direct_message_attachment_chunks(id)
 );
 
 CREATE TABLE direct_message_attachment_metadata (
@@ -116,7 +116,7 @@ CREATE TABLE room_message_attachment_chunks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     bytes BYTEA NOT NULL,
     message_id UUID REFERENCES room_messages(id) ON DELETE CASCADE,
-    next_chunk UUID REFERENCES room_message_attachment_chunks(id)
+    previous_chunk UUID REFERENCES room_message_attachment_chunks(id)
 );
 
 CREATE TABLE room_message_attachment_metadata (
