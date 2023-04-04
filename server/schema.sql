@@ -107,7 +107,7 @@ CREATE TABLE direct_message_attachment_metadata (
     name VARCHAR(200) NOT NULL,
     size INT NOT NULL,
     failed BOOLEAN NOT NULL,
-    complete BOOLEAN NOT NULL,
+    ratio FLOAT NOT NULL,
     first_chunk_id UUID REFERENCES direct_message_attachment_chunks(id),
     message_id UUID REFERENCES direct_messages(id) ON DELETE CASCADE
 );
@@ -125,7 +125,7 @@ CREATE TABLE room_message_attachment_metadata (
     name VARCHAR(200) NOT NULL,
     size INT NOT NULL,
     failed BOOLEAN NOT NULL,
-    complete BOOLEAN NOT NULL,
+    ratio FLOAT NOT NULL,
     first_chunk_id UUID REFERENCES room_message_attachment_chunks(id),
     message_id UUID REFERENCES room_messages(id) ON DELETE CASCADE
 );

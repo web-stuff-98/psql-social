@@ -29,6 +29,8 @@ type SocketServer struct {
 
 	MessageLoop chan Message
 
+	AttachmentServerRemoveUploaderChan chan string
+
 	RegisterConn   chan ConnnectionData
 	UnregisterConn chan *websocket.Conn
 
@@ -193,6 +195,8 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 
 		MessageLoop: make(chan Message),
 
+		AttachmentServerRemoveUploaderChan: make(chan string),
+
 		RegisterConn:   make(chan ConnnectionData),
 		UnregisterConn: make(chan *websocket.Conn),
 
@@ -310,6 +314,7 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 		if uid, ok := ss.ConnectionsByWs.data[conn]; ok {
 			csdc <- uid
 			cRTCsdc <- uid
+			ss.AttachmentServerRemoveUploaderChan <- uid
 
 			ss.ConnectionsByID.mutex.Lock()
 			delete(ss.ConnectionsByID.data, uid)

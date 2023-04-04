@@ -171,6 +171,12 @@ type ChannelWebRTCUserLeft = {
 
 type RequestAttachment = { data: { ID: string } };
 
+type AttachmentProgress = { data: {
+  ratio: number,
+  failed: boolean,
+  ID: string;
+}}
+
 export function isChangeEvent(object: any): object is ChangeEventData {
   return object.event_type === "CHANGE";
 }
@@ -277,4 +283,7 @@ export function isUpdateMediaOptions(
 
 export function isRequestAttachment(object: any): object is RequestAttachment {
   return object.event_type === "REQUEST_ATTACHMENT";
+}
+export function isAttachmentProgress(object: any): object is AttachmentProgress {
+  return object.event_type === "ATTACHMENT_PROGRESS";
 }

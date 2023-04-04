@@ -28,9 +28,9 @@ func main() {
 	csdc := make(chan string)
 	cRTCsdc := make(chan string)
 	ss := socketServer.Init(csdc, cRTCsdc)
+	as := attachmentServer.Init(ss, db)
 	cRTCs := channelRTCserver.Init(ss, db, cRTCsdc)
 	cs := callServer.Init(ss, csdc)
-	as := attachmentServer.Init(ss, db)
 
 	defer db.Close()
 

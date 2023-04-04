@@ -181,12 +181,14 @@ type RoomChannelWebRTCUserJoinedLeft struct {
 	Uid       string `json:"uid"`
 }
 
-// TYPE: ATTACHMENT_CHUNK_FAILED
-type AttachmentChunkFailed struct {
-	MsgID string `json:"id"`
-}
-
 // TYPE: REQUEST_ATTACHMENT
 type RequestAttachment struct {
 	ID string `json:"ID"`
+}
+
+// TYPE: ATTACHMENT_PROGRESS
+type AttachmentProgress struct {
+	Ratio  float32 `json:"ratio"`
+	Failed bool    `json:"failed"`
+	MsgID  string  `json:"ID"`
 }

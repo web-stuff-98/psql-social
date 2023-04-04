@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/valyala/fasthttp"
+	attachmentServer "github.com/web-stuff-98/psql-social/pkg/attachmentServer"
 	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
 	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
@@ -31,6 +32,7 @@ type handler struct {
 	SocketServer     *socketServer.SocketServer
 	CallServer       *callServer.CallServer
 	ChannelRTCServer *channelRTCserver.ChannelRTCServer
+	AttachmentServer *attachmentServer.AttachmentServer
 }
 
 func ResponseMessage(ctx *fasthttp.RequestCtx, msg string, code int) {
@@ -38,6 +40,6 @@ func ResponseMessage(ctx *fasthttp.RequestCtx, msg string, code int) {
 	ctx.WriteString(msg)
 }
 
-func New(db *pgxpool.Pool, rdb *redis.Client, ss *socketServer.SocketServer, cs *callServer.CallServer, cRTCs *channelRTCserver.ChannelRTCServer) handler {
-	return handler{db, rdb, ss, cs, cRTCs}
+func New(db *pgxpool.Pool, rdb *redis.Client, ss *socketServer.SocketServer, cs *callServer.CallServer, cRTCs *channelRTCserver.ChannelRTCServer, as *attachmentServer.AttachmentServer) handler {
+	return handler{db, rdb, ss, cs, cRTCs, as}
 }
