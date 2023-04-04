@@ -66,6 +66,36 @@ const useAttachmentStore = defineStore("attachments", {
           },
         ];
     },
+    async uploadAttachment(file: File, id: string) {
+      await makeRequest(`${baseURL}/api/attachment/metadata`, {
+        data: {
+          name: file.name,
+          size: file.size,
+          mime: file.type,
+          msg_id: id,
+        },
+        method: "POST",
+      });
+      // Split attachment into 4mb chunks
+      let fileUploadChunks: Promise<ArrayBuffer>[] = [];
+      let startPointer = 0;
+      let endPointer = file.size;
+      while (startPointer < endPointer) {
+        let newStartPointer = startPointer + 4 * 1024 * 1024;
+        fileUploadChunks.push(
+          new Blob([file.slice(startPointer, newStartPointer)]).arrayBuffer()
+        );
+        startPointer = newStartPointer;
+      }
+      // Upload chunks
+      for await (const data of fileUploadChunks) {
+        await makeRequest(`${baseURL}/api/attachment/chunk/${id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/octet-stream" },
+          data,
+        });
+      }
+    },
   },
 });
 

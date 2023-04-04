@@ -13,6 +13,7 @@ import useSocketStore from "../store/SocketStore";
 import useUserStore from "../store/UserStore";
 import useRoomStore from "../store/RoomStore";
 import useInboxStore from "../store/InboxStore";
+import useAttachmentStore from "../store/AttachmentStore";
 import {
   isBlock,
   isCallAcknowledge,
@@ -45,12 +46,14 @@ export default function useBackgroundProcess({
   const pingSocketInterval = ref<NodeJS.Timer>();
   const clearUserCacheInterval = ref<NodeJS.Timer>();
   const clearRoomCacheInterval = ref<NodeJS.Timer>();
+  const clearAttachmentCacheInterval = ref<NodeJS.Timer>();
 
   const authStore = useAuthStore();
   const socketStore = useSocketStore();
   const userStore = useUserStore();
   const roomStore = useRoomStore();
   const inboxStore = useInboxStore();
+  const attachmentStore = useAttachmentStore();
 
   const router = useRouter();
 
@@ -342,6 +345,23 @@ export default function useBackgroundProcess({
         (id) => !disappeared.includes(id)
       );
     }, 30000);
+
+    /* Remove data for attachments that haven't been seen in 30 seconds */
+    clearAttachmentCacheInterval.value = setInterval(() => {
+      const disappeared = attachmentStore.disappearedAttachments.map((da) =>
+        Date.now() - da.disappearedAt > 30000 ? da.id : ""
+      );
+      attachmentStore.attachments = [
+        ...attachmentStore.attachments.filter(
+          (a) => !disappeared.includes(a.ID)
+        ),
+      ];
+      attachmentStore.disappearedAttachments = [
+        ...attachmentStore.disappearedAttachments.filter(
+          (da) => !disappeared.includes(da.id)
+        ),
+      ];
+    }, 30000);
   });
 
   /* Automatically start watching users */
@@ -385,6 +405,7 @@ export default function useBackgroundProcess({
     clearInterval(pingSocketInterval.value);
     clearInterval(clearUserCacheInterval.value);
     clearInterval(clearRoomCacheInterval.value);
+    clearInterval(clearAttachmentCacheInterval.value);
 
     socketStore.socket?.removeEventListener("message", watchForChangeEvents);
     socketStore.socket?.removeEventListener("message", watchInbox);

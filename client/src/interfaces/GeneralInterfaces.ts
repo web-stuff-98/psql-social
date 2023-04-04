@@ -35,6 +35,7 @@ export interface IMessage {
   content: string;
   created_at: string;
   author_id: string;
+  has_attachment?: boolean;
 }
 export interface IRoomMessage extends IMessage {}
 export interface IDirectMessage extends IMessage {}

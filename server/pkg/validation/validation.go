@@ -25,9 +25,8 @@ type CreateUpdateChannel struct {
 }
 
 type CreateAttachmentMetadata struct {
-	Name      string `json:"name"`
-	Mime      string `json:"mime"`
-	Size      int    `json:"size"`
-	ID        string `json:"msg_id"`
-	IsRoomMsg bool   `json:"room_msg"`
+	Name string `json:"name"`
+	Mime string `json:"mime"`
+	Size int    `json:"size"`
+	ID   string `json:"msg_id"`
 }

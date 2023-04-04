@@ -18,6 +18,7 @@ import {
   isRoomMsgUpdate,
   isRequestAttachment,
 } from "../../../socketHandling/InterpretEvent";
+import { baseURL, makeRequest } from "../../../services/makeRequest";
 import { IRoomMessage } from "../../../interfaces/GeneralInterfaces";
 import MessageForm from "../../../components/shared/MessageForm.vue";
 import useSocketStore from "../../../store/SocketStore";
@@ -32,12 +33,14 @@ import router from "../../../router";
 import EditRoomChannel from "./EditRoomChannel.vue";
 import CreateRoomChannel from "./CreateRoomChannel.vue";
 import RoomVidChat from "./RoomVidChat.vue";
+import useAttachmentStore from "../../../store/AttachmentStore";
 
 const roomChannelStore = useRoomChannelStore();
 const roomStore = useRoomStore();
 const socketStore = useSocketStore();
 const userStore = useUserStore();
 const authStore = useAuthStore();
+const attachmentStore = useAttachmentStore();
 
 const route = useRoute();
 const roomId = toRef(route.params, "id");
@@ -204,7 +207,13 @@ async function handleMessages(e: MessageEvent) {
   }
 
   if (isRequestAttachment(msg)) {
-    if (pendingAttachmentFile.value) console.log("UPLOAD");
+    console.log("REQUESTED ATTACHMENT");
+    console.log(msg.data.ID);
+    if (pendingAttachmentFile.value)
+      attachmentStore.uploadAttachment(
+        pendingAttachmentFile.value,
+        msg.data.ID
+      );
     else
       console.warn(
         "Server requested attachment file, but attachment file is undefined"
@@ -223,6 +232,7 @@ function handleSubmit(values: any, file?: File) {
       has_attachment: Boolean(file),
     },
   } as RoomMessageEvent);
+  console.log("FILE:",file)
   pendingAttachmentFile.value = file;
 }
 </script>

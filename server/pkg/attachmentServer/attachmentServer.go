@@ -2,6 +2,7 @@ package attachmentserver
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -107,11 +108,11 @@ func runServer(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpool.
 						if uploader, ok := as.Uploaders.data[uid]; ok {
 							if upload, ok := uploader[id]; ok {
 								if upload.IsRoomMsg {
-									table = "room_messages_attachment_metadata"
+									table = "room_message_attachment_metadata"
 								} else {
-									table = "direct_messages_attachment_metadata"
+									table = "direct_message_attachment_metadata"
 								}
-								if _, err := db.Exec(context.TODO(), `UPDATE "$1" SET failed = TRUE where id = $2;`, table, id); err != nil {
+								if _, err := db.Exec(context.TODO(), fmt.Sprintf(`UPDATE %v SET failed = TRUE where message_id = $1;`, table), id); err != nil {
 									log.Println("Error updating failed field in attachment server cleanup loop:", err)
 								}
 							}
@@ -151,7 +152,14 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 			chunk.RecvChan <- false
 			continue
 		} else {
-			selectStmt, err := conn.Conn().Prepare(ctx, "attachment_server_select_metadata_stmt", `SELECT size,failed FROM "$1" WHERE id = $2`)
+			var table string
+			if chunk.IsRoomMsg {
+				table = "room_message_attachment_metadata"
+			} else {
+				table = "direct_message_attachment_metadata"
+			}
+			log.Println(chunk.MsgId)
+			selectStmt, err := conn.Conn().Prepare(ctx, "attachment_server_select_metadata_stmt", fmt.Sprintf("SELECT size,failed FROM %v WHERE message_id = $1", table))
 			if err != nil {
 				log.Println("Error preparing select metadata statement in attachmentServer chunk loop:", err)
 				as.Uploaders.mutex.Unlock()
@@ -162,7 +170,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 				chunk.RecvChan <- false
 				continue
 			}
-			if err = conn.Conn().QueryRow(ctx, selectStmt.Name, chunk.MsgId).Scan(&size); err != nil {
+			if err = conn.Conn().QueryRow(ctx, selectStmt.Name, chunk.MsgId).Scan(&size, &failed); err != nil {
 				log.Println("Error selecting metadata in attachmentServer chunk loop:", err)
 				as.Uploaders.mutex.Unlock()
 				as.DeleteChan <- Delete{
@@ -173,6 +181,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 				continue
 			}
 			if failed {
+				as.Uploaders.mutex.Unlock()
 				chunk.RecvChan <- false
 				continue
 			}
@@ -203,18 +212,18 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 			}
 			var metaTable string
 			if as.Uploaders.data[chunk.Uid][chunk.MsgId].IsRoomMsg {
-				metaTable = "room_messages_attachment_metadata"
+				metaTable = "room_message_attachment_metadata"
 			} else {
-				metaTable = "direct_messages_attachment_metadata"
+				metaTable = "direct_message_attachment_metadata"
 			}
 			var chunkTable string
 			if as.Uploaders.data[chunk.Uid][chunk.MsgId].IsRoomMsg {
-				chunkTable = "room_messages_attachment_chunks"
+				chunkTable = "room_message_attachment_chunks"
 			} else {
-				chunkTable = "direct_messages_attachment_chunks"
+				chunkTable = "direct_message_attachment_chunks"
 			}
 			// Write chunk
-			insertStmt, err := conn.Conn().Prepare(ctx, "attachment_server_insert_chunk_stmt", `INSERT INTO "$1" (id,bytes,message_id,next_chunk) VALUES($1,$2,$3,$4,$5)`)
+			insertStmt, err := conn.Conn().Prepare(ctx, "attachment_server_insert_chunk_stmt", fmt.Sprintf("INSERT INTO %v (id,bytes,message_id,next_chunk) VALUES($1,$2,$3,$4)", chunkTable))
 			if err != nil {
 				log.Println("Error preparing insert chunk statement in attachmentServer chunk loop:", err)
 				as.Uploaders.mutex.Unlock()
@@ -225,7 +234,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 				chunk.RecvChan <- false
 				continue
 			} else {
-				if _, err = conn.Conn().Exec(ctx, insertStmt.Name, chunkTable, chunkId, chunk.Data, chunk.MsgId, nextId); err != nil {
+				if _, err = conn.Conn().Exec(ctx, insertStmt.Name, chunkId, chunk.Data, chunk.MsgId, nextId); err != nil {
 					log.Println("Error inserting chunk in attachmentServer chunk loop:", err)
 					as.Uploaders.mutex.Unlock()
 					as.DeleteChan <- Delete{
@@ -243,7 +252,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 					delete(as.Uploaders.data, chunk.Uid)
 				}
 				// Send progress update
-				updateStmt, err := conn.Conn().Prepare(ctx, "attachment_server_update_chunk_complete_stmt", `UPDATE "$1" SET ratio = 1 WHERE id = $2`)
+				updateStmt, err := conn.Conn().Prepare(ctx, "attachment_server_update_chunk_complete_stmt", fmt.Sprintf("UPDATE %v SET ratio = 1 WHERE message_id = $1", metaTable))
 				if err != nil {
 					log.Println("Error in prepare update chunk metadata complete statement in attachmentServer chunk loop:", err)
 					as.Uploaders.mutex.Unlock()
@@ -254,7 +263,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 					chunk.RecvChan <- false
 					continue
 				}
-				if _, err := conn.Conn().Exec(ctx, updateStmt.Name, metaTable, chunk.MsgId); err != nil {
+				if _, err := conn.Conn().Exec(ctx, updateStmt.Name, chunk.MsgId); err != nil {
 					log.Println("Error in update chunk metadata complete statement in attachmentServer chunk loop:", err)
 					as.Uploaders.mutex.Unlock()
 					as.DeleteChan <- Delete{
@@ -282,7 +291,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 					} else {
 						// Send progress update
 						ratio := (float32(upload.Index) * (4 * 1024 * 1024)) / float32(upload.TotalBytes)
-						updateStmt, err := conn.Conn().Prepare(ctx, "attachment_server_update_ratio_stmt", `UPDATE "$1" SET ratio = $2 WHERE id = $3`)
+						updateStmt, err := conn.Conn().Prepare(ctx, "attachment_server_update_ratio_stmt", fmt.Sprintf("UPDATE %v SET ratio = $1 WHERE message_id = $2", metaTable))
 						if err != nil {
 							log.Println("Error in prepare update chunk metadata ratio statement in attachmentServer chunk loop:", err)
 							as.Uploaders.mutex.Unlock()
@@ -293,7 +302,7 @@ func handleChunks(as *AttachmentServer, ss *socketServer.SocketServer, db *pgxpo
 							chunk.RecvChan <- false
 							continue
 						}
-						if _, err = conn.Exec(ctx, updateStmt.Name, metaTable, ratio, chunk.MsgId); err != nil {
+						if _, err = conn.Exec(ctx, updateStmt.Name, ratio, chunk.MsgId); err != nil {
 							log.Println("Error in update chunk metadata ratio statement in attachmentServer chunk loop:", err)
 							as.Uploaders.mutex.Unlock()
 							as.DeleteChan <- Delete{
@@ -354,38 +363,38 @@ func deleteAttachment(as *AttachmentServer, ss *socketServer.SocketServer, db *p
 				}
 				as.Uploaders.mutex.Unlock()
 			}
-			deleteStmt, err := conn.Conn().Prepare(ctx, "attachment_server_delete_attachment_stmt", `DELETE FROM "$1" WHERE id = $2`)
-			if err != nil {
-				log.Println("Error preparing delete attachment statement in delete attachment loop:", err)
-				errored()
-				continue
-			}
 			var isRoomMsg bool
-			if err = db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM room_messages_attachment_metadata);").Scan(&isRoomMsg); err != nil {
+			if err = db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM room_message_attachment_metadata);").Scan(&isRoomMsg); err != nil {
 				log.Println("Error in select room message attachment data in delete attachment metadata loop:", err)
 				errored()
 				continue
 			}
 			var isDirectMessage bool
 			if !isRoomMsg {
-				if err = db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM direct_messages_attachment_metadata);").Scan(&isDirectMessage); err != nil {
+				if err = db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM direct_message_attachment_metadata);").Scan(&isDirectMessage); err != nil {
 					log.Println("Error in select direct message attachment data in delete attachment metadata loop:", err)
 					errored()
 					continue
 				}
+			}
+			var metaTable string
+			if isRoomMsg {
+				metaTable = "room_message_attachment_metadata"
+			} else {
+				metaTable = "direct_message_attachment_metadata"
+			}
+			deleteStmt, err := conn.Conn().Prepare(ctx, "attachment_server_delete_attachment_stmt", fmt.Sprintf("DELETE FROM %v WHERE message_id = $2", metaTable))
+			if err != nil {
+				log.Println("Error preparing delete attachment statement in delete attachment loop:", err)
+				errored()
+				continue
 			}
 			if !isRoomMsg && !isDirectMessage {
 				log.Println("Error in delete attachment loop, message metadata could not be found in either table")
 				errored()
 				continue
 			}
-			var metaTable string
-			if isRoomMsg {
-				metaTable = "room_messages_attachment_metadata"
-			} else {
-				metaTable = "direct_messages_attachment_metadata"
-			}
-			if _, err = conn.Conn().Exec(ctx, deleteStmt.Name, metaTable, deleteData.MsgId); err != nil {
+			if _, err = conn.Conn().Exec(ctx, deleteStmt.Name, deleteData.MsgId); err != nil {
 				log.Println("Error in delete attachment statement in delete attachment loop:", err)
 				errored()
 				continue
@@ -425,14 +434,14 @@ func deleteAttachmentChunks(chunkId string, uid string, msgId string, as *Attach
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 	var isRoomMsg bool
-	if err := db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM room_messages_attachment_metadata);").Scan(&isRoomMsg); err != nil {
+	if err := db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM room_message_attachment_metadata);").Scan(&isRoomMsg); err != nil {
 		log.Println("Error in select room message attachment data in delete attachment metadata loop:", err)
 		errored()
 		return
 	}
 	var isDirectMessage bool
 	if !isRoomMsg {
-		if err := db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM direct_messages_attachment_metadata);").Scan(&isDirectMessage); err != nil {
+		if err := db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM direct_message_attachment_metadata);").Scan(&isDirectMessage); err != nil {
 			log.Println("Error in select direct message attachment data in delete attachment metadata loop:", err)
 			errored()
 			return
@@ -443,19 +452,19 @@ func deleteAttachmentChunks(chunkId string, uid string, msgId string, as *Attach
 		errored()
 		return
 	}
-	var metaTable string
+	var chunkTable string
 	if isRoomMsg {
-		metaTable = "room_messages_attachment_metadata"
+		chunkTable = "room_message_attachment_chunks"
 	} else {
-		metaTable = "direct_messages_attachment_metadata"
+		chunkTable = "direct_message_attachment_chunks"
 	}
 	var nextChunkId string
-	if err := db.QueryRow(ctx, `SELECT next_chunk FROM "$1" WHERE id = $2;`, metaTable, chunkId).Scan(&nextChunkId); err != nil {
+	if err := db.QueryRow(ctx, fmt.Sprintf("SELECT next_chunk FROM %v WHERE message_id = $1;", chunkTable), chunkId).Scan(&nextChunkId); err != nil {
 		log.Println("Error in delete attachment loop select next chunk id statement:", err)
 		errored()
 		return
 	}
-	if _, err := db.Exec(ctx, `DELETE FROM "$1" WHERE id = $1;`, chunkId); err != nil {
+	if _, err := db.Exec(ctx, fmt.Sprintf("DELETE FROM %v WHERE message_id = $1;", chunkTable), chunkId); err != nil {
 		log.Println("Error in delete attachment loop delete statement:", err)
 		errored()
 		return

@@ -64,6 +64,9 @@ func main() {
 	r.GET("/api/user/{id}", h.GetUser)
 	r.POST("/api/user/name", h.GetUserByName)
 
+	r.POST("/api/attachment/metadata", h.CreateAttachmentMetadata)
+	r.POST("/api/attachment/chunk/{id}", h.UploadAttachmentChunk)
+
 	r.GET("/api/ws", h.WebSocketEndpoint)
 
 	corsHandler := fasthttpcors.NewCorsHandler(fasthttpcors.Options{

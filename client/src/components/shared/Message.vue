@@ -15,6 +15,7 @@ import {
   RoomMessageUpdate,
 } from "../../socketHandling/OutEvents";
 import ErrorMessage from "./ErrorMessage.vue";
+import Attachment from "./Attachment.vue";
 const props = defineProps<{
   msg: IRoomMessage | IDirectMessage;
   roomId?: string;
@@ -86,7 +87,7 @@ function handleSubmitEdit(values: any) {
           ? {
               flexDirection: 'column',
               alignItems: isAuthor ? 'flex-start' : 'flex-end',
-              gap:'6px'
+              gap: '6px',
             }
           : {}),
       }"
@@ -100,8 +101,17 @@ function handleSubmitEdit(values: any) {
           :uid="msg.author_id"
         />
       </div>
-      <div v-show="!isEditing" class="content">
+      <div
+        :style="{ alignItems: isAuthor ? 'start' : 'end' }"
+        v-show="!isEditing"
+        class="content"
+      >
         {{ msg.content }}
+        <Attachment
+          v-if="msg.has_attachment"
+          :reverse="!isAuthor"
+          :msgId="msg.ID"
+        />
       </div>
     </div>
     <Form
@@ -155,10 +165,12 @@ function handleSubmitEdit(values: any) {
     display: flex;
     align-items: center;
     width: 100%;
-    gap:var(--gap-md);
+    gap: var(--gap-md);
     .content {
       font-size: var(--xs);
       flex-grow: 1;
+      display: flex;
+      flex-direction: column;
     }
   }
   .buttons {

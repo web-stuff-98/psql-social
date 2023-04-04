@@ -1,0 +1,113 @@
+<script lang="ts" setup>
+import { toRefs, ref, onMounted, onBeforeUnmount, computed } from "vue";
+import {
+  IResMsg,
+} from "../../interfaces/GeneralInterfaces";
+import { baseURL, makeRequest } from "../../services/makeRequest";
+import useAttachmentStore from "../../store/AttachmentStore";
+import ResMsg from "./ResMsg.vue";
+import ProgressBar from "../shared/Progress.vue";
+
+const attachmentStore = useAttachmentStore();
+
+const props = defineProps<{
+  msgId: string;
+  reverse?: boolean;
+}>();
+const { msgId } = toRefs(props);
+
+const resMsg = ref<IResMsg>({ msg: "", err: false, pen: false });
+const containerRef = ref<HTMLElement | null>(null);
+
+const meta = computed(() =>
+  attachmentStore.attachments.find((m) => m.ID === msgId.value)
+);
+
+const observer = new IntersectionObserver(([entry]) => {
+  if (entry.isIntersecting) {
+    attachmentStore.attachmentEnteredView(msgId.value);
+  } else {
+    attachmentStore.attachmentLeftView(msgId.value);
+  }
+});
+
+onMounted(() => {
+  observer.observe(containerRef.value!);
+});
+onBeforeUnmount(() => {
+  observer.disconnect();
+});
+
+async function download() {
+  const data = await makeRequest(`/api/attachment/${meta?.value?.ID}`);
+  const blob = new Blob([data], { type: meta?.value?.meta });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${baseURL}/api/attachment/${meta?.value?.ID}`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+</script>
+
+<template>
+  <div
+    :style="reverse ? { justifyContent: 'flex-end', textAlign: 'right' } : {}"
+    ref="containerRef"
+    class="attachment"
+  >
+    <div v-if="meta && meta.ratio === 1">
+      <img
+        :src="`${baseURL}/api/attachment/${msgId}`"
+        v-if="
+          meta.meta === 'image/jpeg' ||
+          meta.meta === 'image/png' ||
+          meta.meta === 'image/avif'
+        "
+      />
+      <a
+        :href="`${baseURL}/api/attachment/${meta.ID}`"
+        @click.prevent="download"
+        :style="{ flexDirection: 'row-reverse' }"
+        type="button"
+        v-else
+      >
+        <v-icon name="fa-download" />
+        {{
+          meta.name.length > 24 ? meta.name.slice(0, 24 - 1) + "..." : meta.name
+        }}
+      </a>
+    </div>
+    <ProgressBar v-if="meta && meta.ratio < 1" :ratio="meta.ratio" />
+    <ResMsg :resMsg="resMsg" />
+  </div>
+</template>
+
+<style lang="scss">
+.attachment {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  img {
+    border-radius: var(--border-radius-md);
+    filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.166));
+    max-width: 80%;
+    border: 2px solid var(--border-medium);
+  }
+  button {
+    padding: 3px;
+    display: flex;
+    gap: var(--gap-md);
+    font-size: 0.666rem;
+    line-height: 1;
+    align-items: center;
+    padding: var(--gap-md);
+    box-shadow: none;
+    border: none;
+  }
+  button:hover {
+    outline: 1px solid var(--border-medium);
+  }
+}
+</style>
