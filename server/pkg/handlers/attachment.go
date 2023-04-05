@@ -29,7 +29,6 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -47,23 +46,19 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 
 	var isRoomMsg, isDirectMessage bool
 	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
-		log.Println("ERR B:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectRoomMsgStmt.Name, body.ID, uid).Scan(&isRoomMsg); err != nil {
-			log.Println("ERR C:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
 	}
 	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
-		log.Println("ERR D:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectDirectMsgStmt.Name, body.ID, uid).Scan(&isDirectMessage); err != nil {
-			log.Println("ERR E:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -82,13 +77,11 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 	}
 
 	if selectStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_stmt", fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %v WHERE id = $1)", tableName)); err != nil {
-		log.Println("ERR F:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		var exists bool
 		if err = conn.Conn().QueryRow(ctx, selectStmt.Name, body.ID).Scan(&exists); err != nil {
-			log.Println("ERR G:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -107,13 +100,11 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 
 	var author_id string
 	if selectAuthorStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_author_stmt", fmt.Sprintf("SELECT author_id FROM %v WHERE id = $1", messagesTableName)); err != nil {
-		log.Println("ERR H:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectAuthorStmt.Name, body.ID).Scan(&author_id); err != nil {
 			if err != pgx.ErrNoRows {
-				log.Println("ERR I:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			} else {
 				ResponseMessage(ctx, "Message not found", fasthttp.StatusNotFound)
@@ -128,12 +119,10 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 	}
 
 	if insertStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_insert_stmt", fmt.Sprintf("INSERT INTO %v (meta,name,size,failed,ratio,message_id) VALUES($1,$2,$3,$4,$5,$6)", tableName)); err != nil {
-		log.Println("ERR J:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		if _, err = conn.Conn().Exec(rctx, insertStmt.Name, body.Mime, body.Name, body.Size, false, 0, body.ID); err != nil {
-			log.Println("ERR K:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -142,12 +131,10 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 	if isRoomMsg {
 		var room_channel_id string
 		if selectRoomChannelStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_room_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1"); err != nil {
-			log.Println("ERR L:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		} else {
 			if err = conn.QueryRow(rctx, selectRoomChannelStmt.Name, body.ID).Scan(&room_channel_id); err != nil {
-				log.Println("ERR M:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -166,12 +153,10 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 	} else {
 		var recipient_id string
 		if selectRecipientStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_recipient_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1"); err != nil {
-			log.Println("ERR N:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		} else {
 			if err = conn.QueryRow(rctx, selectRecipientStmt.Name, body.ID).Scan(&recipient_id); err != nil {
-				log.Println("ERR O:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -202,7 +187,6 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -216,23 +200,19 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 
 	var isRoomMsg, isDirectMessage bool
 	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
-		log.Println("ERR B:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectRoomMsgStmt.Name, id, uid).Scan(&isRoomMsg); err != nil {
-			log.Println("ERR C:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
 	}
 	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
-		log.Println("ERR D:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectDirectMsgStmt.Name, id, uid).Scan(&isDirectMessage); err != nil {
-			log.Println("ERR E:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -247,12 +227,10 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 	if isRoomMsg {
 		var room_channel_id string
 		if selectRoomChannelStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_channel_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1"); err != nil {
-			log.Println("ERR F:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		} else {
 			if err = conn.QueryRow(rctx, selectRoomChannelStmt.Name, id).Scan(&room_channel_id); err != nil {
-				log.Println("ERR G:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -269,12 +247,10 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 	} else {
 		var recipient_id string
 		if selectRecipientStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_recipient_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1"); err != nil {
-			log.Println("ERR H:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		} else {
 			if err = conn.QueryRow(rctx, selectRecipientStmt.Name, id).Scan(&recipient_id); err != nil {
-				log.Println("ERR I:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
