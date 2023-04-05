@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	attachmentHelpers "github.com/web-stuff-98/psql-social/pkg/helpers/attachmentHelpers"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
@@ -90,7 +91,7 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 			continue
 		}
 
-		metaTable, chunkTable, err := getTableNames(conn, data.Ctx, data.ID)
+		metaTable, chunkTable, err := attachmentHelpers.GetTableNames(conn, data.Ctx, data.ID)
 		if err != nil {
 			errored(err, conn)
 			continue
@@ -244,7 +245,7 @@ func deleteAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *p
 			continue
 		}
 
-		_, chunkTable, err := getTableNames(conn, ctx, id)
+		_, chunkTable, err := attachmentHelpers.GetTableNames(conn, ctx, id)
 		if err != nil {
 			errored(err, conn)
 			continue
@@ -294,7 +295,7 @@ func failAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *pgx
 			continue
 		}
 
-		metaTable, _, err := getTableNames(conn, ctx, id)
+		metaTable, _, err := attachmentHelpers.GetTableNames(conn, ctx, id)
 		if err != nil {
 			errored(err, conn)
 			continue
@@ -314,29 +315,4 @@ func failAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *pgx
 
 		as.DeleteChan <- id
 	}
-}
-
-func getTableNames(conn *pgxpool.Conn, ctx context.Context, id string) (metaTable string, chunkTable string, err error) {
-	var isDirectMessage, isRoomMsg bool
-	if selectDirectMessage, err := conn.Conn().Prepare(ctx, "attachment_server_chunk_loop_select_direct_messages_stmt", "SELECT EXISTS(SELECT 1 FROM direct_messages WHERE id = $1)"); err != nil {
-		return "", "", err
-	} else {
-		if err = conn.Conn().QueryRow(ctx, selectDirectMessage.Name, id).Scan(&isDirectMessage); err != nil {
-			return "", "", err
-		}
-	}
-	if selectRoomMessage, err := conn.Conn().Prepare(ctx, "attachment_server_chunk_loop_select_room_messages_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1)"); err != nil {
-		return "", "", err
-	} else {
-		if err = conn.Conn().QueryRow(ctx, selectRoomMessage.Name, id).Scan(&isRoomMsg); err != nil {
-			return "", "", err
-		}
-	}
-	if isDirectMessage {
-		return "direct_message_attachment_metadata", "direct_message_attachment_chunks", nil
-	}
-	if isRoomMsg {
-		return "room_message_attachment_metadata", "room_message_attachment_chunks", nil
-	}
-	return "", "", fmt.Errorf("Message not found in either table")
 }

@@ -66,6 +66,7 @@ func main() {
 
 	r.POST("/api/attachment/metadata", h.CreateAttachmentMetadata)
 	r.POST("/api/attachment/chunk/{id}", h.UploadAttachmentChunk)
+	r.GET("/api/attachment/{id}", h.DownloadAttachment)
 
 	r.GET("/api/ws", h.WebSocketEndpoint)
 

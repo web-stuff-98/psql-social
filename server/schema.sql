@@ -46,7 +46,7 @@ CREATE TABLE rooms (
     name VARCHAR(16) NOT NULL,
     private BOOLEAN NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 );
 
 CREATE TABLE invitations (

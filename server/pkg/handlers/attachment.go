@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/valyala/fasthttp"
 	attachmentServer "github.com/web-stuff-98/psql-social/pkg/attachmentServer"
+	attachmentHelpers "github.com/web-stuff-98/psql-social/pkg/helpers/attachmentHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
@@ -360,4 +363,90 @@ func (h handler) GetAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 		ctx.Write(outBytes)
 	}
+}
+
+func (h handler) DownloadAttachment(ctx *fasthttp.RequestCtx) {
+	id := ctx.UserValue("id").(string)
+	if id == "" {
+		ResponseMessage(ctx, "Provide a message ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	rctx, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	metaTable, chunkTable, err := attachmentHelpers.GetTableNames(conn, ctx, id)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	var size int
+	var name, meta string
+	var failed bool
+	var ratio float32
+	if selectMetadataStmt, err := conn.Conn().Prepare(rctx, "download_attachment_select_metadata_stmt", fmt.Sprintf("SELECT size,name,meta,failed,ratio FROM %v WHERE message_id = $1", metaTable)); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	} else {
+		if err = conn.Conn().QueryRow(rctx, selectMetadataStmt.Name, id).Scan(&size, &name, &meta, &failed, &ratio); err != nil {
+			if err != pgx.ErrNoRows {
+				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			} else {
+				ResponseMessage(ctx, "Metadata not found", fasthttp.StatusNotFound)
+			}
+			return
+		}
+	}
+	if failed {
+		ResponseMessage(ctx, "Cannot download a failed attachment", fasthttp.StatusBadRequest)
+		return
+	}
+	if ratio != 1 {
+		ResponseMessage(ctx, "Attachment upload incomplete", fasthttp.StatusBadRequest)
+		return
+	}
+
+	// no need to prepare statement, ID matched a metadata document, which means its clean
+	var firstChunkBytes []byte
+	if err = h.DB.QueryRow(rctx, fmt.Sprintf("SELECT bytes FROM %v WHERE message_id = $1 AND chunk_index = 0", chunkTable)).Scan(&firstChunkBytes); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	var index int = 1
+	var bytesDone int = len(firstChunkBytes)
+
+	ctx.Response.Header.Add("Content-Type", "application/octet-stream")
+	ctx.Response.Header.Add("Content-Length", strconv.Itoa(size))
+	ctx.Response.Header.Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%v"`, name))
+
+	ctx.Write(firstChunkBytes)
+
+	if err = recursivelyWriteAttachmentChunksToResponse(ctx, rctx, chunkTable, id, conn, &bytesDone, &size, &index); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+	} else {
+		ctx.SetStatusCode(fasthttp.StatusOK)
+	}
+}
+
+func recursivelyWriteAttachmentChunksToResponse(ctx *fasthttp.RequestCtx, rctx context.Context, chunkTable string, id string, conn *pgxpool.Conn, bytesDone *int, size *int, i *int) error {
+	var chunkBytes []byte
+	if err := conn.QueryRow(rctx, fmt.Sprintf("SELECT bytes FROM %v WHERE message_id = $1 AND chunk_index = $2", chunkTable), id, i).Scan(&chunkBytes); err != nil {
+		return err
+	} else {
+		*bytesDone += len(chunkBytes)
+		ctx.Write(chunkBytes)
+		if *bytesDone == *size {
+			return nil
+		}
+	}
+	*i++
+	return recursivelyWriteAttachmentChunksToResponse(ctx, rctx, chunkTable, id, conn, bytesDone, size, i)
 }
