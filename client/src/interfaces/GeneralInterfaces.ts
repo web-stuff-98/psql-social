@@ -12,7 +12,7 @@ export interface IResMsg {
 }
 export interface IAttachmentMetadata {
   ID: string;
-  meta: string;
+  mime: string;
   name: string;
   size: number;
   ratio: number;

@@ -24,18 +24,20 @@ type RoomChannelBase struct {
 }
 
 type RoomMessage struct {
-	ID        string `json:"ID"`
-	Content   string `json:"content"`
-	AuthorID  string `json:"author_id"`
-	CreatedAt string `json:"created_at"`
+	ID            string `json:"ID"`
+	Content       string `json:"content"`
+	AuthorID      string `json:"author_id"`
+	CreatedAt     string `json:"created_at"`
+	HasAttachment bool   `json:"has_attachment"`
 }
 
 type DirectMessage struct {
-	ID          string `json:"ID"`
-	Content     string `json:"content"`
-	AuthorID    string `json:"author_id"`
-	RecipientID string `json:"recipient_id"`
-	CreatedAt   string `json:"created_at"`
+	ID            string `json:"ID"`
+	Content       string `json:"content"`
+	AuthorID      string `json:"author_id"`
+	RecipientID   string `json:"recipient_id"`
+	CreatedAt     string `json:"created_at"`
+	HasAttachment bool   `json:"has_attachment"`
 }
 
 type Invitation struct {

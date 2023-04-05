@@ -38,7 +38,7 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 	}
 
 	if !body.Policy {
-		ResponseMessage(ctx, "You must agree to the policy",fasthttp.StatusBadRequest)
+		ResponseMessage(ctx, "You must agree to the policy", fasthttp.StatusBadRequest)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	}
 
 	if !body.Policy {
-		ResponseMessage(ctx, "You must agree to the policy",fasthttp.StatusBadRequest)
+		ResponseMessage(ctx, "You must agree to the policy", fasthttp.StatusBadRequest)
 		return
 	}
 
@@ -313,7 +313,7 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Error loading file", fasthttp.StatusInternalServerError)
 		return
 	}
-	if fh.Size > 20*1024*1024 {
+	if fh.Size > 30*1024*1024 {
 		ResponseMessage(ctx, "Maxiumum file size allowed is 20mb", fasthttp.StatusBadRequest)
 		return
 	}
@@ -526,7 +526,7 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 	}
 	defer conn.Release()
 
-	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at ASC LIMIT 50")
+	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at,has_attachment FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at ASC LIMIT 50")
 	if err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
@@ -542,18 +542,20 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 		for rows.Next() {
 			var id, content, author_id, recipient_id string
 			var created_at pgtype.Timestamptz
+			var has_attachment bool
 
-			if err = rows.Scan(&id, &content, &author_id, &recipient_id, &created_at); err != nil {
+			if err = rows.Scan(&id, &content, &author_id, &recipient_id, &created_at, &has_attachment); err != nil {
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
 
 			messages = append(messages, responses.DirectMessage{
-				ID:          id,
-				CreatedAt:   created_at.Time.Format(time.RFC3339),
-				RecipientID: recipient_id,
-				AuthorID:    author_id,
-				Content:     content,
+				ID:            id,
+				CreatedAt:     created_at.Time.Format(time.RFC3339),
+				RecipientID:   recipient_id,
+				AuthorID:      author_id,
+				Content:       content,
+				HasAttachment: has_attachment,
 			})
 		}
 	}

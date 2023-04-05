@@ -15,6 +15,8 @@ import useRoomStore from "../store/RoomStore";
 import useInboxStore from "../store/InboxStore";
 import useAttachmentStore from "../store/AttachmentStore";
 import {
+  isAttachmentMetadataCreated,
+  isAttachmentProgress,
   isBlock,
   isCallAcknowledge,
   isCallResponse,
@@ -270,6 +272,37 @@ export default function useBackgroundProcess({
     }
   };
 
+  const watchAttachments = (e: MessageEvent) => {
+    const msg = JSON.parse(e.data);
+    if (!msg) return;
+    if (isAttachmentProgress(msg)) {
+      const i = attachmentStore.attachments.findIndex(
+        (a) => a.ID === msg.data.ID
+      );
+      if (i !== -1) {
+        const newMeta = {
+          ...attachmentStore.attachments[i],
+          ratio: msg.data.ratio,
+          failed: msg.data.failed,
+        };
+        attachmentStore.attachments = [
+          ...attachmentStore.attachments.filter((a) => a.ID !== msg.data.ID),
+          newMeta,
+        ];
+      }
+    }
+    if (isAttachmentMetadataCreated(msg)) {
+      attachmentStore.attachments = [
+        ...attachmentStore.attachments.filter((a) => a.ID !== msg.data.ID),
+        {
+          ...msg.data,
+          failed: false,
+          ratio: 0,
+        },
+      ];
+    }
+  };
+
   onMounted(() => {
     /* Refresh the token */
     refreshTokenInterval.value = setInterval(async () => {
@@ -398,6 +431,7 @@ export default function useBackgroundProcess({
     socketStore.socket?.addEventListener("message", watchForChangeEvents);
     socketStore.socket?.addEventListener("message", watchInbox);
     socketStore.socket?.addEventListener("message", watchForCalls);
+    socketStore.socket?.addEventListener("message", watchAttachments);
   });
 
   onBeforeUnmount(() => {
@@ -410,6 +444,7 @@ export default function useBackgroundProcess({
     socketStore.socket?.removeEventListener("message", watchForChangeEvents);
     socketStore.socket?.removeEventListener("message", watchInbox);
     socketStore.socket?.removeEventListener("message", watchForCalls);
+    socketStore.socket?.removeEventListener("message", watchAttachments);
   });
 
   return undefined;

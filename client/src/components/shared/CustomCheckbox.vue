@@ -27,18 +27,30 @@ const { checked, handleChange } = useField(name, rules, {
 
 <template>
   <button type="button" @click="handleChange(!value)">
-    {{ checked ? "TRUE" : "FALSE" }}
+    <v-icon :name="checked ? 'md-radiobuttonchecked' : 'md-radiobuttonunchecked'"/>
   </button>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 button {
   background: none;
   font-size: 16px;
   width: 100%;
   color: var(--text-colour);
   text-shadow: none;
-  border: 1px solid var(--border-medium);
+  border: none;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  .checkbox-container {
+    height: 0.7rem;
+    width: 0.7rem;
+    border: 1px solid var(--border-medium);
+    border-radius: 3px;
+    position: relative;
+  }
 }
 button:hover {
   background: none;

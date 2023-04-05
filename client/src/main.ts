@@ -25,6 +25,9 @@ import {
   BiCameraVideoOff,
   BiMicMuteFill,
   BiMicFill,
+  FaDownload,
+  MdRadiobuttonchecked,
+  MdRadiobuttonunchecked,
 } from "oh-vue-icons/icons";
 
 addIcons(
@@ -47,7 +50,10 @@ addIcons(
   BiCameraVideo,
   BiCameraVideoOff,
   BiMicMuteFill,
-  BiMicFill
+  BiMicFill,
+  FaDownload,
+  MdRadiobuttonchecked,
+  MdRadiobuttonunchecked
 );
 
 const pinia = createPinia();

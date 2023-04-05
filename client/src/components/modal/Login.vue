@@ -58,6 +58,11 @@ async function handleSubmit(values: any) {
       />
       <ErrorMessage name="password" />
     </div>
+    <button type="submit">Login</button>
+    <Modal v-if="showPolicy">
+      <ModalCloseButton @click="showPolicy = false" />
+      <Policy />
+    </Modal>
     <div class="input-label">
       <label class="underlined" @click="showPolicy = true" for="password"
         >You agree to the policy</label
@@ -68,11 +73,6 @@ async function handleSubmit(values: any) {
       />
       <ErrorMessage name="policy" />
     </div>
-    <button type="submit">Login</button>
-    <Modal v-if="showPolicy">
-      <ModalCloseButton @click="showPolicy = false" />
-      <Policy />
-    </Modal>
     <ResMsg :resMsg="resMsg" />
   </Form>
 </template>

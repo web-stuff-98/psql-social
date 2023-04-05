@@ -1,8 +1,6 @@
 <script lang="ts" setup>
 import { toRefs, ref, onMounted, onBeforeUnmount, computed } from "vue";
-import {
-  IResMsg,
-} from "../../interfaces/GeneralInterfaces";
+import { IResMsg } from "../../interfaces/GeneralInterfaces";
 import { baseURL, makeRequest } from "../../services/makeRequest";
 import useAttachmentStore from "../../store/AttachmentStore";
 import ResMsg from "./ResMsg.vue";
@@ -40,7 +38,7 @@ onBeforeUnmount(() => {
 
 async function download() {
   const data = await makeRequest(`/api/attachment/${meta?.value?.ID}`);
-  const blob = new Blob([data], { type: meta?.value?.meta });
+  const blob = new Blob([data], { type: meta?.value?.mime });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = `${baseURL}/api/attachment/${meta?.value?.ID}`;
@@ -59,9 +57,9 @@ async function download() {
       <img
         :src="`${baseURL}/api/attachment/${msgId}`"
         v-if="
-          meta.meta === 'image/jpeg' ||
-          meta.meta === 'image/png' ||
-          meta.meta === 'image/avif'
+          meta.mime === 'image/jpeg' ||
+          meta.mime === 'image/png' ||
+          meta.mime === 'image/avif'
         "
       />
       <a

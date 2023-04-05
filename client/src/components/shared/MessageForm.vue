@@ -25,9 +25,9 @@ function selectAttachment(e: Event) {
     attachmentFile.value = undefined
     return
   };
-  if (target.files[0].size > 20 * 1024 * 1024) {
+  if (target.files[0].size > 30 * 1024 * 1024) {
     messageModalStore.msg = {
-      msg: "File too large. Max 20mb.",
+      msg: "File too large. Max 30mb.",
       err: true,
       pen: false,
     };

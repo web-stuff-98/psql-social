@@ -46,6 +46,7 @@ const useAttachmentStore = defineStore("attachments", {
       }
     },
     attachmentEnteredView(id: string) {
+      this.cacheAttachment(id);
       this.$state.visibleAttachments = [...this.$state.visibleAttachments, id];
       const i = this.$state.disappearedAttachments.findIndex(
         (a) => a.id === id
