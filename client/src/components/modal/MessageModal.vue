@@ -31,6 +31,8 @@ import messageModalStore from "../../store/MessageModalStore";
   margin-top: var(--gap-md);
   button {
     flex-grow: 1;
+    font-size: var(--sm);
+    padding: 3px;
   }
 }
 * {

@@ -7,13 +7,7 @@ defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
     <h1>Welcome</h1>
     <hr />
     <p>
-      This is my new Vue & Go social app, it's basically the same as Go-Vue-Chat
-      but uses postgres and Pinia, and has been completely rewritten.<p>The
-      backend code is faster, the client code is much neater and handles
-      events differently. I am also using postgres instead of MongoDB. This version
-      also has more features, along with the standard video chat, screen sharing
-      & file sharing.
-    </p>
+      This is my new Vue & Go social app, it has all the features of Go-Vue-Chat but it's written better and uses postgres. The performance and UI is better.
     </p>
     <div class="buttons">
       <button type="button" @click="onLoginClicked()">Login</button>
@@ -33,6 +27,7 @@ defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
   }
   p {
     margin-top: var(--gap-md);
+    font-size: var(--sm);
   }
   h1 {
     padding: var(--gap-sm);

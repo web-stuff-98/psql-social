@@ -19,7 +19,7 @@ import (
 )
 
 func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -192,7 +192,7 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 }
 
 func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
-	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
@@ -202,6 +202,7 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
+		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -214,19 +215,23 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 
 	var isRoomMsg, isDirectMessage bool
 	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
+		log.Println("ERR B:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectRoomMsgStmt.Name, id, uid).Scan(&isRoomMsg); err != nil {
+			log.Println("ERR C:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
 	}
 	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
+		log.Println("ERR D:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectDirectMsgStmt.Name, id, uid).Scan(&isDirectMessage); err != nil {
+			log.Println("ERR E:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -241,10 +246,12 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 	if isRoomMsg {
 		var room_channel_id string
 		if selectRoomChannelStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_channel_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1"); err != nil {
+			log.Println("ERR F:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		} else {
 			if err = conn.QueryRow(rctx, selectRoomChannelStmt.Name, id).Scan(&room_channel_id); err != nil {
+				log.Println("ERR G:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -261,10 +268,12 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 	} else {
 		var recipient_id string
 		if selectRecipientStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_recipient_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1"); err != nil {
+			log.Println("ERR H:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		} else {
 			if err = conn.QueryRow(rctx, selectRecipientStmt.Name, id).Scan(&recipient_id); err != nil {
+				log.Println("ERR I:", err)
 				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 				return
 			}
@@ -273,21 +282,24 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 		uids = append(uids, uid)
 	}
 
+	log.Println("Channel sent")
+
 	recvChan := make(chan bool)
 	h.AttachmentServer.ChunkChan <- attachmentServer.InChunk{
-		Uid:           uid,
-		IsRoomMsg:     isRoomMsg,
-		SendUpdatesTo: uids,
-		Data:          ctx.Request.Body(),
-		RecvChan:      recvChan,
-		MsgId:         id,
+		Uid:      uid,
+		Data:     ctx.Request.Body(),
+		RecvChan: recvChan,
+		ID:       id,
 	}
-	wasErr := <-recvChan
+	complete := <-recvChan
 
-	if wasErr {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-	} else {
+	log.Println("Channel through")
+
+	if complete {
 		ResponseMessage(ctx, "Chunk created", fasthttp.StatusCreated)
+	} else {
+		log.Println("Error received from recvChan")
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 	}
 }
 

@@ -46,7 +46,7 @@ onBeforeUnmount(() => {
         class="pfp"
         v-if="!hasDisplayMediaVideo && !hasUserMediaVideo"
       >
-        <v-icon v-if="!user?.pfp" name="fa-user" />
+        <v-icon v-if="!user?.pfp" name="fa-user-alt" />
       </div>
       <!-- Video container - For when there is either or both video streams present -->
       <div
@@ -172,8 +172,8 @@ onBeforeUnmount(() => {
     background-size: cover;
     background-position: center;
     svg {
-      width: 2rem;
-      height: 2rem;
+      width: 60%;
+      height: 60%;
     }
   }
   .vid-container {
