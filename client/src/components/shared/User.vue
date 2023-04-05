@@ -56,7 +56,7 @@ onBeforeUnmount(() => {
       :style="{
         backgroundImage: `url(${user?.pfp})`,
         ...(authStore.uid === uid ? { cursor: 'default' } : {}),
-        ...(date ? { width: '2.4rem', height: '2.4rem' } : {}),
+        ...(date ? { width: '2.2rem', height: '2.2rem' } : {}),
       }"
       class="pfp"
     >
@@ -90,8 +90,8 @@ onBeforeUnmount(() => {
   .pfp {
     border: 2px outset var(--text-colour);
     border-radius: var(--border-radius-md);
-    width: 2rem;
-    height: 2rem;
+    width: 1.75rem;
+    height: 1.75rem;
     display: flex;
     align-items: center;
     justify-content: center;

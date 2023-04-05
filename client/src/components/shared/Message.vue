@@ -83,13 +83,11 @@ function handleSubmitEdit(values: any) {
         ...(isAuthor
           ? {}
           : { flexDirection: 'row-reverse', textAlign: 'right' }),
-        ...(!roomId
-          ? {
-              flexDirection: 'column',
-              alignItems: isAuthor ? 'flex-start' : 'flex-end',
-              gap: '6px',
-            }
-          : {}),
+        ...{
+          flexDirection: 'column',
+          alignItems: isAuthor ? 'flex-start' : 'flex-end',
+          gap: '6px',
+        },
       }"
       class="user-content"
     >
@@ -102,7 +100,10 @@ function handleSubmitEdit(values: any) {
         />
       </div>
       <div
-        :style="{ alignItems: isAuthor ? 'start' : 'end' }"
+        :style="{
+          justifyContent: isAuthor ? 'start' : 'end',
+          flexDirection: isAuthor ? 'row' : 'row-reverse',
+        }"
         v-show="!isEditing"
         class="content"
       >
@@ -113,31 +114,31 @@ function handleSubmitEdit(values: any) {
           :msgId="msg.ID"
         />
       </div>
+      <Form
+        :initial-values="{ content: msg.content }"
+        @submit="handleSubmitEdit"
+        v-show="isEditing"
+      >
+        <div class="field-error">
+          <Field
+            ref="inputRef"
+            as="textarea"
+            type="textarea"
+            name="content"
+            :rules="validateMessage as any"
+          />
+          <ErrorMessage name="content" />
+        </div>
+        <div class="buttons">
+          <button type="submit" name="submit edit">
+            <v-icon name="io-send" />
+          </button>
+          <button @click="isEditing = false" type="button" name="submit edit">
+            <v-icon name="io-close" />
+          </button>
+        </div>
+      </Form>
     </div>
-    <Form
-      :initial-values="{ content: msg.content }"
-      @submit="handleSubmitEdit"
-      v-show="isEditing"
-    >
-      <div class="field-error">
-        <Field
-          ref="inputRef"
-          as="textarea"
-          type="textarea"
-          name="content"
-          :rules="validateMessage as any"
-        />
-        <ErrorMessage name="content" />
-      </div>
-      <div class="buttons">
-        <button type="submit" name="submit edit">
-          <v-icon name="io-send" />
-        </button>
-        <button @click="isEditing = false" type="button" name="submit edit">
-          <v-icon name="io-close" />
-        </button>
-      </div>
-    </Form>
     <div v-show="!isEditing && isAuthor" class="buttons">
       <button @click="editClicked()" name="edit message" type="button">
         <v-icon name="md-modeeditoutline" />
@@ -167,10 +168,12 @@ function handleSubmitEdit(values: any) {
     width: 100%;
     gap: var(--gap-md);
     .content {
-      font-size: var(--xs);
+      font-size: var(--sm);
       flex-grow: 1;
       display: flex;
       flex-direction: column;
+      width: 100%;
+      align-items: center;
     }
   }
   .buttons {

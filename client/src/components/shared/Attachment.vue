@@ -87,6 +87,7 @@ async function download() {
   width: 100%;
   justify-content: flex-start;
   text-align: left;
+  padding: 4px;
   img {
     border-radius: var(--border-radius-md);
     filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.166));

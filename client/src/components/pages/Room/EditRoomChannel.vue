@@ -43,11 +43,6 @@ async function handleSubmit(values: any) {
       :initial-values="{name:ch!.name, main:ch!.main}"
     >
       <div class="input-label">
-        <label for="main">Set main (unchecked ignored)</label>
-        <CustomCheckbox id="main" name="main" />
-        <ErrorMessage name="main" />
-      </div>
-      <div class="input-label">
         <label for="name">Channel name</label>
         <Field
           type="text"
@@ -58,6 +53,11 @@ async function handleSubmit(values: any) {
         <ErrorMessage name="name" />
       </div>
       <button type="submit">Submit update</button>
+      <div class="input-label">
+        <label for="main">Set main (unchecked ignored)</label>
+        <CustomCheckbox id="main" name="main" />
+        <ErrorMessage name="main" />
+      </div>
     </Form>
   </Modal>
 </template>

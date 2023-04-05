@@ -96,6 +96,8 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 			continue
 		}
 
+		time.Sleep(time.Second * 2)
+
 		var i int = 0
 		var size float32
 

@@ -35,11 +35,6 @@ async function handleSubmit(values: any) {
     <div class="edit-channel-container">
       <Form @submit="handleSubmit">
         <div class="input-label">
-          <label for="main">Is new main channel</label>
-          <CustomCheckbox id="main" name="main" />
-          <ErrorMessage name="main" />
-        </div>
-        <div class="input-label">
           <label for="name">Channel name</label>
           <Field
             type="text"
@@ -50,6 +45,11 @@ async function handleSubmit(values: any) {
           <ErrorMessage name="name" />
         </div>
         <button type="submit">Create channel</button>
+        <div class="input-label">
+          <label for="main">Is new main channel</label>
+          <CustomCheckbox id="main" name="main" />
+          <ErrorMessage name="main" />
+        </div>
       </Form>
     </div>
   </Modal>

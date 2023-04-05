@@ -37,7 +37,7 @@ async function handleSubmit(values: any) {
 </script>
 
 <template>
-  <Form @submit="handleSubmit" class="register">
+  <Form v-if="!resMsg.pen" @submit="handleSubmit" class="register">
     <div class="input-label">
       <label for="username">Username</label>
       <Field
@@ -73,8 +73,8 @@ async function handleSubmit(values: any) {
       <ModalCloseButton @click="showPolicy = false" />
       <Policy />
     </Modal>
-    <ResMsg :resMsg="resMsg" />
   </Form>
+  <ResMsg :resMsg="resMsg" />
 </template>
 
 <style lang="scss" scoped>

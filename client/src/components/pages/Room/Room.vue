@@ -232,7 +232,7 @@ function handleSubmit(values: any, file?: File) {
       has_attachment: Boolean(file),
     },
   } as RoomMessageEvent);
-  console.log("FILE:",file)
+  console.log("FILE:", file);
   pendingAttachmentFile.value = file;
 }
 </script>
@@ -277,7 +277,12 @@ function handleSubmit(values: any, file?: File) {
       </div>
       <div class="messages-vid-chat">
         <div class="vid-chat">
-          <button @click="vidChatOpen = true" v-if="!vidChatOpen" type="button">
+          <button
+            class="join-button"
+            @click="vidChatOpen = true"
+            v-if="!vidChatOpen"
+            type="button"
+          >
             Enter channel voip/video chat
           </button>
           <RoomVidChat
@@ -420,7 +425,7 @@ function handleSubmit(values: any, file?: File) {
         justify-content: flex-start;
         button {
           font-size: var(--xs);
-          padding: 3px;
+          padding: 3px 6px;
         }
       }
     }

@@ -33,7 +33,6 @@ function acceptClicked(index: number) {
 
 <template>
   <div class="pending-calls-container">
-    {{ pendingCallsStore }}
     <PendingCall
       :key="pendingCall.caller"
       v-for="(pendingCall, index) in pendingCallsStore"

@@ -7,15 +7,19 @@ import Modal from "../modal/Modal.vue";
 import Aside from "./aside/Aside.vue";
 import ModalCloseButton from "../shared/ModalCloseButton.vue";
 import ResMsg from "../shared/ResMsg.vue";
+import { useRouter } from "vue-router";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
+
+const router = useRouter();
 
 const resMsg = ref<IResMsg>({});
 
 async function logout() {
   try {
     await authStore.logout();
+    router.push("/");
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
@@ -45,7 +49,9 @@ const username = computed(
         <RouterLink to="/">
           <button type="button" class="nav-item">Home</button>
         </RouterLink>
-        <button type="button" class="nav-item" @click="toggleDarkMode">Darkmode</button>
+        <button type="button" class="nav-item" @click="toggleDarkMode">
+          Darkmode
+        </button>
         <button type="button" class="nav-item" @click="logout">Logout</button>
       </div>
     </nav>
