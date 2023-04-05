@@ -47,7 +47,6 @@ func handleConnection(h handler, ctx *fasthttp.RequestCtx, uid string, c *websoc
 				c.Close()
 				return
 			} else {
-				log.Println("Message event recieved:", decoded.Type)
 				if err := handleSocketEvent(decoded.Data, decoded.Type, h, uid, c); err != nil {
 					log.Println("Socket event error:", err)
 					SendSocketErrorMessage(err.Error(), c)

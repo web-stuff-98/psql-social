@@ -54,12 +54,12 @@ async function handleSubmitEdit(values: any) {
         />
         <ErrorMessage name="name" />
       </div>
+      <button type="submit">Update room</button>
       <div class="input-label">
         <label for="private">Private </label>
         <CustomCheckbox id="private" name="isPrivate" />
         <ErrorMessage name="isPrivate" />
       </div>
-      <button type="submit">Update room</button>
       <ResMsg :resMsg="resMsg" />
     </Form>
   </Modal>

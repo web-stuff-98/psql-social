@@ -421,6 +421,7 @@ func (h handler) DownloadAttachment(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.SetContentLength(size)
 	ctx.Response.Header.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%v"`, url.PathEscape(name)))
 
+	// i used a goto here but whatever, it's useful
 	var chunkBytes pgtype.Bytea
 	recursivelyWriteAttachmentChunksToResponse := func() error {
 	WRITE:

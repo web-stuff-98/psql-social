@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
 	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
+	socketLimiter "github.com/web-stuff-98/psql-social/pkg/socketLimiter"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	socketValidation "github.com/web-stuff-98/psql-social/pkg/socketValidation"
@@ -20,6 +21,17 @@ import (
 
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {
 	var err error
+
+	recvChan := make(chan error)
+	h.SocketLimiter.SocketEvent <- socketLimiter.SocketEvent{
+		RecvChan: recvChan,
+		Type:     event,
+		Conn:     c,
+	}
+	err = <-recvChan
+	if err != nil {
+		return err
+	}
 
 	switch event {
 	case "JOIN_ROOM":

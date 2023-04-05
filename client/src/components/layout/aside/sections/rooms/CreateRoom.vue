@@ -33,11 +33,6 @@ async function handleSubmit(values: any) {
     <ModalCloseButton @click="closeClicked()" />
     <Form @submit="handleSubmit">
       <div class="input-label">
-        <label for="private">Private</label>
-        <CustomCheckbox name="isPrivate" />
-        <ErrorMessage name="isPrivate" />
-      </div>
-      <div class="input-label">
         <label for="name">Name</label>
         <Field
           :rules="validateRoomName as any"
@@ -48,6 +43,11 @@ async function handleSubmit(values: any) {
         <ErrorMessage name="name" />
       </div>
       <button type="submit">Create room</button>
+      <div class="input-label">
+        <label for="private">Private</label>
+        <CustomCheckbox name="isPrivate" />
+        <ErrorMessage name="isPrivate" />
+      </div>
       <ResMsg :resMsg="resMsg" />
     </Form>
   </Modal>

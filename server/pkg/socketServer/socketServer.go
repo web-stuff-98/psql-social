@@ -34,6 +34,8 @@ type SocketServer struct {
 	RegisterConn   chan ConnnectionData
 	UnregisterConn chan *websocket.Conn
 
+	CloseConnChan chan string
+
 	SendDataToUser  chan UserMessageData
 	SendDataToConn  chan ConnMessageData
 	SendDataToUsers chan UsersMessageData
@@ -200,6 +202,8 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 		RegisterConn:   make(chan ConnnectionData),
 		UnregisterConn: make(chan *websocket.Conn),
 
+		CloseConnChan: make(chan string),
+
 		SendDataToUser:  make(chan UserMessageData),
 		SendDataToConn:  make(chan ConnMessageData),
 		SendDataToUsers: make(chan UsersMessageData),
@@ -231,6 +235,7 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	go connection(ss)
 	go disconnect(ss, csdc, cRTCsdc)
+	go closeConn(ss)
 	go messageLoop(ss)
 	go sendUserData(ss)
 	go sendConnData(ss)
@@ -248,6 +253,35 @@ func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	go sendDataToSubsExcludeIDs(ss)
 	go getConnSubscriptions(ss)
 	go getSubscriptionUids(ss)
+}
+
+func closeConn(ss *SocketServer) {
+	var failCount uint8
+	for {
+		defer func() {
+			r := recover()
+			if r != nil {
+				log.Println("Recovered from panic in ws close connection loop:", r)
+				if failCount < 10 {
+					go connection(ss)
+				} else {
+					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
+				}
+				failCount++
+			}
+		}()
+
+		uid := <-ss.CloseConnChan
+
+		ss.ConnectionsByID.mutex.RLock()
+		if conn, ok := ss.ConnectionsByID.data[uid]; ok {
+			conn.Close()
+			ss.ConnectionsByID.mutex.RUnlock()
+			ss.UnregisterConn <- conn
+		} else {
+			ss.ConnectionsByID.mutex.RUnlock()
+		}
+	}
 }
 
 func WriteMessage(t string, m interface{}, c *websocket.Conn, ss *SocketServer) {

@@ -168,12 +168,13 @@ func (h handler) Logout(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	if _, sid, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB); err != nil {
+	if uid, sid, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB); err != nil {
 		log.Println(err)
 		ctx.Response.Header.SetCookie(authHelpers.GetClearedCookie())
 		ResponseMessage(ctx, "Invalid session ID", fasthttp.StatusForbidden)
 		return
 	} else {
+		h.SocketServer.CloseConnChan <- uid
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
 		ctx.Response.Header.SetCookie(authHelpers.GetClearedCookie())
 		ctx.SetStatusCode(fasthttp.StatusOK)
