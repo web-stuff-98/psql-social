@@ -38,6 +38,7 @@ type InChunk struct {
 	ID       string
 	Uid      string
 	RecvChan chan bool
+	Ctx      context.Context
 }
 
 func Init(ss *socketServer.SocketServer, db *pgxpool.Pool) *AttachmentServer {
@@ -76,41 +77,40 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 
 		data := <-as.ChunkChan
 
-		errored := func(err error) {
+		errored := func(err error, conn *pgxpool.Conn) {
 			log.Printf("Error in attachment server process chunk loop:%v\n", err)
+			conn.Release()
 			as.FailChan <- data.ID
 			data.RecvChan <- false
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
-
-		conn, err := db.Acquire(ctx)
+		conn, err := db.Acquire(data.Ctx)
 		if err != nil {
-			errored(err)
+			errored(err, conn)
 			continue
 		}
 
-		metaTable, chunkTable, err := getTableNames(conn, ctx, data.ID)
+		metaTable, chunkTable, err := getTableNames(conn, data.Ctx, data.ID)
 		if err != nil {
-			errored(err)
+			errored(err, conn)
 			continue
 		}
 
-		i := 0
-		size := 0
+		var i int = 0
+		var size float32
 
-		if selectSizeStmt, err := conn.Conn().Prepare(ctx, "attachment_server_chunk_loop_select_meta_size_stmt", fmt.Sprintf("SELECT size FROM %v WHERE id = $1", metaTable)); err != nil {
-			errored(err)
+		if selectSizeStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_meta_size_stmt", fmt.Sprintf("SELECT size FROM %v WHERE message_id = $1", metaTable)); err != nil {
+			errored(err, conn)
 			continue
 		} else {
-			if err = conn.Conn().QueryRow(ctx, selectSizeStmt.Name, data.ID).Scan(&size); err != nil {
-				errored(err)
+			if err = conn.Conn().QueryRow(data.Ctx, selectSizeStmt.Name, data.ID).Scan(&size); err != nil {
+				errored(err, conn)
 				continue
 			}
 		}
 
 		as.Uploaders.mutex.Lock()
+
 		if _, ok := as.Uploaders.data[data.Uid]; !ok {
 			as.Uploaders.data[data.Uid] = make(map[string]Upload)
 			as.Uploaders.data[data.Uid][data.ID] = Upload{
@@ -137,38 +137,39 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 				}
 			}
 		}
+
+		ratio := (float32(as.Uploaders.data[data.Uid][data.ID].BytesDone)) / float32(size)
+
 		as.Uploaders.mutex.Unlock()
 
-		if insertStmt, err := conn.Conn().Prepare(ctx, "attachment_server_chunk_loop_insert_stmt", fmt.Sprintf("INSERT INTO %v (bytes,message_id,chunk_index) VALUES($1,$2,$3)", chunkTable)); err != nil {
-			errored(err)
+		if insertStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_insert_stmt", fmt.Sprintf("INSERT INTO %v (bytes,message_id,chunk_index) VALUES($1,$2,$3)", chunkTable)); err != nil {
+			errored(err, conn)
 			continue
 		} else {
-			if _, err = conn.Conn().Exec(ctx, insertStmt.Name, data.Data, data.ID, i); err != nil {
-				errored(err)
+			if _, err = conn.Conn().Exec(data.Ctx, insertStmt.Name, data.Data, data.ID, i); err != nil {
+				errored(err, conn)
 				continue
 			}
 		}
 
-		ratio := (float32(as.Uploaders.data[data.Uid][data.ID].BytesDone)) / float32(size)
-
-		if updateMetaStmt, err := conn.Conn().Prepare(ctx, "attachment_server_chunk_loop_insert_stmt", fmt.Sprintf("UPDATE %v SET ratio = $1 WHERE id = $2", metaTable)); err != nil {
-			errored(err)
+		if updateMetaStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_update_ratio_stmt", fmt.Sprintf("UPDATE %v SET ratio = $1 WHERE message_id = $2", metaTable)); err != nil {
+			errored(err, conn)
 			continue
 		} else {
-			if _, err = conn.Conn().Exec(ctx, updateMetaStmt.Name, ratio, data.ID); err != nil {
-				errored(err)
+			if _, err = conn.Conn().Exec(data.Ctx, updateMetaStmt.Name, ratio, data.ID); err != nil {
+				errored(err, conn)
 				continue
 			}
 		}
 
 		if strings.HasPrefix(metaTable, "room") {
 			var room_channel_id string
-			if selectChannelStmt, err := conn.Conn().Prepare(ctx, "attachment_server_chunk_loop_select_channel_id_stmt", "SELECT room_channel_id FROM room_message_attachment_metadata FROM id = $1"); err != nil {
-				errored(err)
+			if selectChannelStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_channel_id_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1"); err != nil {
+				errored(err, conn)
 				continue
 			} else {
-				if err = conn.Conn().QueryRow(ctx, selectChannelStmt.Name, data.ID).Scan(&room_channel_id); err != nil {
-					errored(err)
+				if err = conn.Conn().QueryRow(data.Ctx, selectChannelStmt.Name, data.ID).Scan(&room_channel_id); err != nil {
+					errored(err, conn)
 					continue
 				}
 				sub := fmt.Sprintf("channel:%v", room_channel_id)
@@ -185,12 +186,12 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 		}
 		if strings.HasPrefix(metaTable, "direct") {
 			var recipient_id string
-			if selectRecipientStmt, err := conn.Conn().Prepare(ctx, "attachment_server_chunk_loop_select_recipient_id_stmt", "SELECT recipient_id FROM direct_message_attachment_metadata WHERE id = $1"); err != nil {
-				errored(err)
+			if selectRecipientStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_recipient_id_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1"); err != nil {
+				errored(err, conn)
 				continue
 			} else {
-				if err = conn.Conn().QueryRow(ctx, selectRecipientStmt.Name, data.ID).Scan(&recipient_id); err != nil {
-					errored(err)
+				if err = conn.Conn().QueryRow(data.Ctx, selectRecipientStmt.Name, data.ID).Scan(&recipient_id); err != nil {
+					errored(err, conn)
 					continue
 				}
 				ss.SendDataToUsers <- socketServer.UsersMessageData{
@@ -204,6 +205,8 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 				}
 			}
 		}
+
+		conn.Release()
 
 		data.RecvChan <- true
 	}
@@ -225,8 +228,9 @@ func deleteAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *p
 
 		id := <-as.DeleteChan
 
-		errored := func(err error) {
+		errored := func(err error, conn *pgxpool.Conn) {
 			log.Printf("Error in attachment server fail attachment loop:%v\n", err)
+			conn.Release()
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -234,25 +238,27 @@ func deleteAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *p
 
 		conn, err := db.Acquire(ctx)
 		if err != nil {
-			errored(err)
+			errored(err, conn)
 			continue
 		}
 
 		_, chunkTable, err := getTableNames(conn, ctx, id)
 		if err != nil {
-			errored(err)
+			errored(err, conn)
 			continue
 		}
 
 		if deleteStmt, err := conn.Conn().Prepare(ctx, "attachment_server_delete_chunk_loop_stmt", fmt.Sprintf("DELETE FROM %v WHERE message_id = $1", chunkTable)); err != nil {
-			errored(err)
+			errored(err, conn)
 			continue
 		} else {
 			if _, err = conn.Conn().Exec(ctx, deleteStmt.Name, id); err != nil {
-				errored(err)
+				errored(err, conn)
 				continue
 			}
 		}
+
+		conn.Release()
 	}
 }
 
@@ -272,8 +278,9 @@ func failAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *pgx
 
 		id := <-as.FailChan
 
-		errored := func(err error) {
+		errored := func(err error, conn *pgxpool.Conn) {
 			log.Printf("Error in attachment server fail attachment loop:%v\n", err)
+			conn.Release()
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -281,25 +288,27 @@ func failAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *pgx
 
 		conn, err := db.Acquire(ctx)
 		if err != nil {
-			errored(err)
+			errored(err, conn)
 			continue
 		}
 
 		metaTable, _, err := getTableNames(conn, ctx, id)
 		if err != nil {
-			errored(err)
+			errored(err, conn)
 			continue
 		}
 
-		if updateStmt, err := conn.Conn().Prepare(ctx, "attachment_server_fail_attachment_metadata_update_stmt", fmt.Sprintf("UPDATE %v SET failed = TRUE WHERE id = $1", metaTable)); err != nil {
-			errored(err)
+		if updateStmt, err := conn.Conn().Prepare(ctx, "attachment_server_fail_attachment_metadata_update_stmt", fmt.Sprintf("UPDATE %v SET failed = TRUE WHERE message_id = $1", metaTable)); err != nil {
+			errored(err, conn)
 			continue
 		} else {
 			if _, err := conn.Exec(ctx, updateStmt.Name, id); err != nil {
-				errored(err)
+				errored(err, conn)
 				continue
 			}
 		}
+
+		conn.Release()
 
 		as.DeleteChan <- id
 	}

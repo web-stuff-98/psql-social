@@ -206,6 +206,7 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
+	defer conn.Release()
 
 	id := ctx.UserValue("id").(string)
 	if id == "" {
@@ -278,8 +279,7 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 				return
 			}
 		}
-		uids = append(uids, recipient_id)
-		uids = append(uids, uid)
+		uids = []string{uid, recipient_id}
 	}
 
 	log.Println("Channel sent")
@@ -290,6 +290,7 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 		Data:     ctx.Request.Body(),
 		RecvChan: recvChan,
 		ID:       id,
+		Ctx:      rctx,
 	}
 	complete := <-recvChan
 
@@ -298,7 +299,6 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 	if complete {
 		ResponseMessage(ctx, "Chunk created", fasthttp.StatusCreated)
 	} else {
-		log.Println("Error received from recvChan")
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 	}
 }
