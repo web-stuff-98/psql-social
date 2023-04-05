@@ -30,7 +30,7 @@ func errMsg(ctx *fasthttp.RequestCtx, s int, m string) {
 	ctx.WriteString(m)
 }
 
-func BasicRateLimiter(next fasthttp.RequestHandler, opts SimpleLimiterOpts, rdb redis.Client, db *pgxpool.Pool) fasthttp.RequestHandler {
+func BasicRateLimiter(next fasthttp.RequestHandler, opts SimpleLimiterOpts, rdb *redis.Client, db *pgxpool.Pool) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		rctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/adhityaramadhanus/fasthttpcors"
 	"github.com/fasthttp/router"
@@ -13,7 +14,9 @@ import (
 	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
 	"github.com/web-stuff-98/psql-social/pkg/db"
 	"github.com/web-stuff-98/psql-social/pkg/handlers"
+	mw "github.com/web-stuff-98/psql-social/pkg/handlers/middleware"
 	rdb "github.com/web-stuff-98/psql-social/pkg/redis"
+	socketLimiter "github.com/web-stuff-98/psql-social/pkg/socketLimiter"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
@@ -31,42 +34,198 @@ func main() {
 	as := attachmentServer.Init(ss, db)
 	cRTCs := channelRTCserver.Init(ss, db, cRTCsdc)
 	cs := callServer.Init(ss, csdc)
-
+	sl := socketLimiter.Init(rdb)
 	defer db.Close()
 
-	h := handlers.New(db, rdb, ss, cs, cRTCs, as)
+	h := handlers.New(db, rdb, ss, cs, cRTCs, as, sl)
 
 	r := router.New()
 
-	r.POST("/api/acc/login", h.Login)
-	r.POST("/api/acc/logout", h.Logout)
-	r.POST("/api/acc/register", h.Register)
-	r.POST("/api/acc/refresh", h.Refresh)
-	r.POST("/api/acc/bio", h.UpdateBio)
-	r.POST("/api/acc/pfp", h.UploadPfp)
-	r.GET("/api/acc/uids", h.GetConversees)
-	r.GET("/api/acc/friends", h.GetFriends)
-	r.GET("/api/acc/conv/{id}", h.GetConversation)
+	r.POST("/api/acc/login", mw.BasicRateLimiter(h.Login, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 20,
+		MaxReqs:       3,
+		BlockDuration: time.Hour * 12,
+		Message:       "Too many requests",
+		RouteName:     "login",
+	}, rdb, db))
+	r.POST("/api/acc/logout", mw.BasicRateLimiter(h.Logout, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 20,
+		MaxReqs:       3,
+		BlockDuration: time.Hour * 12,
+		Message:       "Too many requests",
+		RouteName:     "logout",
+	}, rdb, db))
+	r.POST("/api/acc/register", mw.BasicRateLimiter(h.Register, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 20,
+		MaxReqs:       3,
+		BlockDuration: time.Hour * 12,
+		Message:       "Too many requests",
+		RouteName:     "register",
+	}, rdb, db))
+	r.POST("/api/acc/refresh", mw.BasicRateLimiter(h.Refresh, mw.SimpleLimiterOpts{
+		Window:        time.Second * 1,
+		MaxReqs:       10,
+		BlockDuration: time.Hour * 3,
+		Message:       "Too many requests",
+		RouteName:     "refresh",
+	}, rdb, db))
+	r.POST("/api/acc/bio", mw.BasicRateLimiter(h.UpdateBio, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       10,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "update-bio",
+	}, rdb, db))
+	r.POST("/api/acc/pfp", mw.BasicRateLimiter(h.UploadPfp, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 2,
+		MaxReqs:       10,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "upload-pfp",
+	}, rdb, db))
+	r.GET("/api/acc/uids", mw.BasicRateLimiter(h.GetConversees, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-conversees",
+	}, rdb, db))
+	r.GET("/api/acc/friends", mw.BasicRateLimiter(h.GetFriends, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-friends",
+	}, rdb, db))
+	r.GET("/api/acc/conv/{id}", mw.BasicRateLimiter(h.GetConversation, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-conversation",
+	}, rdb, db))
 
-	r.POST("/api/room", h.CreateRoom)
-	r.GET("/api/rooms", h.GetRooms)
-	r.PATCH("/api/room/{id}", h.UpdateRoom)
-	r.GET("/api/room/{id}", h.GetRoom)
-	r.DELETE("/api/room/{id}", h.DeleteRoom)
-	r.GET("/api/room/channel/{id}", h.GetRoomChannel)
-	r.PATCH("/api/room/channel/{id}", h.UpdateRoomChannel)
-	r.DELETE("/api/room/channel/{id}", h.DeleteRoomChannel)
-	r.POST("/api/room/{id}/channels", h.CreateRoomChannel)
-	r.GET("/api/room/channels/{id}", h.GetRoomChannels)
+	r.POST("/api/room", mw.BasicRateLimiter(h.CreateRoom, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "create-room",
+	}, rdb, db))
+	r.GET("/api/rooms", mw.BasicRateLimiter(h.GetRooms, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-rooms",
+	}, rdb, db))
+	r.PATCH("/api/room/{id}", mw.BasicRateLimiter(h.UpdateRoom, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "update-room",
+	}, rdb, db))
+	r.GET("/api/room/{id}", mw.BasicRateLimiter(h.GetRoom, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-room",
+	}, rdb, db))
+	r.DELETE("/api/room/{id}", mw.BasicRateLimiter(h.DeleteRoom, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "delete-room",
+	}, rdb, db))
+	r.GET("/api/room/channel/{id}", mw.BasicRateLimiter(h.GetRoomChannel, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-room-channel",
+	}, rdb, db))
+	r.PATCH("/api/room/channel/{id}", mw.BasicRateLimiter(h.UpdateRoomChannel, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "update-room-channel",
+	}, rdb, db))
+	r.DELETE("/api/room/channel/{id}", mw.BasicRateLimiter(h.DeleteRoomChannel, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "delete-room-channel",
+	}, rdb, db))
+	r.POST("/api/room/{id}/channels", mw.BasicRateLimiter(h.CreateRoomChannel, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "create-room-channel",
+	}, rdb, db))
+	r.GET("/api/room/channels/{id}", mw.BasicRateLimiter(h.GetRoomChannels, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-room-channels",
+	}, rdb, db))
 
-	r.GET("/api/user/bio/{id}", h.GetUserBio)
-	r.GET("/api/user/pfp/{id}", h.GetUserPfp)
-	r.GET("/api/user/{id}", h.GetUser)
-	r.POST("/api/user/name", h.GetUserByName)
+	r.GET("/api/user/bio/{id}", mw.BasicRateLimiter(h.GetUserBio, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-bio",
+	}, rdb, db))
+	r.GET("/api/user/pfp/{id}", mw.BasicRateLimiter(h.GetUserPfp, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-pfp",
+	}, rdb, db))
+	r.GET("/api/user/{id}", mw.BasicRateLimiter(h.GetUser, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-user",
+	}, rdb, db))
+	r.POST("/api/user/name", mw.BasicRateLimiter(h.GetUserByName, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-user-by-name",
+	}, rdb, db))
 
-	r.POST("/api/attachment/metadata", h.CreateAttachmentMetadata)
-	r.POST("/api/attachment/chunk/{id}", h.UploadAttachmentChunk)
-	r.GET("/api/attachment/{id}", h.DownloadAttachment)
+	r.POST("/api/attachment/metadata", mw.BasicRateLimiter(h.CreateAttachmentMetadata, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "create-attachment-metadata",
+	}, rdb, db))
+	r.POST("/api/attachment/chunk/{id}", mw.BasicRateLimiter(h.UploadAttachmentChunk, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "upload-attachment-chunk",
+	}, rdb, db))
+	r.GET("/api/attachment/{id}", mw.BasicRateLimiter(h.DownloadAttachment, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "download-attachment-chunk",
+	}, rdb, db))
 
 	r.GET("/api/ws", h.WebSocketEndpoint)
 
