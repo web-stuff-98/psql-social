@@ -1,10 +1,5 @@
 
-not all todos, just ones I plan on doing next
+not all todos, just ones I plan on doing next. probably already done them
 
-- Socket auto reconnect
 - Socket token reauthentication loop
-- Room channel selection
-- User dropdown menu
-- Confirmation modal
-
-- Fix cookie not being removed
+- 

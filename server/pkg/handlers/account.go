@@ -647,7 +647,6 @@ func (h handler) GetFriends(ctx *fasthttp.RequestCtx) {
 
 	rows, err := h.DB.Query(rctx, "SELECT friender,friended FROM friends WHERE (friender = $1) OR (friended = $1);", uid)
 	if err != nil {
-		log.Println("ERR A:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -659,7 +658,6 @@ func (h handler) GetFriends(ctx *fasthttp.RequestCtx) {
 		var friender, friended string
 
 		if err = rows.Scan(&friender, &friended); err != nil {
-			log.Println("ERR B:", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
@@ -672,7 +670,6 @@ func (h handler) GetFriends(ctx *fasthttp.RequestCtx) {
 	}
 
 	if outBytes, err := json.Marshal(uids); err != nil {
-		log.Println("ERR C:", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {

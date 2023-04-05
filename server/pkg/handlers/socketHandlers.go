@@ -143,20 +143,17 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 
 	conn, err := h.DB.Acquire(ctx)
 	if err != nil {
-		log.Println("ERR A:", err)
 		return fmt.Errorf("Internal error")
 	}
 	defer conn.Release()
 
 	selectRoomExistsStmt, err := conn.Conn().Prepare(ctx, "join_room_select_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE id = $1)")
 	if err != nil {
-		log.Println("ERR B:", err)
 		return fmt.Errorf("Internal error")
 	}
 
 	roomExists := false
 	if err = conn.QueryRow(ctx, selectRoomExistsStmt.Name, data.RoomID).Scan(&roomExists); err != nil {
-		log.Println("ERR C:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if !roomExists {
@@ -165,7 +162,6 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 
 	banExists := false
 	if err = h.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1);", uid).Scan(&banExists); err != nil {
-		log.Println("ERR D:", err)
 		return fmt.Errorf("Internal error")
 	}
 	if banExists {
@@ -174,27 +170,23 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 
 	selectRoomStmt, err := conn.Conn().Prepare(ctx, "join_room_select_room_stmt", "SELECT private,author_id FROM rooms WHERE id = $1")
 	if err != nil {
-		log.Println("ERR E:", err)
 		return fmt.Errorf("Internal error")
 	}
 
 	var private bool
 	var author_id string
 	if err = conn.QueryRow(ctx, selectRoomStmt.Name, data.RoomID).Scan(&private, &author_id); err != nil {
-		log.Println("ERR F:", err)
 		return fmt.Errorf("Internal error")
 	}
 
 	if private && author_id != uid {
 		membershipExistsStmt, err := conn.Conn().Prepare(ctx, "join_room_select_room_membership_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1)")
 		if err != nil {
-			log.Println("ERR G:", err)
 			return fmt.Errorf("Internal error")
 		}
 
 		membershipExists := false
 		if err = conn.QueryRow(ctx, membershipExistsStmt.Name, uid).Scan(&membershipExists); err != nil {
-			log.Println("ERR H:", err)
 			return fmt.Errorf("Internal error")
 		}
 		if !membershipExists {
@@ -204,14 +196,12 @@ func joinRoom(inData map[string]interface{}, h handler, uid string, c *websocket
 
 	selectChannelStmt, err := conn.Conn().Prepare(ctx, "join_room_select_channel_stmt", "SELECT id,name FROM room_channels WHERE room_id = $1 AND main = TRUE")
 	if err != nil {
-		log.Println("ERR I:", err)
 		return fmt.Errorf("Internal error")
 	}
 
 	var mainChannelId, mainChannelName string
 	if err = conn.QueryRow(ctx, selectChannelStmt.Name, data.RoomID).Scan(&mainChannelId, &mainChannelName); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR J:", err)
 			return fmt.Errorf("Internal error")
 		} else {
 			return fmt.Errorf("Main channel could not be found")

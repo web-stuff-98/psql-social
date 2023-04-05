@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -796,7 +795,6 @@ func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		log.Println("ERR A: ", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
@@ -804,14 +802,12 @@ func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
 
 	deleteStmt, err := conn.Conn().Prepare(rctx, "delete_room_stmt", "DELETE FROM rooms WHERE id = $1 AND author_id = $2")
 	if err != nil {
-		log.Println("ERR B: ", err)
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
 
 	if _, err := conn.Exec(rctx, deleteStmt.Name, room_id, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			log.Println("ERR C: ", err)
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return
 		}
