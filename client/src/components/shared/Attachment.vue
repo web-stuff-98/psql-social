@@ -37,7 +37,9 @@ onBeforeUnmount(() => {
 });
 
 async function download() {
-  const data = await makeRequest(`/api/attachment/${meta?.value?.ID}`);
+  const data = await makeRequest(`/api/attachment/${meta?.value?.ID}`, {
+    responseType: "arraybuffer",
+  });
   const blob = new Blob([data], { type: meta?.value?.mime });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);

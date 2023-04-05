@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"strconv"
+	"net/url"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/valyala/fasthttp"
 	attachmentServer "github.com/web-stuff-98/psql-social/pkg/attachmentServer"
 	attachmentHelpers "github.com/web-stuff-98/psql-social/pkg/helpers/attachmentHelpers"
@@ -201,6 +200,11 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
+	if len(ctx.Request.Body()) > 4*1024*1024 {
+		ResponseMessage(ctx, "Body size exceeds chunk size", fasthttp.StatusBadRequest)
+		return
+	}
+
 	var isRoomMsg, isDirectMessage bool
 	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
@@ -261,8 +265,6 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 		uids = []string{uid, recipient_id}
 	}
 
-	log.Println("Channel sent")
-
 	recvChan := make(chan bool)
 	h.AttachmentServer.ChunkChan <- attachmentServer.InChunk{
 		Uid:      uid,
@@ -272,8 +274,6 @@ func (h handler) UploadAttachmentChunk(ctx *fasthttp.RequestCtx) {
 		Ctx:      rctx,
 	}
 	complete := <-recvChan
-
-	log.Println("Channel through")
 
 	if complete {
 		ResponseMessage(ctx, "Chunk created", fasthttp.StatusCreated)
@@ -380,6 +380,7 @@ func (h handler) DownloadAttachment(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
+	defer conn.Release()
 
 	metaTable, chunkTable, err := attachmentHelpers.GetTableNames(conn, ctx, id)
 	if err != nil {
@@ -413,40 +414,34 @@ func (h handler) DownloadAttachment(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// no need to prepare statement, ID matched a metadata document, which means its clean
-	var firstChunkBytes []byte
-	if err = h.DB.QueryRow(rctx, fmt.Sprintf("SELECT bytes FROM %v WHERE message_id = $1 AND chunk_index = 0", chunkTable)).Scan(&firstChunkBytes); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
-	}
+	var index int = 0
+	var bytesDone int = 0
 
-	var index int = 1
-	var bytesDone int = len(firstChunkBytes)
+	ctx.Response.Header.SetContentType("application/octet-stream")
+	ctx.Response.Header.SetContentLength(size)
+	ctx.Response.Header.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%v"`, url.PathEscape(name)))
 
-	ctx.Response.Header.Add("Content-Type", "application/octet-stream")
-	ctx.Response.Header.Add("Content-Length", strconv.Itoa(size))
-	ctx.Response.Header.Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%v"`, name))
-
-	ctx.Write(firstChunkBytes)
-
-	if err = recursivelyWriteAttachmentChunksToResponse(ctx, rctx, chunkTable, id, conn, &bytesDone, &size, &index); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-	} else {
-		ctx.SetStatusCode(fasthttp.StatusOK)
-	}
-}
-
-func recursivelyWriteAttachmentChunksToResponse(ctx *fasthttp.RequestCtx, rctx context.Context, chunkTable string, id string, conn *pgxpool.Conn, bytesDone *int, size *int, i *int) error {
-	var chunkBytes []byte
-	if err := conn.QueryRow(rctx, fmt.Sprintf("SELECT bytes FROM %v WHERE message_id = $1 AND chunk_index = $2", chunkTable), id, i).Scan(&chunkBytes); err != nil {
-		return err
-	} else {
-		*bytesDone += len(chunkBytes)
-		ctx.Write(chunkBytes)
-		if *bytesDone == *size {
-			return nil
+	var chunkBytes pgtype.Bytea
+	recursivelyWriteAttachmentChunksToResponse := func() error {
+	WRITE:
+		if err = conn.QueryRow(rctx, fmt.Sprintf("SELECT bytes FROM %v WHERE message_id = $1 AND chunk_index = $2;", chunkTable), id, index).Scan(&chunkBytes); err != nil {
+			if err == pgx.ErrNoRows {
+				rctx.Done()
+				ctx.SetStatusCode(fasthttp.StatusOK)
+				return nil
+			}
+			return err
+		} else {
+			index++
+			bytesDone += len(chunkBytes.Bytes)
+			if _, err = ctx.Write(chunkBytes.Bytes); err != nil {
+				return err
+			}
 		}
+		goto WRITE
 	}
-	*i++
-	return recursivelyWriteAttachmentChunksToResponse(ctx, rctx, chunkTable, id, conn, bytesDone, size, i)
+
+	if err = recursivelyWriteAttachmentChunksToResponse(); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+	}
 }

@@ -78,6 +78,14 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 
 		data := <-as.ChunkChan
 
+		conn, err := db.Acquire(data.Ctx)
+		if err != nil {
+			log.Printf("Error in attachment server process chunk loop:%v\n", err)
+			as.FailChan <- data.ID
+			data.RecvChan <- false
+			continue
+		}
+
 		errored := func(err error, conn *pgxpool.Conn) {
 			log.Printf("Error in attachment server process chunk loop:%v\n", err)
 			conn.Release()
@@ -85,19 +93,11 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 			data.RecvChan <- false
 		}
 
-		conn, err := db.Acquire(data.Ctx)
-		if err != nil {
-			errored(err, conn)
-			continue
-		}
-
 		metaTable, chunkTable, err := attachmentHelpers.GetTableNames(conn, data.Ctx, data.ID)
 		if err != nil {
 			errored(err, conn)
 			continue
 		}
-
-		time.Sleep(time.Second * 2)
 
 		var i int = 0
 		var size float32
