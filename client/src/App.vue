@@ -14,6 +14,7 @@ import UserDropdown from "./components/userDropdown/UserDropdown.vue";
 import PendingCalls from "./components/pendingCalls/PendingCalls.vue";
 import Bio from "./components/modal/Bio.vue";
 import MessageModal from "./components/modal/MessageModal.vue";
+import VidFullscreenModal from "./components/shared/vidChat/VidFullscreenModal.vue";
 
 const authStore = useAuthStore();
 
@@ -53,6 +54,7 @@ watch(authStore, (_, newVal) => {
     <PendingCalls />
     <Bio />
     <MessageModal />
+    <VidFullscreenModal />
   </div>
 </template>
 

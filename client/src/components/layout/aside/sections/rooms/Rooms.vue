@@ -1,17 +1,32 @@
 <script lang="ts" setup>
-import { onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
 import { getRooms } from "../../../../../services/room";
 import useRoomStore from "../../../../../store/RoomStore";
 import ResMsg from "../../../../shared/ResMsg.vue";
 import CreateRoom from "./CreateRoom.vue";
 import Room from "./Room.vue";
+import { isChangeEvent } from "../../../../../socketHandling/InterpretEvent";
+import useSocketStore from "../../../../../store/SocketStore";
 
 const roomStore = useRoomStore();
+const socketStore = useSocketStore();
 
 const showCreate = ref(false);
 const rooms = ref<string[]>([]);
 const resMsg = ref<IResMsg>({});
+
+function watchForNewRooms(e: MessageEvent) {
+  const msg = JSON.parse(e.data);
+  if (!msg) return;
+  if (isChangeEvent(msg)) {
+    if (msg.data.entity == "ROOM") {
+      if (msg.data.change_type === "INSERT") {
+        rooms.value.push(msg.data.data.ID);
+      }
+    }
+  }
+}
 
 onMounted(async () => {
   try {
@@ -24,6 +39,12 @@ onMounted(async () => {
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
+
+  socketStore.socket?.addEventListener("message", watchForNewRooms);
+});
+
+onBeforeUnmount(() => {
+  socketStore.socket?.removeEventListener("message", watchForNewRooms);
 });
 </script>
 

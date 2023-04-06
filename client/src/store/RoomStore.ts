@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { getRoom } from "../services/room";
+import { getRoom, getRoomImage } from "../services/room";
 import { IRoom } from "../interfaces/GeneralInterfaces";
 
 type DisappearedRoom = {
@@ -37,6 +37,13 @@ const useRoomStore = defineStore("rooms", {
         return;
       try {
         const r = await getRoom(id);
+        const img: BlobPart | undefined = await new Promise((resolve) =>
+          getRoomImage(id)
+            .catch(() => resolve(undefined))
+            .then((img) => resolve(img))
+        );
+        if (img)
+          r.img = URL.createObjectURL(new Blob([img], { type: "image/jpeg" }));
         // spread operator to make sure DOM updates, not sure if necessary
         this.$state.rooms = [
           ...this.$state.rooms.filter((r) => r.ID !== id),
@@ -44,6 +51,33 @@ const useRoomStore = defineStore("rooms", {
         ];
       } catch (e) {
         console.warn("Failed to cache room data for", id);
+      }
+    },
+    async cacheRoomImage(id: string) {
+      try {
+        const img: BlobPart | undefined = await new Promise((resolve) =>
+          getRoomImage(id)
+            .catch(() => resolve(undefined))
+            .then((img) => resolve(img))
+        );
+        if (img) {
+          const r = this.$state.rooms.find((r) => r.ID === id);
+          if (img && r) {
+            r.img = URL.createObjectURL(
+              new Blob([img], { type: "image/jpeg" })
+            );
+            this.$state.rooms = [
+              ...this.$state.rooms.filter((r) => r.ID !== id),
+              r,
+            ];
+          }
+        }
+      } catch (e) {
+        console.log(
+          "Failed to get image for room",
+          id,
+          ". Room probably doesn't have an image"
+        );
       }
     },
     roomEnteredView(id: string) {

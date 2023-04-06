@@ -7,11 +7,16 @@ const authStore = useAuthStore();
   <div class="home">
     <h1>pSQL-Social</h1>
     <hr />
-    <h3>Voip, video chat, screensharing & filesharing using Vue 3, Pinia, Heroku, Docker, Redis, pgxpool, fasthttp & Go. Click on the menu sidebar to get started.</h3>
+    <h3>
+      Voip, video chat, screensharing & filesharing using Vue 3, Pinia, Heroku,
+      Docker, Redis, pgxpool, fasthttp & Go. Click on the menu sidebar to get
+      started. Your account will be deleted after 20 minutes.
+    </h3>
     <p><b>Hint:</b> Click on a user to open an action dropdown menu</p>
-
     <h2>By Jason</h2>
-    <a href="https://github.com/web-stuff-98/psql-social">https://github.com/web-stuff-98/psql-social</a>
+    <a href="https://github.com/web-stuff-98/psql-social"
+      >https://github.com/web-stuff-98/psql-social</a
+    >
   </div>
 </template>
 

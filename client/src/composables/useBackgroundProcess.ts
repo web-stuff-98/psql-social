@@ -32,6 +32,7 @@ import {
 import { getUserPfp } from "../services/user";
 import { pendingCallsStore } from "../store/CallsStore";
 import { useRouter } from "vue-router";
+import { getRoomImage } from "../services/room";
 
 /**
  * This composable is for intervals that run in the background
@@ -88,6 +89,40 @@ export default function useBackgroundProcess({
         if (msg.data.change_type === "DELETE") {
           const i = roomStore.rooms.findIndex((r) => r.ID === msg.data.data.ID);
           if (i !== -1) roomStore.rooms.splice(i, 1);
+        }
+        if (msg.data.change_type === "UPDATE_IMAGE") {
+          const i = roomStore.rooms.findIndex((r) => r.ID === msg.data.data.ID);
+          if (i !== -1) {
+            URL.revokeObjectURL(roomStore.rooms[i].img!);
+            // wait a bit to make sure the new image is retrieved
+            await new Promise<void>((r) => setTimeout(r, 80));
+            try {
+              const img: BlobPart | undefined = await new Promise((resolve) =>
+                getRoomImage(msg.data.data.ID)
+                  .catch(() => resolve(undefined))
+                  .then((pfp) => resolve(pfp))
+              );
+              if (img) {
+                const newRoom = {
+                  ...roomStore.rooms[i],
+                  img: URL.createObjectURL(
+                    new Blob([img], { type: "image/jpeg" })
+                  ),
+                };
+                roomStore.rooms = [
+                  ...roomStore.rooms.filter((r) => r.ID !== msg.data.data.ID),
+                  newRoom,
+                ];
+              }
+            } catch (e) {
+              console.warn(
+                "Error retrieving image for room:",
+                msg.data.data.ID
+              );
+            }
+          } else {
+            console.log("Update failed - room not found");
+          }
         }
       }
       // Watch for user update events

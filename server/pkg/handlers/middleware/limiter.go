@@ -25,7 +25,7 @@ type SimpleLimiterOpts struct {
 }
 
 func errMsg(ctx *fasthttp.RequestCtx, s int, m string) {
-	ctx.Response.Header.Add("Content-Type", "application/json")
+	ctx.Response.Header.Add("Content-Type", "text/plain")
 	ctx.SetStatusCode(s)
 	ctx.WriteString(m)
 }

@@ -1,15 +1,21 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
+	"github.com/nfnt/resize"
 	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
@@ -668,6 +674,52 @@ func (h handler) GetRoom(ctx *fasthttp.RequestCtx) {
 	}
 }
 
+func (h handler) GetRoomImage(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	id := ctx.UserValue("id").(string)
+	if id == "" {
+		ResponseMessage(ctx, "Provide a room ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer conn.Release()
+
+	selectStmt, err := conn.Conn().Prepare(rctx, "get_room_image_select_stmt", "SELECT picture_data,mime FROM room_pictures WHERE room_id = $1")
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	var pictureData pgtype.Bytea
+	var mime string
+	if err = conn.QueryRow(context.Background(), selectStmt.Name, id).Scan(&pictureData, &mime); err != nil {
+		if err != pgx.ErrNoRows {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		} else {
+			ResponseMessage(ctx, "Pfp not found", fasthttp.StatusNotFound)
+		}
+		return
+	}
+
+	ctx.Response.Header.Add("Content-Type", mime)
+	ctx.Response.Header.Add("Content-Length", strconv.Itoa(len(pictureData.Bytes)))
+	ctx.Write(pictureData.Bytes)
+	ctx.SetStatusCode(fasthttp.StatusOK)
+}
+
 // Retrieve the users own rooms, and rooms they are a member of
 func (h handler) GetRooms(ctx *fasthttp.RequestCtx) {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
@@ -829,6 +881,130 @@ func (h handler) DeleteRoom(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.SetStatusCode(fasthttp.StatusOK)
+}
+
+func (h handler) UploadRoomImage(ctx *fasthttp.RequestCtx) {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+		return
+	}
+
+	id := ctx.UserValue("id").(string)
+	if id == "" {
+		ResponseMessage(ctx, "Provide an ID", fasthttp.StatusBadRequest)
+		return
+	}
+
+	if conn, err := h.DB.Acquire(rctx); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	} else {
+		if selectAuthorStmt, err := conn.Conn().Prepare(rctx, "upload_room_img_select_author_stmt", "SELECT author_id FROM rooms WHERE id = $1"); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		} else {
+			var author_id string
+			if err = conn.Conn().QueryRow(rctx, selectAuthorStmt.Name, id).Scan(&author_id); err != nil {
+				if err != pgx.ErrNoRows {
+					ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+				} else {
+					ResponseMessage(ctx, "Room not found", fasthttp.StatusNotFound)
+				}
+				return
+			}
+			if author_id != uid {
+				ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
+				return
+			}
+		}
+	}
+
+	fh, err := ctx.FormFile("file")
+	if err != nil {
+		ResponseMessage(ctx, "Error loading file", fasthttp.StatusInternalServerError)
+		return
+	}
+	if fh.Size > 30*1024*1024 {
+		ResponseMessage(ctx, "Maxiumum file size allowed is 20mb", fasthttp.StatusBadRequest)
+		return
+	}
+
+	mime := fh.Header.Get("Content-Type")
+	if mime != "image/jpeg" && mime != "image/png" {
+		ResponseMessage(ctx, "Unsupported file format - only jpeg and png allowed", fasthttp.StatusBadRequest)
+		return
+	}
+
+	file, err := fh.Open()
+	if err != nil {
+		ResponseMessage(ctx, "Error loading file", fasthttp.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	var img image.Image
+	var decodeErr error
+	switch mime {
+	case "image/jpeg":
+		img, decodeErr = jpeg.Decode(file)
+	case "image/png":
+		img, decodeErr = png.Decode(file)
+	default:
+		ResponseMessage(ctx, "Only JPEG and PNG are supported", fasthttp.StatusBadRequest)
+		return
+	}
+	if decodeErr != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	buf := &bytes.Buffer{}
+	if img.Bounds().Dx() > img.Bounds().Dy() {
+		img = resize.Resize(300, 0, img, resize.Lanczos3)
+	} else {
+		img = resize.Resize(0, 300, img, resize.Lanczos3)
+	}
+	if err := jpeg.Encode(buf, img, nil); err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+	imgBytes := buf.Bytes()
+
+	exists := false
+	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM room_pictures WHERE room_id = $1);", id).Scan(&exists)
+	if err != nil {
+		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return
+	}
+
+	if exists {
+		if _, err := h.DB.Exec(rctx, "UPDATE room_pictures SET picture_data = $1 WHERE room_id = $2;", imgBytes, id); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	} else {
+		if _, err := h.DB.Exec(rctx, `INSERT INTO room_pictures (room_id,picture_data,mime) VALUES ($1,$2,'image/jpeg');`, id, imgBytes); err != nil {
+			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return
+		}
+	}
+
+	msgData := make(map[string]interface{})
+	msgData["ID"] = id
+	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
+		SubName: fmt.Sprintf("room:%v", id),
+		Data: socketMessages.ChangeEvent{
+			Type:   "UPDATE_IMAGE",
+			Entity: "ROOM",
+			Data:   msgData,
+		},
+		MessageType: "CHANGE",
+	}
+
+	ResponseMessage(ctx, "Image processed successfully", fasthttp.StatusOK)
 }
 
 func (h handler) GetRoomChannel(ctx *fasthttp.RequestCtx) {

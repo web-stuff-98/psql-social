@@ -1,5 +1,5 @@
 
 not all todos, just ones I plan on doing next. probably already done them
 
-- Socket token reauthentication loop
-- 
+- make demo video and host
+- fullscreen video

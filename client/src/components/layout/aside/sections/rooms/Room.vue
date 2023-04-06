@@ -19,12 +19,14 @@ const room = computed(() => roomStore.getRoom(rid.value));
 const isEditing = ref(false);
 
 const observer = new IntersectionObserver(([entry]) => {
-  if (entry.isIntersecting) roomStore.roomEnteredView(rid.value);
-  else roomStore.roomLeftView(rid.value);
+  if (entry.isIntersecting) {
+    roomStore.roomEnteredView(rid.value);
+  } else roomStore.roomLeftView(rid.value);
 });
 
 onMounted(() => {
   observer.observe(container.value!);
+  roomStore.cacheRoomImage(rid.value);
 });
 
 onBeforeUnmount(() => {
@@ -60,7 +62,23 @@ function deleteRoomClicked() {
 </script>
 
 <template>
-  <div v-if="room" ref="container" class="room">
+  <div
+    :style="
+      room?.img
+        ? {
+            color: 'white',
+            textShadow: '0px 0px 3px black, 0px 2px 6px black',
+            fontWeight: 600,
+            backgroundImage: `url(${room.img})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }
+        : {}
+    "
+    v-if="room"
+    ref="container"
+    class="room"
+  >
     {{ room?.name }}
     <div class="buttons">
       <button

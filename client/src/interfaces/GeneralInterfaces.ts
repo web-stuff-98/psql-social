@@ -24,6 +24,8 @@ export interface IRoom {
   author_id: string;
   is_private: boolean;
   created_at: string;
+  // img (object url)
+  img?:string
 }
 export interface IRoomChannel {
   ID: string;

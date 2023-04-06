@@ -1,5 +1,3 @@
-DROP DATABASE;
-
 DROP SCHEMA public CASCADE;
 
 CREATE SCHEMA public;
@@ -10,7 +8,7 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     username VARCHAR(16) UNIQUE NOT NULL,
     password VARCHAR(72) NOT NULL,
-    /* "ADMIN" | "USER" */
+    /* "ADMIN" | "USER" , role exists but its not used for anything*/
     role VARCHAR(5) NOT NULL,
     friends UUID [] DEFAULT '{}' :: UUID [],
     blocked UUID [] DEFAULT '{}' :: UUID []
@@ -46,7 +44,15 @@ CREATE TABLE rooms (
     name VARCHAR(16) NOT NULL,
     private BOOLEAN NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+/* Mime kept here incase I want to store images as pngs with transparency */
+CREATE TABLE room_pictures (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    mime CHAR(10) NOT NULL,
+    picture_data BYTEA NOT NULL
 );
 
 CREATE TABLE invitations (
@@ -128,7 +134,7 @@ CREATE TABLE room_message_attachment_metadata (
     message_id UUID REFERENCES room_messages(id) ON DELETE CASCADE
 );
 
-/* Mime kept here incase I want to store pfps as pngs with transparency */
+/* Mime kept here incase I want to store images as pngs with transparency */
 CREATE TABLE profile_pictures (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,

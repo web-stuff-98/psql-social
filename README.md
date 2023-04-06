@@ -1,11 +1,15 @@
-# pSQL-Social
+# pSQL-social
 
-## Basically Go-Social-Media V2, but with Vue and Postgres
+## It's go-vue-chat but 99% rewritten. It also uses postgres and pinia, instead of MongoDB and vanilla vue state management. The performance and UI is better, but there is no desktop version. A desktop version could be made easily in a day.
 
-### Also the successor to Go-Vue-Chat
+## Features:
 
-### Not finished, only just started. Hopefully the database query performance will be better, and the backend code improvements I made improve performance in general.
-
-### I have included cascaded deletes in the schema but I have no idea if it works yet. I chose to not use an ORM because it just made things more confusing dealing with SQL the last time I used it with Go, and part of the point of this project is using SQL so I can get experience with it.
-
-### I'm using fasthttp & fasthttp websocket since its faster and gorilla is no longer being maintained
+- Voip/Video chat
+- Screen sharing
+- Invitations
+- Friend requests
+- Filesharing
+- Blocks/Bans
+- Rate limiters
+- Typescript types for socket events
+- Validation for everything

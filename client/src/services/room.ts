@@ -73,6 +73,9 @@ export const getRoom = (id: string): Promise<IRoom> =>
 export const deleteRoom = (id: string) =>
   makeRequest(`/api/room/${id}`, { method: "DELETE" });
 
+export const getRoomImage = (id: string) =>
+  makeRequest(`/api/room/${id}/img`, { responseType: "arraybuffer" });
+
 export const getRoomChannels = (id: string): Promise<IRoomChannel[] | null> =>
   makeRequest(`/api/room/channels/${id}`);
 

@@ -157,6 +157,7 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 	if cookie, err := authHelpers.GenerateCookieAndSession(h.RedisClient, rctx, id); err != nil {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 	} else {
+		go authHelpers.DeleteAccount(id, h.DB, h.SocketServer, true)
 		ctx.Response.Header.Add("Content-Type", "text/plain")
 		ctx.Response.Header.SetCookie(cookie)
 		ctx.WriteString(id)

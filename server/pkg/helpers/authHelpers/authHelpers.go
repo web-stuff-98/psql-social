@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -13,6 +14,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/valyala/fasthttp"
+	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
+	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
 func createCookie(token string, expiry time.Time) *fasthttp.Cookie {
@@ -136,4 +139,48 @@ func RefreshToken(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx cont
 
 func DeleteSession(redisClient *redis.Client, ctx context.Context, sid string) {
 	redisClient.Del(ctx, sid)
+}
+
+func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, sleep bool) error {
+	if sleep {
+		time.Sleep(time.Minute * 20)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	if _, err := db.Exec(ctx, "DELETE FROM users WHERE id = $1", uid); err != nil {
+		return err
+	}
+
+	roomSubs := []string{}
+
+	if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE id = $1", uid); err != nil {
+		return err
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				return err
+			}
+			roomSubs = append(roomSubs, fmt.Sprintf("channel:%v", id))
+		}
+	}
+
+	for _, subName := range roomSubs {
+		changeData := make(map[string]interface{})
+		changeData["ID"] = strings.Split(subName, ":")[1]
+		ss.SendDataToSub <- socketServer.SubscriptionMessageData{
+			SubName: subName,
+			Data: socketMessages.ChangeEvent{
+				Type:   "DELETE",
+				Data:   changeData,
+				Entity: "ROOM",
+			},
+			MessageType: "CHANGE",
+		}
+	}
+
+	return nil
 }

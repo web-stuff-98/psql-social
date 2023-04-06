@@ -112,6 +112,20 @@ func main() {
 		Message:       "Too many requests",
 		RouteName:     "create-room",
 	}, rdb, db))
+	r.POST("/api/room/{id}/img", mw.BasicRateLimiter(h.UploadRoomImage, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "upload-room-image",
+	}, rdb, db))
+	r.GET("/api/room/{id}/img", mw.BasicRateLimiter(h.GetRoomImage, mw.SimpleLimiterOpts{
+		Window:        time.Second * 30,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-room-image",
+	}, rdb, db))
 	r.GET("/api/rooms", mw.BasicRateLimiter(h.GetRooms, mw.SimpleLimiterOpts{
 		Window:        time.Minute * 1,
 		MaxReqs:       30,
