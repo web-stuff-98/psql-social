@@ -105,8 +105,8 @@ func configure() map[string]EventLimiterConfiguration {
 
 	config["CALL_USER"] = generalEventConfig
 	config["CALL_USER_RESPONSE"] = generalEventConfig
-	config["CALL_OFFER"] = generalEventConfig
-	config["CALL_ANSWER"] = generalEventConfig
+	config["CALL_WEBRTC_OFFER"] = generalEventConfig
+	config["CALL_WEBRTC_ANSWER"] = generalEventConfig
 	config["CALL_WEBRTC_RECIPIENT_REQUEST_REINITIALIZATION"] = generalEventConfig
 	config["CALL_UPDATE_MEDIA_OPTIONS"] = generalEventConfig
 

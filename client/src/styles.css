@@ -202,7 +202,7 @@ a {
   box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.166), 0px 4px 8px rgba(0, 0, 0, 0.166);
   background: var(--base-colour);
   position: relative;
-  max-width: min(13rem, 95vw);
+  max-width: min(18rem, 95vw);
 }
 
 .underlined {
