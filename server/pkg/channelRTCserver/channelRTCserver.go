@@ -141,7 +141,6 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 			log.Println("Error acquiring pgxpool connection:", err)
 			continue
 		}
-		defer conn.Release()
 
 		cRTCs.ChannelConnections.mutex.RLock()
 		connectionInfo := &Connection{
@@ -213,6 +212,7 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 				Uid: data.Uid,
 			}
 		}
+		conn.Release()
 	}
 }
 
@@ -240,7 +240,6 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 			log.Println("Error acquiring pgxpool connection:", err)
 			continue
 		}
-		defer conn.Release()
 
 		cRTCs.ChannelConnections.mutex.RLock()
 		if channelUids, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
@@ -288,6 +287,7 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 		} else {
 			cRTCs.ChannelConnections.mutex.RUnlock()
 		}
+		conn.Release()
 	}
 }
 
@@ -453,7 +453,6 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 			log.Println("Error acquiring pgxpool connection:", err)
 			continue
 		}
-		defer conn.Release()
 
 		cRTCs.ChannelConnections.mutex.Lock()
 		for channelId, uids := range cRTCs.ChannelConnections.data {
@@ -508,6 +507,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 				}
 			}
 		}
+		conn.Release()
 		cRTCs.ChannelConnections.mutex.Unlock()
 	}
 }

@@ -207,8 +207,6 @@ async function handleMessages(e: MessageEvent) {
   }
 
   if (isRequestAttachment(msg)) {
-    console.log("REQUESTED ATTACHMENT");
-    console.log(msg.data.ID);
     if (pendingAttachmentFile.value)
       attachmentStore.uploadAttachment(
         pendingAttachmentFile.value,
@@ -232,7 +230,6 @@ function handleSubmit(values: any, file?: File) {
       has_attachment: Boolean(file),
     },
   } as RoomMessageEvent);
-  console.log("FILE:", file);
   pendingAttachmentFile.value = file;
 }
 </script>

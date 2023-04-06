@@ -903,6 +903,7 @@ func (h handler) UploadRoomImage(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	} else {
+		defer conn.Release()
 		if selectAuthorStmt, err := conn.Conn().Prepare(rctx, "upload_room_img_select_author_stmt", "SELECT author_id FROM rooms WHERE id = $1"); err != nil {
 			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 			return

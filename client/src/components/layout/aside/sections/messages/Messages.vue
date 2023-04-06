@@ -14,19 +14,26 @@ import User from "../../../../shared/User.vue";
 import MessagesItem from "./MessagesItem.vue";
 import MessageForm from "../../../../shared/MessageForm.vue";
 import { DirectMessage } from "../../../../../socketHandling/OutEvents";
-import { isBlock } from "../../../../../socketHandling/InterpretEvent";
+import {
+  isBlock,
+  isRequestAttachment,
+} from "../../../../../socketHandling/InterpretEvent";
 import useAuthStore from "../../../../../store/AuthStore";
+import useAttachmentStore from "../../../../../store/AttachmentStore";
 
 const inboxStore = useInboxStore();
 const userStore = useUserStore();
 const socketStore = useSocketStore();
 const authStore = useAuthStore();
+const attachmentStore = useAttachmentStore();
 
 const section = ref<"USERS" | "MESSAGES">("USERS");
 const resMsg = ref<IResMsg>({});
 const currentUid = ref("");
 
-function watchForBlocks(e: MessageEvent) {
+const pendingAttachmentFile = ref<File>();
+
+function watchForBlocksAndAttachmentRequest(e: MessageEvent) {
   const msg = JSON.parse(e.data);
   if (!msg) return;
   if (isBlock(msg)) {
@@ -36,6 +43,17 @@ function watchForBlocks(e: MessageEvent) {
       currentUid.value = "";
       section.value = "USERS";
     }
+  }
+  if (isRequestAttachment(msg)) {
+    if (pendingAttachmentFile.value)
+      attachmentStore.uploadAttachment(
+        pendingAttachmentFile.value,
+        msg.data.ID
+      );
+    else
+      console.warn(
+        "Server requested attachment file, but attachment file is undefined"
+      );
   }
 }
 
@@ -51,11 +69,17 @@ onMounted(async () => {
   } catch (e) {
     resMsg.value = { msg: `${e}`, pen: false, err: true };
   }
-  socketStore.socket?.addEventListener("message", watchForBlocks);
+  socketStore.socket?.addEventListener(
+    "message",
+    watchForBlocksAndAttachmentRequest
+  );
 });
 
 onBeforeUnmount(() => {
-  socketStore.socket?.removeEventListener("message", watchForBlocks);
+  socketStore.socket?.removeEventListener(
+    "message",
+    watchForBlocksAndAttachmentRequest
+  );
 });
 
 async function getConversation(uid: string) {
@@ -83,14 +107,16 @@ async function getConversation(uid: string) {
   }
 }
 
-function handleSubmit(values: any) {
+function handleSubmit(values: any, file?: File) {
   socketStore.send({
     event_type: "DIRECT_MESSAGE",
     data: {
       content: values.message,
       uid: currentUid.value,
+      has_attachment: Boolean(file),
     },
   } as DirectMessage);
+  pendingAttachmentFile.value = file;
 }
 </script>
 

@@ -34,6 +34,7 @@ func (h handler) CreateAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
+	defer conn.Release()
 
 	v := validator.New()
 	body := &validation.CreateAttachmentMetadata{}
@@ -296,6 +297,7 @@ func (h handler) GetAttachmentMetadata(ctx *fasthttp.RequestCtx) {
 		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
 		return
 	}
+	defer conn.Release()
 
 	id := ctx.UserValue("id").(string)
 	if id == "" {

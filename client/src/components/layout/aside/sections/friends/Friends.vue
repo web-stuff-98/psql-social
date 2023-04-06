@@ -31,7 +31,8 @@ onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
     const ids: string[] | null = await makeRequest("/api/acc/friends");
-    friends.value = ids || [];
+    friends.value =
+      ids?.filter((item, index) => ids.indexOf(item) === index) || [];
     if (ids) ids.forEach((id) => userStore.cacheUser(id));
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
@@ -50,10 +51,7 @@ onBeforeUnmount(() => {
   <div class="friends-section">
     <ResMsg :resMsg="resMsg" />
     <div class="list">
-      <User
-        :uid="uid"
-        v-for="uid in friends"
-      />
+      <User :uid="uid" v-for="uid in friends" />
     </div>
   </div>
 </template>
