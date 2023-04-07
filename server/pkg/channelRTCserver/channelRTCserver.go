@@ -135,7 +135,8 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 
 		data := <-cRTCs.JoinChannelRTC
 
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*8)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+		defer cancel()
 		conn, err := db.Acquire(ctx)
 		if err != nil {
 			log.Println("Error acquiring pgxpool connection:", err)
@@ -234,7 +235,8 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 
 		data := <-cRTCs.LeaveChannelRTC
 
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*8)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+		defer cancel()
 		conn, err := db.Acquire(ctx)
 		if err != nil {
 			log.Println("Error acquiring pgxpool connection:", err)
@@ -447,7 +449,8 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 
 		uid := <-dc
 
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*8)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+		defer cancel()
 		conn, err := db.Acquire(ctx)
 		if err != nil {
 			log.Println("Error acquiring pgxpool connection:", err)
