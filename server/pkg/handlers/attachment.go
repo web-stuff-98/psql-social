@@ -320,7 +320,6 @@ func (h handler) GetAttachmentMetadata(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
-		ctx.Status(fiber.StatusOK)
 		ctx.Write(outBytes)
 	}
 
@@ -383,7 +382,6 @@ func (h handler) DownloadAttachment(ctx *fiber.Ctx) error {
 		if err = conn.QueryRow(rctx, fmt.Sprintf("SELECT bytes FROM %v WHERE message_id = $1 AND chunk_index = $2;", chunkTable), id, index).Scan(&chunkBytes); err != nil {
 			if err == pgx.ErrNoRows {
 				rctx.Done()
-				ctx.Status(fiber.StatusOK)
 				return nil
 			}
 			return err

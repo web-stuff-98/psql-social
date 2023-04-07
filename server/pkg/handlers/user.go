@@ -58,7 +58,6 @@ func (h handler) GetUser(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
-		ctx.Status(fiber.StatusOK)
 		ctx.Write(bytes)
 	}
 
@@ -104,7 +103,6 @@ func (h handler) GetUserByName(ctx *fiber.Ctx) error {
 	}
 
 	ctx.Response().Header.Add("Content-Type", "text/plain")
-	ctx.Status(fiber.StatusOK)
 	ctx.WriteString(id)
 
 	return nil
@@ -145,7 +143,6 @@ func (h handler) GetUserBio(ctx *fiber.Ctx) error {
 	}
 
 	ctx.Response().Header.Add("Content-Type", "text/plain")
-	ctx.Status(fiber.StatusOK)
 	ctx.WriteString(content)
 
 	return nil
@@ -189,7 +186,6 @@ func (h handler) GetUserPfp(ctx *fiber.Ctx) error {
 	ctx.Response().Header.Add("Content-Type", mime)
 	ctx.Response().Header.Add("Content-Length", strconv.Itoa(len(pictureData.Bytes)))
 	ctx.Write(pictureData.Bytes)
-	ctx.Status(fiber.StatusOK)
 
 	return nil
 }

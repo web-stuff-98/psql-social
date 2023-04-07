@@ -76,7 +76,6 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 		ctx.Cookie(cookie)
 		ctx.Response().Header.Add("Content-Type", "application/json")
 		ctx.WriteString(id)
-		ctx.Status(fiber.StatusOK)
 	}
 
 	return nil
@@ -145,7 +144,6 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 		ctx.Response().Header.Add("Content-Type", "text/plain")
 		ctx.Cookie(cookie)
 		ctx.WriteString(id)
-		ctx.Status(fiber.StatusOK)
 	}
 
 	return nil
@@ -163,7 +161,6 @@ func (h handler) Logout(ctx *fiber.Ctx) error {
 		h.SocketServer.CloseConnChan <- uid
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
 		ctx.Cookie(authHelpers.GetClearedCookie())
-		ctx.Status(fiber.StatusOK)
 	}
 
 	return nil
@@ -177,7 +174,6 @@ func (h handler) Refresh(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized. Your session most likely expired.")
 	} else {
 		ctx.Cookie(cookie)
-		ctx.Status(fiber.StatusOK)
 	}
 
 	return nil
@@ -274,7 +270,6 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 			}
 			ctx.Response().Header.Add("Content-Type", "text/plain")
 			ctx.WriteString(id)
-			ctx.Status(fiber.StatusOK)
 		}
 	}
 
@@ -462,7 +457,6 @@ func (h handler) GetConversees(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
-		ctx.Status(fiber.StatusOK)
 		ctx.Write(outBytes)
 	}
 
@@ -583,7 +577,6 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
-		ctx.Status(fiber.StatusOK)
 		ctx.Write(outBytes)
 	}
 
@@ -625,7 +618,6 @@ func (h handler) GetFriends(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
-		ctx.Status(fiber.StatusOK)
 		ctx.Write(outBytes)
 	}
 

@@ -589,7 +589,6 @@ func (h handler) GetRoom(ctx *fiber.Ctx) error {
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
 		ctx.Write(bytes)
-		ctx.Status(fiber.StatusOK)
 	}
 
 	return nil
@@ -633,7 +632,6 @@ func (h handler) GetRoomImage(ctx *fiber.Ctx) error {
 	ctx.Response().Header.Add("Content-Type", mime)
 	ctx.Response().Header.Add("Content-Length", strconv.Itoa(len(pictureData.Bytes)))
 	ctx.Write(pictureData.Bytes)
-	ctx.Status(fiber.StatusOK)
 
 	return nil
 }
@@ -734,7 +732,6 @@ func (h handler) GetRooms(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
-		ctx.Status(fiber.StatusOK)
 		ctx.Write(data)
 	}
 
@@ -1017,7 +1014,6 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
 		ctx.Write(bytes)
-		ctx.Status(fiber.StatusOK)
 	}
 
 	return nil
@@ -1120,7 +1116,6 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
 			ctx.Response().Header.Add("Content-Type", "application/json")
-			ctx.Status(fiber.StatusOK)
 			ctx.Write(data)
 		}
 	}
