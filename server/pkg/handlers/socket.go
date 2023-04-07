@@ -34,7 +34,7 @@ func handleConnection(h handler, ctx *fiber.Ctx, uid string, c *websocket.Conn) 
 				}
 			}
 			decoded := &decodedMsg{}
-			if err := json.Unmarshal(p, decoded); err != nil {
+			if err = json.Unmarshal(p, decoded); err != nil {
 				log.Println("Invalid message - connection closed")
 				c.Close()
 				return

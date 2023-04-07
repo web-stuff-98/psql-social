@@ -82,8 +82,8 @@ async function handleSubmit(values: any) {
   display: flex;
   flex-direction: column;
   gap: var(--gap-md);
-  width: 12rem;
-  max-width: 12rem;
+  width: 10rem;
+  max-width: 10rem;
   button {
     font-weight: 600;
     font-size: var(--md);
