@@ -472,7 +472,7 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	user_id := ctx.Query("id")
+	user_id := ctx.Params("id")
 	if user_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}

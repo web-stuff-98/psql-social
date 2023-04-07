@@ -174,7 +174,7 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	id := ctx.Query("id")
+	id := ctx.Params("id")
 	if id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -266,7 +266,7 @@ func (h handler) GetAttachmentMetadata(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	id := ctx.Query("id")
+	id := ctx.Params("id")
 	if id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -327,7 +327,7 @@ func (h handler) GetAttachmentMetadata(ctx *fiber.Ctx) error {
 }
 
 func (h handler) DownloadAttachment(ctx *fiber.Ctx) error {
-	id := ctx.Query("id")
+	id := ctx.Params("id")
 	if id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}

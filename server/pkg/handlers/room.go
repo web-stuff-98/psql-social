@@ -122,7 +122,7 @@ func (h handler) UpdateRoom(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
-	room_id := ctx.Query("id")
+	room_id := ctx.Params("id")
 	if room_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -188,7 +188,7 @@ func (h handler) UpdateRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	channel_id := ctx.Query("id")
+	channel_id := ctx.Params("id")
 	if channel_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -310,7 +310,7 @@ func (h handler) DeleteRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	channel_id := ctx.Query("id")
+	channel_id := ctx.Params("id")
 	if channel_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -423,7 +423,7 @@ func (h handler) CreateRoomChannel(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	room_id := ctx.Query("id")
+	room_id := ctx.Params("id")
 	if room_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -521,7 +521,7 @@ func (h handler) GetRoom(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	room_id := ctx.Query("id")
+	room_id := ctx.Params("id")
 	if room_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -603,7 +603,7 @@ func (h handler) GetRoomImage(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	id := ctx.Query("id")
+	id := ctx.Params("id")
 	if id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -747,7 +747,7 @@ func (h handler) DeleteRoom(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	room_id := ctx.Query("id")
+	room_id := ctx.Params("id")
 	if room_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -795,7 +795,7 @@ func (h handler) UploadRoomImage(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	id := ctx.Query("id")
+	id := ctx.Params("id")
 	if id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -904,7 +904,7 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	room_channel_id := ctx.Query("id")
+	room_channel_id := ctx.Params("id")
 	if room_channel_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -1029,7 +1029,7 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	room_id := ctx.Query("id")
+	room_id := ctx.Params("id")
 	if room_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}

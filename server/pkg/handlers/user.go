@@ -25,7 +25,7 @@ func (h handler) GetUser(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	user_id := ctx.Query("id")
+	user_id := ctx.Params("id")
 	if user_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -117,7 +117,7 @@ func (h handler) GetUserBio(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	user_id := ctx.Query("id")
+	user_id := ctx.Params("id")
 	if user_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
@@ -157,7 +157,7 @@ func (h handler) GetUserPfp(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	user_id := ctx.Query("id")
+	user_id := ctx.Params("id")
 	if user_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
