@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/fasthttp/websocket"
+	"github.com/gofiber/websocket/v2"
 	"github.com/redis/go-redis/v9"
 )
 

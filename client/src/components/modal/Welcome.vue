@@ -18,7 +18,8 @@ defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
     <p>
       This is my new Vue & Go social app, it has all the features of Go-Vue-Chat
       but it's written better and uses postgres. The performance and UI is
-      better. You can login and try it out, or just watch the demo video.
+      better. You can login and try it out, or just watch the demo video. The
+      video compression is heavy but it shows all features.
     </p>
     <div class="buttons">
       <button type="button" @click="onLoginClicked()">Login</button>

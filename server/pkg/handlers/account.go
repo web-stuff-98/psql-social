@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/nfnt/resize"
-	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
@@ -25,21 +25,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (h handler) Login(ctx *fasthttp.RequestCtx) {
+func (h handler) Login(ctx *fiber.Ctx) error {
 	v := validator.New()
 	body := &validation.LoginRegister{}
-	if err := json.Unmarshal(ctx.Request.Body(), &body); err != nil {
-		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
-		return
+	if err := json.Unmarshal(ctx.Body(), &body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 	if err := v.Struct(body); err != nil {
-		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
 	if !body.Policy {
-		ResponseMessage(ctx, "You must agree to the policy", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "You must agree to the policy")
 	}
 
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
@@ -47,66 +44,60 @@ func (h handler) Login(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
 	stmt, err := conn.Conn().Prepare(rctx, "login_stmt", "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1)")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	var id, hash string
 	if err := conn.QueryRow(rctx, stmt.Name, strings.TrimSpace(body.Username)).Scan(&id, &hash); err != nil {
 		if err == pgx.ErrNoRows {
-			ResponseMessage(ctx, "Account not found", fasthttp.StatusNotFound)
+			return fiber.NewError(fiber.StatusNotFound, "Not found")
 		} else {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
-		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(body.Password)); err != nil {
 		if err == bcrypt.ErrMismatchedHashAndPassword {
-			ResponseMessage(ctx, "Invalid credentials", fasthttp.StatusUnauthorized)
+			return fiber.NewError(fiber.StatusUnauthorized, "Invalid credentials")
 		} else {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
-		return
 	}
 
 	if cookie, err := authHelpers.GenerateCookieAndSession(h.RedisClient, rctx, id); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
-		ctx.Response.Header.SetCookie(cookie)
-		ctx.Response.Header.Add("Content-Type", "application/json")
+		ctx.Cookie(cookie)
+		ctx.Response().Header.Add("Content-Type", "application/json")
 		ctx.WriteString(id)
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Status(fiber.StatusOK)
 	}
+
+	return nil
 }
 
-func (h handler) Register(ctx *fasthttp.RequestCtx) {
+func (h handler) Register(ctx *fiber.Ctx) error {
 	v := validator.New()
 	body := &validation.LoginRegister{}
-	if err := json.Unmarshal(ctx.Request.Body(), &body); err != nil {
-		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
-		return
+	if err := json.Unmarshal(ctx.Body(), &body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 	if err := v.Struct(body); err != nil {
-		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
 	if !body.Policy {
-		ResponseMessage(ctx, "You must agree to the policy", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "You must agree to the policy")
 	}
 
 	if !authHelpers.PasswordValidates(body.Password) {
-		ResponseMessage(ctx, "Password does not meet requirements", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Password does not meet requirements")
 	}
 
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
@@ -114,111 +105,105 @@ func (h handler) Register(ctx *fasthttp.RequestCtx) {
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
 	existsStmt, err := conn.Conn().Prepare(rctx, "register_exists_stmt", "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	exists := false
 	if err := conn.QueryRow(rctx, existsStmt.Name, strings.TrimSpace(body.Username)).Scan(&exists); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
 	if exists {
-		ResponseMessage(ctx, "There is another user already registered with that name", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "There is already another user using that name")
 	}
 
 	var id string
 	if hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 14); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
 		if err != nil {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 
 		if err := conn.QueryRow(rctx, insertStmt.Name, body.Username, string(hash)).Scan(&id); err != nil {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
 
 	if cookie, err := authHelpers.GenerateCookieAndSession(h.RedisClient, rctx, id); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		go authHelpers.DeleteAccount(id, h.DB, h.SocketServer, true)
-		ctx.Response.Header.Add("Content-Type", "text/plain")
-		ctx.Response.Header.SetCookie(cookie)
+		ctx.Response().Header.Add("Content-Type", "text/plain")
+		ctx.Cookie(cookie)
 		ctx.WriteString(id)
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Status(fiber.StatusOK)
 	}
+
+	return nil
 }
 
-func (h handler) Logout(ctx *fasthttp.RequestCtx) {
+func (h handler) Logout(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	if uid, sid, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB); err != nil {
 		log.Println(err)
-		ctx.Response.Header.SetCookie(authHelpers.GetClearedCookie())
-		ResponseMessage(ctx, "Invalid session ID", fasthttp.StatusForbidden)
-		return
+		ctx.Cookie(authHelpers.GetClearedCookie())
+		return fiber.NewError(fiber.StatusForbidden, "You are not logged in")
 	} else {
 		h.SocketServer.CloseConnChan <- uid
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
-		ctx.Response.Header.SetCookie(authHelpers.GetClearedCookie())
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Cookie(authHelpers.GetClearedCookie())
+		ctx.Status(fiber.StatusOK)
 	}
+
+	return nil
 }
 
-func (h handler) Refresh(ctx *fasthttp.RequestCtx) {
+func (h handler) Refresh(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	if cookie, err := authHelpers.RefreshToken(h.RedisClient, ctx, rctx, h.DB); err != nil {
-		ResponseMessage(ctx, "Unauthorized. Your session most likely expired", fasthttp.StatusUnauthorized)
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized. Your session most likely expired.")
 	} else {
-		ctx.Response.Header.SetCookie(cookie)
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Cookie(cookie)
+		ctx.Status(fiber.StatusOK)
 	}
+
+	return nil
 }
 
-func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
+func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
 	v := validator.New()
 	bio := &validation.Bio{}
-	if err := json.Unmarshal(ctx.Request.Body(), bio); err != nil {
-		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
-		return
+	if err := json.Unmarshal(ctx.Body(), bio); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 	if err := v.Struct(bio); err != nil {
-		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
@@ -227,15 +212,13 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 	exists := false
 	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bios WHERE user_id = $1);", uid).Scan(&exists) // added error handling here
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	var id string
 	if content == "" {
 		if exists {
 			if _, err := h.DB.Exec(rctx, "DELETE FROM bios WHERE user_id = $1;", uid); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 		}
 
@@ -251,7 +234,7 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 			MessageType: "CHANGE",
 		}
 
-		ResponseMessage(ctx, "Bio deleted successfully.", fasthttp.StatusOK)
+		return nil
 	} else {
 		msgData := make(map[string]interface{})
 		msgData["ID"] = uid
@@ -269,67 +252,60 @@ func (h handler) UpdateBio(ctx *fasthttp.RequestCtx) {
 		if !exists {
 			insertStmt, err := conn.Conn().Prepare(rctx, "insert_bio_stmt", "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id")
 			if err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 
 			err = conn.QueryRow(rctx, insertStmt.Name, content, uid).Scan(&id)
 			if err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
-			ctx.Response.Header.Add("Content-Type", "text/plain")
+			ctx.Response().Header.Add("Content-Type", "text/plain")
 			ctx.WriteString(id)
-			ctx.SetStatusCode(fasthttp.StatusCreated)
+			ctx.Status(fiber.StatusCreated)
 		} else {
 			updateStmt, err := conn.Conn().Prepare(rctx, "update_bio_stmt", "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id")
 			if err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 
 			err = conn.QueryRow(rctx, updateStmt.Name, content, uid).Scan(&id)
 			if err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
-			ctx.Response.Header.Add("Content-Type", "text/plain")
+			ctx.Response().Header.Add("Content-Type", "text/plain")
 			ctx.WriteString(id)
-			ctx.SetStatusCode(fasthttp.StatusOK)
+			ctx.Status(fiber.StatusOK)
 		}
 	}
+
+	return nil
 }
 
-func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
+func (h handler) UploadPfp(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
 	fh, err := ctx.FormFile("file")
 	if err != nil {
-		ResponseMessage(ctx, "Error loading file", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	if fh.Size > 30*1024*1024 {
-		ResponseMessage(ctx, "Maxiumum file size allowed is 20mb", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Maximum 30mb")
 	}
 
 	mime := fh.Header.Get("Content-Type")
 	if mime != "image/jpeg" && mime != "image/png" {
-		ResponseMessage(ctx, "Unsupported file format - only jpeg and png allowed", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Only jpeg and png allowed")
 	}
 
 	file, err := fh.Open()
 	if err != nil {
-		ResponseMessage(ctx, "Error loading file", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer file.Close()
 
@@ -341,12 +317,10 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 	case "image/png":
 		img, decodeErr = png.Decode(file)
 	default:
-		ResponseMessage(ctx, "Only JPEG and PNG are supported", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Only jpeg and png allowed")
 	}
 	if decodeErr != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	buf := &bytes.Buffer{}
 	if img.Bounds().Dx() > img.Bounds().Dy() {
@@ -355,27 +329,23 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 		img = resize.Resize(0, 300, img, resize.Lanczos3)
 	}
 	if err := jpeg.Encode(buf, img, nil); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	pfpBytes := buf.Bytes()
 
 	exists := false
 	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM profile_pictures WHERE user_id = $1);", uid).Scan(&exists)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	if exists {
 		if _, err := h.DB.Exec(rctx, "UPDATE profile_pictures SET picture_data = $1 WHERE user_id = $2;", pfpBytes, uid); err != nil {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
 		if _, err := h.DB.Exec(rctx, `INSERT INTO profile_pictures (user_id,picture_data,mime) VALUES ($1,$2,'image/jpeg');`, uid, pfpBytes); err != nil {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
 
@@ -391,43 +361,39 @@ func (h handler) UploadPfp(ctx *fasthttp.RequestCtx) {
 		MessageType: "CHANGE",
 	}
 
-	ResponseMessage(ctx, "Profile picture updated successfully", fasthttp.StatusOK)
+	return nil
 }
 
-func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
+func (h handler) GetConversees(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
 	selectDmsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_messages_stmt", "SELECT author_id,recipient_id FROM direct_messages WHERE author_id = $1 OR recipient_id = $1")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	uids := make(map[string]struct{})
 	if rows, err := conn.Query(rctx, selectDmsStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
 		defer rows.Close()
 		for rows.Next() {
 			var author_id, recipient_id string
 			if err = rows.Scan(&author_id, &recipient_id); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 			if author_id != uid {
 				uids[author_id] = struct{}{}
@@ -439,20 +405,18 @@ func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
 
 	selectFrqsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_friend_reqeusts_stmt", "SELECT friender,friended FROM friend_requests WHERE friender = $1 OR friended = $1")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	if rows, err := conn.Query(rctx, selectFrqsStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
 		defer rows.Close()
 		for rows.Next() {
 			var friender, friended string
 			if err = rows.Scan(&friender, &friended); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 			if friender != uid {
 				uids[friender] = struct{}{}
@@ -464,21 +428,19 @@ func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
 
 	selectInvsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_invitations_stmt", "SELECT inviter,invited FROM invitations WHERE inviter = $1 OR invited = $1")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	if rows, err := conn.Query(rctx, selectInvsStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
 		defer rows.Close()
 		for rows.Next() {
 			var inviter, invited string
 			if err = rows.Scan(&inviter, &invited); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 			if inviter != uid {
 				uids[inviter] = struct{}{}
@@ -497,47 +459,44 @@ func (h handler) GetConversees(ctx *fasthttp.RequestCtx) {
 	}
 
 	if outBytes, err := json.Marshal(uidsArr); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
-		ctx.Response.Header.Add("Content-Type", "application/json")
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Status(fiber.StatusOK)
 		ctx.Write(outBytes)
 	}
+
+	return nil
 }
 
-func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
+func (h handler) GetConversation(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	user_id := ctx.UserValue("id").(string)
+	user_id := ctx.Query("id")
 	if user_id == "" {
-		ResponseMessage(ctx, "Provide a user ID", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
 	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at,has_attachment FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at ASC LIMIT 50")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	messages := []responses.DirectMessage{}
 	if rows, err := conn.Query(rctx, selectMsgStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
 		defer rows.Close()
@@ -547,8 +506,7 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 			var has_attachment bool
 
 			if err = rows.Scan(&id, &content, &author_id, &recipient_id, &created_at, &has_attachment); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 
 			messages = append(messages, responses.DirectMessage{
@@ -564,14 +522,12 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 
 	selectFrqStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_friend_requests_stmt", "SELECT friender,friended,created_at FROM friend_requests WHERE (friender = $1) OR (friended = $1)")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	friendRequests := []responses.FriendRequest{}
 	if rows, err := conn.Query(rctx, selectFrqStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
 		defer rows.Close()
@@ -580,8 +536,7 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 			var created_at pgtype.Timestamptz
 
 			if err = rows.Scan(&friender, &friended, &created_at); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 
 			friendRequests = append(friendRequests, responses.FriendRequest{
@@ -594,14 +549,12 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 
 	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", "SELECT inviter,invited,created_at,room_id FROM invitations WHERE (inviter = $1) OR (invited = $1)")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	invitations := []responses.Invitation{}
 	if rows, err := conn.Query(rctx, selectInvStmt.Name, uid); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
 		defer rows.Close()
@@ -610,8 +563,7 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 			var created_at pgtype.Timestamptz
 
 			if err = rows.Scan(&inviter, &invited, &created_at, &room_id); err != nil {
-				ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-				return
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 
 			invitations = append(invitations, responses.Invitation{
@@ -628,28 +580,28 @@ func (h handler) GetConversation(ctx *fasthttp.RequestCtx) {
 		Invitations:    invitations,
 		FriendRequests: friendRequests,
 	}); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
-		ctx.Response.Header.Add("Content-Type", "application/json")
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Status(fiber.StatusOK)
 		ctx.Write(outBytes)
 	}
+
+	return nil
 }
 
-func (h handler) GetFriends(ctx *fasthttp.RequestCtx) {
+func (h handler) GetFriends(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
 	rows, err := h.DB.Query(rctx, "SELECT friender,friended FROM friends WHERE (friender = $1) OR (friended = $1);", uid)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer rows.Close()
 
@@ -659,8 +611,7 @@ func (h handler) GetFriends(ctx *fasthttp.RequestCtx) {
 		var friender, friended string
 
 		if err = rows.Scan(&friender, &friended); err != nil {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-			return
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 
 		if friender != uid {
@@ -671,11 +622,12 @@ func (h handler) GetFriends(ctx *fasthttp.RequestCtx) {
 	}
 
 	if outBytes, err := json.Marshal(uids); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
-		ctx.Response.Header.Add("Content-Type", "application/json")
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Status(fiber.StatusOK)
 		ctx.Write(outBytes)
 	}
+
+	return nil
 }

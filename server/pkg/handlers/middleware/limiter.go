@@ -3,12 +3,11 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"github.com/valyala/fasthttp"
 )
 
 type BlockInfo struct {
@@ -24,19 +23,18 @@ type SimpleLimiterOpts struct {
 	RouteName     string        `json:"-"`
 }
 
-func errMsg(ctx *fasthttp.RequestCtx, s int, m string) {
-	ctx.Response.Header.Add("Content-Type", "text/plain")
-	ctx.SetStatusCode(s)
-	ctx.WriteString(m)
+func errMsg(ctx *fiber.Ctx, s int, m string) error {
+	ctx.Set("Content-Type", "text/plain")
+	return ctx.Status(s).SendString(m)
 }
 
-func BasicRateLimiter(next fasthttp.RequestHandler, opts SimpleLimiterOpts, rdb *redis.Client, db *pgxpool.Pool) fasthttp.RequestHandler {
-	return func(ctx *fasthttp.RequestCtx) {
+func BasicRateLimiter(next fiber.Handler, opts SimpleLimiterOpts, rdb *redis.Client, db *pgxpool.Pool) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
 		rctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
 		// Find IP block info on redis
-		ipInfoKey := "simple-api-limiter-info:" + ctx.RemoteAddr().String() + "=" + opts.RouteName
+		ipInfoKey := "simple-api-limiter-info:" + ctx.IP() + "=" + opts.RouteName
 		ipInfoCmd := rdb.Get(rctx, ipInfoKey)
 		ipInfo := &BlockInfo{}
 		if ipInfoCmd.Err() == nil {
@@ -44,8 +42,7 @@ func BasicRateLimiter(next fasthttp.RequestHandler, opts SimpleLimiterOpts, rdb 
 			ipInfoString := ipInfoCmd.Val()
 			err := json.Unmarshal([]byte(ipInfoString), ipInfo)
 			if err != nil {
-				errMsg(ctx, http.StatusInternalServerError, "Internal error")
-				return
+				return errMsg(ctx, fiber.StatusInternalServerError, "Internal error")
 			}
 			// Check if blocked
 			if ipInfo.RequestsInWindow >= opts.MaxReqs {
@@ -54,74 +51,46 @@ func BasicRateLimiter(next fasthttp.RequestHandler, opts SimpleLimiterOpts, rdb 
 					delCmd := rdb.Del(rctx, ipInfoKey)
 					if delCmd.Err() != nil {
 						if delCmd.Err() != redis.Nil {
-							errMsg(ctx, http.StatusInternalServerError, "Internal error")
-							return
+							return errMsg(ctx, fiber.StatusInternalServerError, "Internal error")
 						}
 					}
-					next(ctx)
-					return
+					return next(ctx)
 				} else {
 					// The IP is blocked, extend redis key expiration to end of block duration and send err msg
-					secsRemaining := ipInfo.LastRequest.Add(opts.BlockDuration).Second() - time.Now().Second()
-					setCmd := rdb.Set(rctx, ipInfoKey, ipInfoString, time.Duration(secsRemaining*1000000000))
-					if setCmd.Err() != nil {
-						errMsg(ctx, http.StatusInternalServerError, "Internal error")
-						return
+					secsRemaining := int(ipInfo.LastRequest.Add(opts.BlockDuration).Sub(time.Now()).Seconds())
+					expireCmd := rdb.Expire(rctx, ipInfoKey, time.Second*time.Duration(secsRemaining))
+					if expireCmd.Err() != nil {
+						return errMsg(ctx, fiber.StatusInternalServerError, "Internal error")
 					}
-					var msg string
-					if opts.Message != "" {
-						msg = opts.Message
-					} else {
-						msg = "Too many requests"
-					}
-					errMsg(ctx, http.StatusTooManyRequests, msg)
-					return
+					return errMsg(ctx, fiber.StatusTooManyRequests, opts.Message)
 				}
-			}
-			// If not blocked add to the number of requests
-			if ipInfo.LastRequest.Before(time.Now().Add(-opts.Window)) {
-				ipInfo.RequestsInWindow = 1
 			} else {
 				ipInfo.RequestsInWindow++
+				ipInfo.LastRequest = time.Now()
+				ipInfoBytes, err := json.Marshal(ipInfo)
+				if err != nil {
+					return errMsg(ctx, fiber.StatusInternalServerError, "Internal error")
+				}
+				setCmd := rdb.Set(rctx, ipInfoKey, string(ipInfoBytes), opts.Window)
+				if setCmd.Err() != nil {
+					return errMsg(ctx, fiber.StatusInternalServerError, "Internal error")
+				}
+				return next(ctx)
 			}
+		} else if ipInfoCmd.Err() == redis.Nil {
+			ipInfo.RequestsInWindow = 1
 			ipInfo.LastRequest = time.Now()
 			ipInfoBytes, err := json.Marshal(ipInfo)
 			if err != nil {
-				errMsg(ctx, http.StatusInternalServerError, "Internal error")
-				return
+				return errMsg(ctx, fiber.StatusInternalServerError, "Internal error")
 			}
-			// Set the ip block info
 			setCmd := rdb.Set(rctx, ipInfoKey, string(ipInfoBytes), opts.Window)
 			if setCmd.Err() != nil {
-				errMsg(ctx, http.StatusInternalServerError, "Internal error")
-				return
+				return errMsg(ctx, fiber.StatusInternalServerError, "Internal error")
 			}
+			return next(ctx)
 		} else {
-			// IP block info for route was not found, set it, but first check if its because there was an internal error
-			if ipInfoCmd.Err() != redis.Nil {
-				errMsg(ctx, http.StatusInternalServerError, "Internal error")
-				return
-			} else {
-				// No internal error, create IP block info on redis and do next
-				ipInfo = &BlockInfo{
-					LastRequest:      time.Now(),
-					RequestsInWindow: 1,
-				}
-				ipInfoBytes, err := json.Marshal(ipInfo)
-				if err != nil {
-					errMsg(ctx, http.StatusInternalServerError, "Internal error")
-					return
-				}
-				// Set the ip block info
-				setCmd := rdb.Set(rctx, ipInfoKey, string(ipInfoBytes), opts.Window)
-				if setCmd.Err() != nil {
-					errMsg(ctx, http.StatusInternalServerError, "Internal error")
-					return
-				}
-				next(ctx)
-				return
-			}
+			return errMsg(ctx, fiber.StatusInternalServerError, "Internal error")
 		}
-		next(ctx)
 	}
 }

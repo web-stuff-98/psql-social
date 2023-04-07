@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fasthttp/websocket"
 	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/websocket/v2"
 	"github.com/jackc/pgx/v5"
 	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
 	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
@@ -1393,15 +1393,11 @@ func callUserResponse(inData map[string]interface{}, h handler, uid string, c *w
 	}
 	defer conn.Release()
 
-	log.Println("Sending to calls response chan")
-
 	h.CallServer.ResponseToCallChan <- callServer.InCallResponse{
 		Caller: data.Caller,
 		Called: data.Called,
 		Accept: data.Accept,
 	}
-
-	log.Println("Sent to calls response chan")
 
 	return nil
 }

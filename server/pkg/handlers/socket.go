@@ -5,19 +5,11 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/fasthttp/websocket"
-	"github.com/valyala/fasthttp"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
-
-/*
-	Messages come in like this, different to my last go projects:
-	{ "event_type":string , "data":json }
-
-	There is a seperate websocket endpoint for attachment chunk
-	data
-*/
 
 type decodedMsg struct {
 	Type string                 `json:"event_type"`
@@ -30,7 +22,7 @@ func SendSocketErrorMessage(m string, c *websocket.Conn) {
 	})
 }
 
-func handleConnection(h handler, ctx *fasthttp.RequestCtx, uid string, c *websocket.Conn) {
+func handleConnection(h handler, ctx *fiber.Ctx, uid string, c *websocket.Conn) {
 	for {
 		if _, p, err := c.ReadMessage(); err != nil {
 			log.Println("ws reader error:", err)
@@ -56,22 +48,25 @@ func handleConnection(h handler, ctx *fasthttp.RequestCtx, uid string, c *websoc
 	}
 }
 
-func (h handler) WebSocketEndpoint(ctx *fasthttp.RequestCtx) {
+func (h handler) WebSocketEndpoint(ctx *fiber.Ctx) error {
 	if uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, context.Background(), h.DB); err != nil {
-		ResponseMessage(ctx, "Forbidden - Log in to gain access", fasthttp.StatusForbidden)
+		return ctx.Status(fiber.StatusForbidden).SendString("Forbidden - Log in to gain access")
 	} else {
-		if err := upgrader.Upgrade(ctx, func(c *websocket.Conn) {
-			h.SocketServer.RegisterConn <- socketServer.ConnnectionData{
-				Uid:  uid,
-				Conn: c,
-			}
-			defer func() {
-				h.SocketServer.UnregisterConn <- c
-			}()
-			handleConnection(h, ctx, uid, c)
-		}); err != nil {
-			log.Println(err)
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+		if websocket.IsWebSocketUpgrade(ctx) {
+			ctx.Locals("uid", uid)
+			return ctx.Next()
 		}
+		return fiber.ErrUpgradeRequired
 	}
+}
+
+func (h handler) WebSocketHandler(c *websocket.Conn) {
+	defer func() {
+		h.SocketServer.UnregisterConn <- c
+	}()
+	h.SocketServer.RegisterConn <- socketServer.ConnnectionData{
+		Uid:  c.Locals("uid").(string),
+		Conn: c,
+	}
+	handleConnection(h, nil, c.Locals("uid").(string), c)
 }

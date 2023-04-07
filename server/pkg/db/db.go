@@ -9,7 +9,7 @@ import (
 )
 
 func Init() *pgxpool.Pool {
-	config, err := pgxpool.ParseConfig(os.Getenv("DB_URL"))
+	config, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalln("Failed to parse DB URL config")
 	}

@@ -10,38 +10,38 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"github.com/valyala/fasthttp"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
-func createCookie(token string, expiry time.Time) *fasthttp.Cookie {
-	var cookie fasthttp.Cookie
-	cookie.SetKey("session_token")
-	cookie.SetValue(token)
-	cookie.SetExpire(expiry)
-	cookie.SetMaxAge(120)
-	cookie.SetSecure(os.Getenv("ENVIRONMENT") == "PRODUCTION")
-	cookie.SetHTTPOnly(true)
-	cookie.SetSameSite(fasthttp.CookieSameSiteDefaultMode)
-	cookie.SetPath("/")
-	return &cookie
+func createCookie(token string, expiry time.Time) *fiber.Cookie {
+	cookie := new(fiber.Cookie)
+	cookie.Name = "session_token"
+	cookie.Value = token
+	cookie.Expires = expiry
+	cookie.MaxAge = 120
+	cookie.Secure = os.Getenv("ENVIRONMENT") == "PRODUCTION"
+	cookie.HTTPOnly = true
+	cookie.SameSite = "Strict"
+	cookie.Path = "/"
+	return cookie
 }
 
-func GetClearedCookie() *fasthttp.Cookie {
-	var cookie fasthttp.Cookie
-	cookie.SetKey("session_token")
-	cookie.SetValue("")
-	cookie.SetExpire(fasthttp.CookieExpireDelete)
-	cookie.SetMaxAge(-1)
-	cookie.SetSecure(os.Getenv("ENVIRONMENT") == "PRODUCTION")
-	cookie.SetHTTPOnly(true)
-	cookie.SetSameSite(fasthttp.CookieSameSiteDefaultMode)
-	cookie.SetPath("/")
-	return &cookie
+func GetClearedCookie() *fiber.Cookie {
+	cookie := new(fiber.Cookie)
+	cookie.Name = "session_token"
+	cookie.Value = ""
+	cookie.Expires = time.Unix(0, 0)
+	cookie.MaxAge = -1
+	cookie.Secure = os.Getenv("ENVIRONMENT") == "PRODUCTION"
+	cookie.HTTPOnly = true
+	cookie.SameSite = "Strict"
+	cookie.Path = "/"
+	return cookie
 }
 
 func PasswordValidates(pass string) bool {
@@ -65,7 +65,7 @@ func PasswordValidates(pass string) bool {
 	return count >= 3
 }
 
-func GenerateCookieAndSession(redisClient *redis.Client, ctx context.Context, uid string) (*fasthttp.Cookie, error) {
+func GenerateCookieAndSession(redisClient *redis.Client, ctx context.Context, uid string) (*fiber.Cookie, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic in generate token helper function")
@@ -91,14 +91,14 @@ func GenerateCookieAndSession(redisClient *redis.Client, ctx context.Context, ui
 	return cookie, nil
 }
 
-func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx context.Context, db *pgxpool.Pool) (uid string, sid string, err error) {
+func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fiber.Ctx, rctx context.Context, db *pgxpool.Pool) (uid string, sid string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic in get user ID from session token helper function")
 		}
 	}()
 
-	cookie := string(ctx.Request.Header.Cookie("session_token"))
+	cookie := string(ctx.Request().Header.Cookie("session_token"))
 	if cookie == "" {
 		return "", "", fmt.Errorf("No cookie")
 	}
@@ -118,7 +118,7 @@ func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fasthttp.RequestCtx,
 	return val, sessionID, nil
 }
 
-func RefreshToken(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx context.Context, db *pgxpool.Pool) (*fasthttp.Cookie, error) {
+func RefreshToken(redisClient *redis.Client, ctx *fiber.Ctx, rctx context.Context, db *pgxpool.Pool) (*fiber.Cookie, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered from panic in refresh session token helper function")
@@ -128,8 +128,8 @@ func RefreshToken(redisClient *redis.Client, ctx *fasthttp.RequestCtx, rctx cont
 	if uid, sid, err := GetUidAndSidFromCookie(redisClient, ctx, rctx, db); err != nil {
 		return GetClearedCookie(), err
 	} else {
-		redisClient.Del(ctx, sid)
-		if cookie, err := GenerateCookieAndSession(redisClient, ctx, uid); err != nil {
+		redisClient.Del(rctx, sid)
+		if cookie, err := GenerateCookieAndSession(redisClient, rctx, uid); err != nil {
 			return GetClearedCookie(), err
 		} else {
 			return cookie, nil

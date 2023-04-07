@@ -8,51 +8,46 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
-	"github.com/valyala/fasthttp"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
 )
 
-func (h handler) GetUser(ctx *fasthttp.RequestCtx) {
+func (h handler) GetUser(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	user_id := ctx.UserValue("id").(string)
+	user_id := ctx.Query("id")
 	if user_id == "" {
-		ResponseMessage(ctx, "Provide a user ID", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
 	selectUserStmt, err := conn.Conn().Prepare(rctx, "get_user_select_stmt", "SELECT id,username,role FROM users WHERE id = $1")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	var id, username, role string
 	if err := conn.QueryRow(rctx, selectUserStmt.Name, user_id).Scan(&id, &username, &role); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
-			ResponseMessage(ctx, "User not found", fasthttp.StatusNotFound)
+			return fiber.NewError(fiber.StatusNotFound, "User not found")
 		}
-		return
 	}
 
 	if bytes, err := json.Marshal(responses.User{
@@ -60,150 +55,141 @@ func (h handler) GetUser(ctx *fasthttp.RequestCtx) {
 		Username: username,
 		Role:     role,
 	}); err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
-		ctx.Response.Header.Add("Content-Type", "application/json")
-		ctx.SetStatusCode(fasthttp.StatusOK)
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Status(fiber.StatusOK)
 		ctx.Write(bytes)
 	}
+
+	return nil
 }
 
-func (h handler) GetUserByName(ctx *fasthttp.RequestCtx) {
+func (h handler) GetUserByName(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
 	v := validator.New()
 	body := &validation.GetUserByName{}
-	if err := json.Unmarshal(ctx.Request.Body(), &body); err != nil {
-		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
-		return
+	if err := json.Unmarshal(ctx.Body(), &body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 	if err := v.Struct(body); err != nil {
-		ResponseMessage(ctx, "Bad request", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
 	selectUserStmt, err := conn.Conn().Prepare(rctx, "get_user_by_name_select_stmt", "SELECT id FROM users WHERE LOWER(username) = LOWER($1)")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	var id string
 	if err := conn.QueryRow(rctx, selectUserStmt.Name, strings.TrimSpace(body.Username)).Scan(&id); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
-			ResponseMessage(ctx, "User not found", fasthttp.StatusNotFound)
+			return fiber.NewError(fiber.StatusNotFound, "User not found")
 		}
-		return
 	}
 
-	ctx.Response.Header.Add("Content-Type", "text/plain")
-	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.Response().Header.Add("Content-Type", "text/plain")
+	ctx.Status(fiber.StatusOK)
 	ctx.WriteString(id)
+
+	return nil
 }
 
-func (h handler) GetUserBio(ctx *fasthttp.RequestCtx) {
+func (h handler) GetUserBio(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	user_id := ctx.UserValue("id").(string)
+	user_id := ctx.Query("id")
 	if user_id == "" {
-		ResponseMessage(ctx, "Provide a user ID", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
 	selectStmt, err := conn.Conn().Prepare(rctx, "get_user_bio_select_stmt", "SELECT content FROM bios WHERE user_id = $1")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	var content string
 	if err := conn.QueryRow(rctx, selectStmt.Name, user_id).Scan(&content); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
-			ResponseMessage(ctx, "Bio not found", fasthttp.StatusNotFound)
+			return fiber.NewError(fiber.StatusNotFound, "Bio not found")
 		}
-		return
 	}
 
-	ctx.Response.Header.Add("Content-Type", "text/plain")
-	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.Response().Header.Add("Content-Type", "text/plain")
+	ctx.Status(fiber.StatusOK)
 	ctx.WriteString(content)
+
+	return nil
 }
 
-func (h handler) GetUserPfp(ctx *fasthttp.RequestCtx) {
+func (h handler) GetUserPfp(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
 	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
-		ResponseMessage(ctx, "Unauthorized", fasthttp.StatusUnauthorized)
-		return
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	user_id := ctx.UserValue("id").(string)
+	user_id := ctx.Query("id")
 	if user_id == "" {
-		ResponseMessage(ctx, "Provide a user ID", fasthttp.StatusBadRequest)
-		return
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer conn.Release()
 
 	selectStmt, err := conn.Conn().Prepare(rctx, "get_user_pfp_select_stmt", "SELECT picture_data,mime FROM profile_pictures WHERE user_id = $1")
 	if err != nil {
-		ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
-		return
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	var pictureData pgtype.Bytea
 	var mime string
 	if err = conn.QueryRow(context.Background(), selectStmt.Name, user_id).Scan(&pictureData, &mime); err != nil {
 		if err != pgx.ErrNoRows {
-			ResponseMessage(ctx, "Internal error", fasthttp.StatusInternalServerError)
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
-			ResponseMessage(ctx, "Pfp not found", fasthttp.StatusNotFound)
+			return fiber.NewError(fiber.StatusNotFound, "Pfp not found")
 		}
-		return
 	}
 
-	ctx.Response.Header.Add("Content-Type", mime)
-	ctx.Response.Header.Add("Content-Length", strconv.Itoa(len(pictureData.Bytes)))
+	ctx.Response().Header.Add("Content-Type", mime)
+	ctx.Response().Header.Add("Content-Length", strconv.Itoa(len(pictureData.Bytes)))
 	ctx.Write(pictureData.Bytes)
-	ctx.SetStatusCode(fasthttp.StatusOK)
+	ctx.Status(fiber.StatusOK)
+
+	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/fasthttp/websocket"
+	"github.com/gofiber/websocket/v2"
 )
 
 /*

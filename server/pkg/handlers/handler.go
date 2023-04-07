@@ -1,31 +1,14 @@
 package handlers
 
 import (
-	"os"
-
-	"github.com/fasthttp/websocket"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"github.com/valyala/fasthttp"
 	attachmentServer "github.com/web-stuff-98/psql-social/pkg/attachmentServer"
 	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
 	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
 	socketLimiter "github.com/web-stuff-98/psql-social/pkg/socketLimiter"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
-
-var upgrader = websocket.FastHTTPUpgrader{
-	ReadBufferSize:  8192,
-	WriteBufferSize: 8192,
-	CheckOrigin: func(ctx *fasthttp.RequestCtx) bool {
-		if os.Getenv("ENVIRONMENT") != "PRODUCTION" {
-			return true
-		} else {
-			// need to add rule here before deploying
-			return true
-		}
-	},
-}
 
 type handler struct {
 	DB               *pgxpool.Pool
@@ -35,11 +18,6 @@ type handler struct {
 	ChannelRTCServer *channelRTCserver.ChannelRTCServer
 	AttachmentServer *attachmentServer.AttachmentServer
 	SocketLimiter    *socketLimiter.SocketLimiter
-}
-
-func ResponseMessage(ctx *fasthttp.RequestCtx, msg string, code int) {
-	ctx.SetStatusCode(code)
-	ctx.WriteString(msg)
 }
 
 func New(db *pgxpool.Pool, rdb *redis.Client, ss *socketServer.SocketServer, cs *callServer.CallServer, cRTCs *channelRTCserver.ChannelRTCServer, as *attachmentServer.AttachmentServer, sl *socketLimiter.SocketLimiter) handler {

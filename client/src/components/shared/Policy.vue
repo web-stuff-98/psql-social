@@ -10,10 +10,7 @@
     <h2>Privacy Policy</h2>
     <p>
       None of your information is shared with any 3rd party, and your account
-      will be automatically deleted after 20 minutes. Your password is hashed
-      with bcrypt and stored on the database. The database is protected against
-      SQL injection using prepared statements. Stream data is sent through a
-      peer to peer network established with other clients.
+      will be automatically deleted after 20 minutes.
     </p>
   </div>
 </template>
