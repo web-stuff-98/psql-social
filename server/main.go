@@ -260,7 +260,7 @@ func main() {
 	app.Use("/api/ws", h.WebSocketEndpoint)
 	app.Get("/api/ws", websocket.New(h.WebSocketHandler))
 
-	app.Static("/", "build")
+	app.Static("/", "./dist")
 
 	log.Printf("API opening on port %v", os.Getenv("PORT"))
 	log.Fatalln(app.Listen(":" + os.Getenv("PORT")))

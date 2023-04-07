@@ -24,7 +24,7 @@ https://psql-social.herokuapp.com
 - Chunked file uploads
 - Download streams
 
-### It's go-vue-chat but 99% rewritten and a lot faster since I used postgreSQL instead of MongoDB. Also I used fasthttp and fasthttp/websocket instead of Gorilla. I should have used fiber from the start since there is no documentation anywhere on serving a SPA from fasthttp. I tried ServeFiles but the page would just load for infinity.
+### It's go-vue-chat but 99% rewritten and a lot faster since I used postgreSQL instead of MongoDB. Also I used fasthttp and fasthttp/websocket instead of Gorilla. Originally I was using plain fasthttp but I changed to fiber because I was having problems serving the static files, but then I had the same problem with fiber, so I just ended up hosting the frontend on a seperate server.
 
 ## If you cannot find a room made by another user, that is because they have to invite you to it. And I just realized I added the private feature for no reason since you have to be a member of a room to find it anyway.
 
