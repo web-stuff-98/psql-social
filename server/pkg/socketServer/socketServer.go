@@ -300,11 +300,14 @@ func closeConn(ss *SocketServer) {
 		uid := <-ss.CloseConnChan
 
 		ss.ConnectionsByID.mutex.Lock()
+		ss.ConnectionsByWs.mutex.Lock()
 		if conn, ok := ss.ConnectionsByID.data[uid]; ok {
 			ss.ConnectionsByID.mutex.Unlock()
+			ss.ConnectionsByWs.mutex.Unlock()
 			ss.UnregisterConn <- conn
 		} else {
 			ss.ConnectionsByID.mutex.Unlock()
+			ss.ConnectionsByWs.mutex.Unlock()
 		}
 	}
 }
@@ -444,8 +447,8 @@ func checkUserOnline(ss *SocketServer) {
 
 		ss.ConnectionsByID.mutex.Lock()
 		_, ok := ss.ConnectionsByID.data[data.Uid]
-		data.RecvChan <- ok
 		ss.ConnectionsByID.mutex.Unlock()
+		data.RecvChan <- ok
 	}
 }
 
@@ -985,12 +988,12 @@ func getConnSubscriptions(ss *SocketServer) {
 		data := <-ss.GetConnectionSubscriptions
 		ss.ConnectionSubscriptions.mutex.Lock()
 		if subs, ok := ss.ConnectionSubscriptions.data[data.Conn]; ok {
+			ss.ConnectionSubscriptions.mutex.Unlock()
 			data.RecvChan <- subs
 		} else {
-			empty := make(map[string]struct{})
-			data.RecvChan <- empty
+			ss.ConnectionSubscriptions.mutex.Unlock()
+			data.RecvChan <- make(map[string]struct{})
 		}
-		ss.ConnectionSubscriptions.mutex.Unlock()
 	}
 }
 
@@ -1021,11 +1024,9 @@ func getSubscriptionUids(ss *SocketServer) {
 					uids[uid] = struct{}{}
 				}
 			}
-			data.RecvChan <- uids
-		} else {
-			data.RecvChan <- uids
 		}
-		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
+		ss.ConnectionsByWs.mutex.Unlock()
+		data.RecvChan <- uids
 	}
 }
