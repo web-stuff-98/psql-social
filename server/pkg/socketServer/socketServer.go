@@ -493,7 +493,7 @@ func sendUserData(ss *SocketServer) {
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Lock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
@@ -525,7 +525,7 @@ func sendUsersData(ss *SocketServer) {
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Lock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
@@ -555,7 +555,7 @@ func sendConnData(ss *SocketServer) {
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Lock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
@@ -587,7 +587,7 @@ func sendConnsData(ss *SocketServer) {
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Lock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
@@ -923,7 +923,7 @@ func sendDataToSubsExcludeIDs(ss *SocketServer) {
 		}
 		ss.ConnectionsByID.mutex.Unlock()
 		ss.ConnectionsByWs.mutex.Unlock()
-		ss.Subscriptions.mutex.RUnlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
