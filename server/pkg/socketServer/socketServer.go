@@ -342,13 +342,23 @@ func connection(ss *SocketServer) {
 
 		data := <-ss.RegisterConn
 		ss.ConnectionsByWs.mutex.Lock()
+		ss.ConnectionsByID.mutex.Lock()
 		ss.ConnectionsByWs.data[data.Conn] = data.Uid
-		if data.Uid != "" {
-			ss.ConnectionsByID.mutex.Lock()
-			ss.ConnectionsByID.data[data.Uid] = data.Conn
-			ss.ConnectionsByID.mutex.Unlock()
-		}
+		ss.ConnectionsByID.data[data.Uid] = data.Conn
+		ss.ConnectionsByID.mutex.Unlock()
 		ss.ConnectionsByWs.mutex.Unlock()
+
+		changeData := make(map[string]interface{})
+		changeData["ID"] = data.Uid
+		changeData["online"] = true
+		ss.SendDataToSub <- SubscriptionMessageData{
+			SubName: fmt.Sprintf("user:%v", data.Uid),
+			Data: socketmessages.ChangeEvent{
+				Type: "UPDATE",
+				Data: changeData,
+			},
+			MessageType: "CHANGE",
+		}
 	}
 }
 
@@ -371,19 +381,8 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 		conn := <-ss.UnregisterConn
 
 		ss.ConnectionsByWs.mutex.Lock()
-		if uid, ok := ss.ConnectionsByWs.data[conn]; ok {
-			changeData := make(map[string]interface{})
-			changeData["ID"] = uid
-			changeData["online"] = false
-			ss.SendDataToSub <- SubscriptionMessageData{
-				SubName: fmt.Sprintf("user:%v", uid),
-				Data: socketmessages.ChangeEvent{
-					Type: "UPDATE",
-					Data: changeData,
-				},
-				MessageType: "CHANGE",
-			}
-
+		uid, ok := ss.ConnectionsByWs.data[conn]
+		if ok {
 			csdc <- uid
 			cRTCsdc <- uid
 			ss.AttachmentServerRemoveUploaderChan <- uid
@@ -407,6 +406,18 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 		}
 		delete(ss.ConnectionsByWs.data, conn)
 		ss.ConnectionsByWs.mutex.Unlock()
+
+		changeData := make(map[string]interface{})
+		changeData["ID"] = uid
+		changeData["online"] = false
+		ss.SendDataToSub <- SubscriptionMessageData{
+			SubName: fmt.Sprintf("user:%v", uid),
+			Data: socketmessages.ChangeEvent{
+				Type: "UPDATE",
+				Data: changeData,
+			},
+			MessageType: "CHANGE",
+		}
 	}
 }
 
@@ -429,11 +440,8 @@ func checkUserOnline(ss *SocketServer) {
 		data := <-ss.IsUserOnline
 
 		ss.ConnectionsByID.mutex.RLock()
-		if _, ok := ss.ConnectionsByID.data[data.Uid]; ok {
-			data.RecvChan <- true
-		} else {
-			data.RecvChan <- false
-		}
+		_, ok := ss.ConnectionsByID.data[data.Uid]
+		data.RecvChan <- ok
 		ss.ConnectionsByID.mutex.RUnlock()
 	}
 }
