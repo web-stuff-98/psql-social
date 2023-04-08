@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/nfnt/resize"
+	"github.com/web-stuff-98/psql-social/pkg/channelRTCserver"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
@@ -986,9 +987,7 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	defer rows.Close()
-
 	messages := []responses.RoomMessage{}
-
 	for rows.Next() {
 		var id, content, author_id string
 		var created_at pgtype.Timestamptz
@@ -1009,7 +1008,21 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 		})
 	}
 
-	if bytes, err := json.Marshal(messages); err != nil {
+	recvChan := make(chan map[string]struct{})
+	h.ChannelRTCServer.GetChannelUids <- channelRTCserver.GetChannelUids{
+		RecvChan:  recvChan,
+		ChannelID: room_channel_id,
+	}
+	uidsMap := <-recvChan
+	usersInWebRTC := []string{}
+	for k := range uidsMap {
+		usersInWebRTC = append(usersInWebRTC, k)
+	}
+
+	if bytes, err := json.Marshal(responses.RoomChannel{
+		Messages:      messages,
+		UsersInWebRTC: usersInWebRTC,
+	}); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")

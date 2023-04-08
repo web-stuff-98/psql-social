@@ -623,3 +623,41 @@ func (h handler) GetFriends(ctx *fiber.Ctx) error {
 
 	return nil
 }
+
+func (h handler) GetBlocked(ctx *fiber.Ctx) error {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	rows, err := h.DB.Query(rctx, "SELECT blocked FROM blocks WHERE blocker = $1;", uid)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+
+	uids := []string{}
+
+	for rows.Next() {
+		var blocked string
+
+		if err = rows.Scan(&blocked); err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		}
+
+		uids = append(uids, blocked)
+	}
+
+	defer rows.Close()
+
+	if outBytes, err := json.Marshal(uids); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Write(outBytes)
+	}
+
+	return nil
+}

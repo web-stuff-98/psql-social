@@ -5,6 +5,7 @@ import {
   IInvitation,
   IResMsg,
   IRoom,
+  IUser,
 } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "../services/makeRequest";
 import { StartWatching, StopWatching } from "../socketHandling/OutEvents";
@@ -164,6 +165,21 @@ export default function useBackgroundProcess({
         if (msg.data.change_type === "DELETE") {
           const i = userStore.users.findIndex((u) => u.ID === msg.data.data.ID);
           if (i !== -1) userStore.users.splice(i, 1);
+        }
+        if (msg.data.change_type === "UPDATE") {
+          const i = userStore.users.findIndex((u) => u.ID === msg.data.data.ID);
+          if (i !== -1) {
+            const newUser = {
+              ...userStore.users[i],
+              ...(msg.data.data as Partial<IUser>),
+            };
+            userStore.users = [
+              ...userStore.users.filter((u) => u.ID !== msg.data.data.ID),
+              newUser,
+            ];
+          } else {
+            console.log("Update failed - user not found");
+          }
         }
       }
     }

@@ -2,10 +2,12 @@ package socketServer
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 
 	"github.com/gofiber/websocket/v2"
+	socketmessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 )
 
 /*
@@ -14,8 +16,22 @@ This works differently to my last 2 projects.
 It can only send JSON messages, in this form:
 { event_type, data }
 
-I haven't tested performance but it's probably better than the previous
-versions I used in my other projects.
+I used a load of maps to avoid ranging through stuff.
+
+"ConnectionsByWs" and "ConnectionsByID" are both maps
+that contain pointers to all connections, so that
+connections can be accessed by using the id of the user,
+or the user id can be easily accessed by the connection,
+just to avoid ranging through maps because I imagine it's
+not as fast as just accessing the variable more directly
+using a map.
+
+I don't know if it performs better or worse than my
+last projects.
+
+Maybe using a sync.Map here would be better, but I would
+have to rewrite everything and I've already 99% finished
+the project.
 */
 
 type SocketServer struct {
@@ -26,6 +42,8 @@ type SocketServer struct {
 	// a connection is registered to.
 	ConnectionSubscriptions    ConnectionSubscriptions
 	GetConnectionSubscriptions chan GetConnectionSubscriptions
+
+	IsUserOnline chan IsUserOnline
 
 	MessageLoop chan Message
 
@@ -93,6 +111,11 @@ type GetConnectionSubscriptions struct {
 type GetSubscriptionUids struct {
 	RecvChan chan map[string]struct{}
 	SubName  string
+}
+
+type IsUserOnline struct {
+	RecvChan chan bool
+	Uid      string
 }
 
 /* ------ GENERAL STRUCTS USED INTERNALLY AND EXTERNALLY ------ */
@@ -190,6 +213,8 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 			data: make(map[string]*websocket.Conn),
 		},
 
+		IsUserOnline: make(chan IsUserOnline),
+
 		ConnectionSubscriptions: ConnectionSubscriptions{
 			data: make(map[*websocket.Conn]map[string]struct{}),
 		},
@@ -235,6 +260,7 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	go connection(ss)
 	go disconnect(ss, csdc, cRTCsdc)
+	go checkUserOnline(ss)
 	go closeConn(ss)
 	go messageLoop(ss)
 	go sendUserData(ss)
@@ -346,6 +372,18 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 
 		ss.ConnectionsByWs.mutex.Lock()
 		if uid, ok := ss.ConnectionsByWs.data[conn]; ok {
+			changeData := make(map[string]interface{})
+			changeData["ID"] = uid
+			changeData["online"] = false
+			ss.SendDataToSub <- SubscriptionMessageData{
+				SubName: fmt.Sprintf("user:%v", uid),
+				Data: socketmessages.ChangeEvent{
+					Type: "UPDATE",
+					Data: changeData,
+				},
+				MessageType: "CHANGE",
+			}
+
 			csdc <- uid
 			cRTCsdc <- uid
 			ss.AttachmentServerRemoveUploaderChan <- uid
@@ -369,6 +407,34 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 		}
 		delete(ss.ConnectionsByWs.data, conn)
 		ss.ConnectionsByWs.mutex.Unlock()
+	}
+}
+
+func checkUserOnline(ss *SocketServer) {
+	var failCount uint8
+	for {
+		defer func() {
+			r := recover()
+			if r != nil {
+				log.Println("Recovered from panic in ws checkUserOnline loop:", r)
+				if failCount < 10 {
+					go checkUserOnline(ss)
+				} else {
+					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
+				}
+				failCount++
+			}
+		}()
+
+		data := <-ss.IsUserOnline
+
+		ss.ConnectionsByID.mutex.RLock()
+		if _, ok := ss.ConnectionsByID.data[data.Uid]; ok {
+			data.RecvChan <- true
+		} else {
+			data.RecvChan <- false
+		}
+		ss.ConnectionsByID.mutex.Unlock()
 	}
 }
 
@@ -410,11 +476,16 @@ func sendUserData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToUser
+		// mutex lock all maps that contain connections
 		ss.ConnectionsByID.mutex.Lock()
+		ss.ConnectionsByWs.mutex.Lock()
+		ss.Subscriptions.mutex.Lock()
 		if conn, ok := ss.ConnectionsByID.data[data.Uid]; ok {
 			WriteMessage(data.MessageType, data.Data, conn, ss)
 		}
+		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Lock()
 	}
 }
 
@@ -435,13 +506,18 @@ func sendUsersData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToUsers
+		// mutex lock all maps that contain connections
 		ss.ConnectionsByID.mutex.Lock()
+		ss.ConnectionsByWs.mutex.Lock()
+		ss.Subscriptions.mutex.Lock()
 		for _, v := range data.Uids {
 			if conn, ok := ss.ConnectionsByID.data[v]; ok {
 				WriteMessage(data.MessageType, data.Data, conn, ss)
 			}
 		}
+		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Lock()
 	}
 }
 
@@ -462,12 +538,16 @@ func sendConnData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToConn
-		// Lock mutex is used to prevent multiple messages being sent to the same connection concurrently
+		// mutex lock all maps that contain connections
+		ss.ConnectionsByID.mutex.Lock()
 		ss.ConnectionsByWs.mutex.Lock()
+		ss.Subscriptions.mutex.Lock()
 		if _, ok := ss.ConnectionsByWs.data[data.Conn]; ok {
 			WriteMessage(data.MessageType, data.Data, data.Conn, ss)
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
+		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Lock()
 	}
 }
 
@@ -488,13 +568,18 @@ func sendConnsData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToConns
+		// mutex lock all maps that contain connections
+		ss.ConnectionsByID.mutex.Lock()
 		ss.ConnectionsByWs.mutex.Lock()
+		ss.Subscriptions.mutex.Lock()
 		for _, conn := range data.Conns {
 			if _, ok := ss.ConnectionsByWs.data[conn]; ok {
 				WriteMessage(data.MessageType, data.Data, conn, ss)
 			}
 		}
 		ss.ConnectionsByWs.mutex.Unlock()
+		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Lock()
 	}
 }
 
@@ -675,12 +760,17 @@ func sendSubData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSub
+		// mutex lock all maps that contain connections
+		ss.ConnectionsByID.mutex.Lock()
+		ss.ConnectionsByWs.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
 				WriteMessage(data.MessageType, data.Data, c, ss)
 			}
 		}
+		ss.ConnectionsByID.mutex.Unlock()
+		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
 	}
 }
@@ -702,6 +792,9 @@ func sendSubsData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSubs
+		// mutex lock all maps that contain connections
+		ss.ConnectionsByID.mutex.Lock()
+		ss.ConnectionsByWs.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
 		for _, v := range data.SubNames {
 			if _, ok := ss.Subscriptions.data[v]; ok {
@@ -712,6 +805,8 @@ func sendSubsData(ss *SocketServer) {
 				}
 			}
 		}
+		ss.ConnectionsByID.mutex.Unlock()
+		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
 	}
 }
@@ -733,6 +828,9 @@ func sendDataToSubExcludeWss(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSubExcludeByWss
+		// mutex lock all maps that contain connections
+		ss.ConnectionsByID.mutex.Lock()
+		ss.ConnectionsByWs.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
@@ -741,6 +839,8 @@ func sendDataToSubExcludeWss(ss *SocketServer) {
 				}
 			}
 		}
+		ss.ConnectionsByID.mutex.Unlock()
+		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
 	}
 }
@@ -762,8 +862,10 @@ func sendDataToSubExcludeIDs(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSubExcludeByIDs
-		ss.Subscriptions.mutex.RLock()
+		// mutex lock all maps that contain connections
+		ss.ConnectionsByID.mutex.Lock()
 		ss.ConnectionsByWs.mutex.Lock()
+		ss.Subscriptions.mutex.Lock()
 		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for c := range conns {
 				if id, ok := ss.ConnectionsByWs.data[c]; ok {
@@ -773,6 +875,7 @@ func sendDataToSubExcludeIDs(ss *SocketServer) {
 				}
 			}
 		}
+		ss.ConnectionsByID.mutex.Unlock()
 		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.RUnlock()
 	}
@@ -795,8 +898,10 @@ func sendDataToSubsExcludeIDs(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSubsExcludeByIDs
-		ss.Subscriptions.mutex.RLock()
+		// mutex lock all maps that contain connections
+		ss.ConnectionsByID.mutex.Lock()
 		ss.ConnectionsByWs.mutex.Lock()
+		ss.Subscriptions.mutex.Lock()
 		for _, subName := range data.SubNames {
 			if conns, ok := ss.Subscriptions.data[subName]; ok {
 				for c := range conns {
@@ -808,6 +913,7 @@ func sendDataToSubsExcludeIDs(ss *SocketServer) {
 				}
 			}
 		}
+		ss.ConnectionsByID.mutex.Unlock()
 		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.RUnlock()
 	}
@@ -830,6 +936,9 @@ func sendDataToSubsExcludeWss(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSubsExcludeByWss
+		// mutex lock all maps that contain connections
+		ss.ConnectionsByID.mutex.Lock()
+		ss.ConnectionsByWs.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
 		for _, subName := range data.SubNames {
 			if conns, ok := ss.Subscriptions.data[subName]; ok {
@@ -840,6 +949,8 @@ func sendDataToSubsExcludeWss(ss *SocketServer) {
 				}
 			}
 		}
+		ss.ConnectionsByID.mutex.Unlock()
+		ss.ConnectionsByWs.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
 	}
 }

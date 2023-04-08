@@ -8,9 +8,9 @@ const authStore = useAuthStore();
     <h1>pSQL-Social</h1>
     <hr />
     <h3>
-      Voip, video chat, screensharing & filesharing using Vue 3, Pinia, Heroku,
-      Docker, Redis, pgxpool, fasthttp & Go. Click on the menu sidebar to get
-      started. Your account will be deleted after 20 minutes.
+      Voip, video chat, screensharing & filesharing. Click on the menu sidebar
+      to get started. Your account will be deleted after 20 minutes, or when the
+      server enters sleep mode.
     </h3>
     <p><b>Hint:</b> Click on a user to open an action dropdown menu</p>
     <h2>By Jason</h2>
@@ -29,10 +29,7 @@ const authStore = useAuthStore();
   width: 100%;
   text-align: center;
   padding: var(--gap-lg);
-  h3 {
-    font-weight: 300;
-  }
-
+  
   hr {
     border: none;
     border-bottom: 2px solid var(--border-heavy);

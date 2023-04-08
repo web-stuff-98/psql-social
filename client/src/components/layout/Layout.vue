@@ -101,14 +101,12 @@ const username = computed(
         background: none;
         font-size: var(--md);
         border: none;
-        filter: opacity(0.866);
-        cursor: pointer;
         text-shadow: none;
         transition: filter 100ms ease;
+        cursor: pointer;
       }
       .nav-item:hover {
         text-decoration: underline;
-        filter: opacity(1);
       }
     }
   }

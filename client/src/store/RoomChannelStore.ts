@@ -5,6 +5,7 @@ import { getRoomChannels } from "../services/room";
 type RoomChannelStore = {
   channels: IRoomChannel[];
   current: string;
+  uidsInCurrentWebRTCChat: string[];
 };
 
 const useRoomChannelStore = defineStore("channels", {
@@ -13,6 +14,7 @@ const useRoomChannelStore = defineStore("channels", {
       channels: [],
       current: "",
       main: "",
+      uidsInCurrentWebRTCChat: [],
     } as RoomChannelStore),
   actions: {
     async getRoomChannels(id: string): Promise<string> {

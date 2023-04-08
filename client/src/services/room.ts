@@ -79,5 +79,9 @@ export const getRoomImage = (id: string) =>
 export const getRoomChannels = (id: string): Promise<IRoomChannel[] | null> =>
   makeRequest(`/api/room/channels/${id}`);
 
-export const getRoomChannel = (id: string): Promise<IRoomMessage[] | null> =>
-  makeRequest(`/api/room/channel/${id}`);
+export const getRoomChannel = (
+  id: string
+): Promise<{
+  messages: IRoomMessage[] | null;
+  users_in_webrtc: string[] | null;
+}> => makeRequest(`/api/room/channel/${id}`);

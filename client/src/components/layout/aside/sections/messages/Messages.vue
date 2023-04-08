@@ -60,7 +60,10 @@ function watchForBlocksAndAttachmentRequest(e: MessageEvent) {
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", pen: true, err: false };
-    const uids: string[] | null = await makeRequest("/api/acc/uids");
+    let uids: string[] | null = await makeRequest("/api/acc/uids");
+    // remove duplicates that somehow magically end up in the array
+    if (uids)
+      uids = uids.filter((item, index) => uids?.indexOf(item) === index);
     uids?.forEach((uid) => {
       inboxStore.convs[uid] = [];
       userStore.cacheUser(uid);

@@ -11,37 +11,44 @@ import {
 import useAuthStore from "../../../../../store/AuthStore";
 import useSocketStore from "../../../../../store/SocketStore";
 import useUserStore from "../../../../../store/UserStore";
+import { UnBlock } from "../../../../../socketHandling/OutEvents";
 
 const authStore = useAuthStore();
 const socketStore = useSocketStore();
 const userStore = useUserStore();
 
-const friends = ref<string[]>([]);
+const blocked = ref<string[]>([]);
 const resMsg = ref<IResMsg>({});
 
 function watchForBlocksAndDeletes(e: MessageEvent) {
   const msg = JSON.parse(e.data);
   if (!msg) return;
-  if (isBlock(msg)) {
-    const otherUser =
-      msg.data.blocker === authStore.uid ? msg.data.blocked : msg.data.blocker;
-    const i = friends.value.findIndex((f) => f === otherUser);
-    if (i !== -1) friends.value.splice(i, 1);
-  }
+  if (isBlock(msg))
+    if (msg.data.blocker === authStore.uid)
+      blocked.value.push(msg.data.blocked);
   if (isChangeEvent(msg)) {
     if (msg.data.entity === "USER") {
-      const i = friends.value.findIndex((f) => f === msg.data.data.ID);
-      if (i !== -1) friends.value.splice(i, 1);
+      const i = blocked.value.findIndex((b) => b === msg.data.data.ID);
+      if (i !== -1) blocked.value.splice(i, 1);
     }
   }
+}
+
+function unblock(uid: string) {
+  socketStore.send({
+    event_type: "UNBLOCK",
+    data: { uid },
+  } as UnBlock);
+  const i = blocked.value.findIndex((b) => b === uid);
+  if (i !== -1) blocked.value.splice(i, 1);
 }
 
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    const ids: string[] | null = await makeRequest("/api/acc/friends");
+    const ids: string[] | null = await makeRequest("/api/acc/blocked");
     // remove duplicates that somehow magically end up in the array
-    friends.value =
+    blocked.value =
       ids?.filter((item, index) => ids.indexOf(item) === index) || [];
     if (ids) ids.forEach((id) => userStore.cacheUser(id));
     resMsg.value = { msg: "", err: false, pen: false };
@@ -58,16 +65,19 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="friends-section">
+  <div class="blocked-section">
     <ResMsg :resMsg="resMsg" />
     <div class="list">
-      <User :uid="uid" v-for="uid in friends" />
+      <div v-for="uid in blocked" class="item">
+        <User :uid="uid" />
+        <button @click="unblock(uid)" type="button">Unblock</button>
+      </div>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.friends-section {
+.blocked-section {
   border: 2px solid var(--border-light);
   border-radius: var(--border-radius-sm);
   height: 100%;
@@ -89,6 +99,17 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
+    .item {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      align-items: center;
+      button {
+        padding: 3px;
+        margin: 0;
+        font-size: xs;
+      }
+    }
   }
 }
 </style>

@@ -6,6 +6,7 @@ enum EAsideSection {
   "ROOMS" = "Rooms",
   "PROFILE" = "Profile",
   "FIND_USER" = "Find user",
+  "BLOCKED" = "Blocked",
 }
 
 export default EAsideSection;

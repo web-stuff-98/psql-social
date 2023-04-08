@@ -2,6 +2,7 @@ export interface IUser {
   ID: string;
   username: string;
   role: "ADMIN" | "USER";
+  online?: boolean;
   // pfp is an object url this time. not base64
   pfp?: string;
 }
@@ -25,7 +26,7 @@ export interface IRoom {
   is_private: boolean;
   created_at: string;
   // img (object url)
-  img?:string
+  img?: string;
 }
 export interface IRoomChannel {
   ID: string;

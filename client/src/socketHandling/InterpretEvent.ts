@@ -168,6 +168,18 @@ type ChannelWebRTCUserLeft = {
     uid: string;
   };
 };
+type RoomChannelWebRTCUserJoined = {
+  data: {
+    channel_id: string;
+    uid: string;
+  };
+};
+type RoomChannelWebRTCUserLeft = {
+  data: {
+    channel_id: string;
+    uid: string;
+  };
+};
 
 type RequestAttachment = { data: { ID: string } };
 
@@ -284,6 +296,16 @@ export function isChannelWebRTCUserLeft(
   object: any
 ): object is ChannelWebRTCUserLeft {
   return object.event_type === "CHANNEL_WEBRTC_LEFT";
+}
+export function isRoomChannelWebRTCUserJoined(
+  object: any
+): object is RoomChannelWebRTCUserJoined {
+  return object.event_type === "ROOM_CHANNEL_WEBRTC_USER_JOINED";
+}
+export function isRoomChannelWebRTCUserLeft(
+  object: any
+): object is RoomChannelWebRTCUserLeft {
+  return object.event_type === "ROOM_CHANNEL_WEBRTC_USER_LEFT";
 }
 
 export function isUpdateMediaOptions(

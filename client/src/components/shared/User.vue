@@ -61,6 +61,7 @@ onBeforeUnmount(() => {
       class="pfp"
     >
       <v-icon v-if="!user?.pfp" name="fa-user-alt" />
+      <div v-if="user?.online" class="online-indicator" />
     </button>
     <div
       :style="reverse ? { alignItems: 'flex-end' } : {}"
@@ -100,6 +101,16 @@ onBeforeUnmount(() => {
     background-position: center;
     background-color: var(--base-colour);
     padding: 0;
+    position: relative;
+    .online-indicator {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 5px;
+      height: 5px;
+      border: 1px solid var(--border-heavy);
+      background: lime;
+    }
   }
   .name-date-time {
     display: flex;

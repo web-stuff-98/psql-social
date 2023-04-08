@@ -114,7 +114,7 @@ function deleteRoomClicked() {
 
 <style lang="scss" scoped>
 .room {
-  border: 1px solid var(--border-pale);
+  border: 1px solid var(--border-heavy);
   border-radius: var(--border-radius-sm);
   padding: 1px;
   padding-left: 6px;

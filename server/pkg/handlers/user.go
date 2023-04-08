@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/web-stuff-98/psql-social/pkg/helpers/authHelpers"
 	"github.com/web-stuff-98/psql-social/pkg/responses"
+	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 	"github.com/web-stuff-98/psql-social/pkg/validation"
 )
 
@@ -50,10 +51,18 @@ func (h handler) GetUser(ctx *fiber.Ctx) error {
 		}
 	}
 
+	recvChan := make(chan bool)
+	h.SocketServer.IsUserOnline <- socketServer.IsUserOnline{
+		RecvChan: recvChan,
+		Uid:      id,
+	}
+	isOnline := <-recvChan
+
 	if bytes, err := json.Marshal(responses.User{
 		ID:       id,
 		Username: username,
 		Role:     role,
+		Online:   isOnline,
 	}); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {

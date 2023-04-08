@@ -5,6 +5,7 @@ package responses
 type User struct {
 	ID       string `json:"ID"`
 	Username string `json:"username"`
+	Online   bool   `json:"online"`
 	// "ADMIN" | "USER"
 	Role string `json:"role"`
 }
@@ -29,6 +30,11 @@ type RoomMessage struct {
 	AuthorID      string `json:"author_id"`
 	CreatedAt     string `json:"created_at"`
 	HasAttachment bool   `json:"has_attachment"`
+}
+
+type RoomChannel struct {
+	Messages      []RoomMessage `json:"messages"`
+	UsersInWebRTC []string      `json:"users_in_webrtc"`
 }
 
 type DirectMessage struct {

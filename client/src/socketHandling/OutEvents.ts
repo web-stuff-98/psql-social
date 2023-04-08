@@ -52,7 +52,7 @@ export type Block = {
   data: { uid: string };
 };
 export type UnBlock = {
-  event_type: "BLOCK";
+  event_type: "UNBLOCK";
   data: { uid: string };
 };
 export type CallUser = {

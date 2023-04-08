@@ -168,6 +168,17 @@ func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, 
 		}
 	}
 
+	changeData := make(map[string]interface{})
+	changeData["ID"] = uid
+	ss.SendDataToSub <- socketServer.SubscriptionMessageData{
+		SubName: fmt.Sprintf("user:%v", uid),
+		Data: socketMessages.ChangeEvent{
+			Type: "DELETE",
+			Data: changeData,
+		},
+		MessageType: "CHANGE",
+	}
+
 	for _, subName := range roomSubs {
 		changeData := make(map[string]interface{})
 		changeData["ID"] = strings.Split(subName, ":")[1]

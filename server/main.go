@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -40,6 +42,20 @@ func main() {
 	cRTCs := channelRTCserver.Init(ss, db, cRTCsdc)
 	cs := callServer.Init(ss, csdc)
 	sl := socketLimiter.Init(rdb)
+
+	sqlBytes, err := ioutil.ReadFile("./schema.sql")
+	if err != nil {
+		log.Fatalf("Unable to read SQL file: %v\n", err)
+	}
+	sql := string(sqlBytes)
+	conn, err := db.Acquire(context.Background())
+	if err != nil {
+		log.Fatalf("Unable to acquire connection: %v\n", err)
+	}
+	defer conn.Release()
+	if _, err := conn.Exec(context.Background(), sql); err != nil {
+		log.Fatalf("Unable to execute SQL schema: %v\n", err)
+	}
 
 	defer db.Close()
 
@@ -112,6 +128,13 @@ func main() {
 		BlockDuration: time.Minute * 10,
 		Message:       "Too many requests",
 		RouteName:     "get-friends",
+	}, rdb, db))
+	app.Get("/api/acc/blocked", mw.BasicRateLimiter(h.GetBlocked, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       30,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-blocked",
 	}, rdb, db))
 	app.Get("/api/acc/conv/:id", mw.BasicRateLimiter(h.GetConversation, mw.SimpleLimiterOpts{
 		Window:        time.Minute * 1,

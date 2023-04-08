@@ -17,8 +17,9 @@ import {
   isRoomMsgDelete,
   isRoomMsgUpdate,
   isRequestAttachment,
+  isRoomChannelWebRTCUserJoined,
+  isRoomChannelWebRTCUserLeft,
 } from "../../../socketHandling/InterpretEvent";
-import { baseURL, makeRequest } from "../../../services/makeRequest";
 import { IRoomMessage } from "../../../interfaces/GeneralInterfaces";
 import MessageForm from "../../../components/shared/MessageForm.vue";
 import useSocketStore from "../../../store/SocketStore";
@@ -34,6 +35,7 @@ import EditRoomChannel from "./EditRoomChannel.vue";
 import CreateRoomChannel from "./CreateRoomChannel.vue";
 import RoomVidChat from "./RoomVidChat.vue";
 import useAttachmentStore from "../../../store/AttachmentStore";
+import User from "../../shared/User.vue";
 
 const roomChannelStore = useRoomChannelStore();
 const roomStore = useRoomStore();
@@ -79,9 +81,12 @@ onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
     const main = await roomChannelStore.getRoomChannels(roomId.value as string);
-    const msgs = await getRoomChannel(main);
+    const { messages: msgs, users_in_webrtc } = await getRoomChannel(main);
     if (msgs) msgs.forEach((m) => userStore.cacheUser(m.author_id));
     messages.value = msgs || [];
+    if (users_in_webrtc)
+      users_in_webrtc.forEach((uid) => userStore.cacheUser(uid));
+    roomChannelStore.uidsInCurrentWebRTCChat = users_in_webrtc || [];
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
@@ -119,9 +124,12 @@ async function joinChannel(channelId: string) {
 
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    const msgs = await getRoomChannel(channelId);
+    const { messages: msgs, users_in_webrtc } = await getRoomChannel(channelId);
     if (msgs) msgs.forEach((m) => userStore.cacheUser(m.author_id));
     messages.value = msgs || [];
+    if (users_in_webrtc)
+      users_in_webrtc.forEach((uid) => userStore.cacheUser(uid));
+    roomChannelStore.uidsInCurrentWebRTCChat = users_in_webrtc || [];
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
@@ -204,6 +212,27 @@ async function handleMessages(e: MessageEvent) {
         }
       }
     }
+    if (msg.data.entity === "USER") {
+      if (msg.data.change_type === "DELETE") {
+        messages.value = [
+          ...messages.value.filter((m) => m.author_id === msg.data.data.ID),
+        ];
+      }
+    }
+  }
+
+  if (isRoomChannelWebRTCUserJoined(msg)) {
+    roomChannelStore.uidsInCurrentWebRTCChat = [
+      ...roomChannelStore.uidsInCurrentWebRTCChat,
+      msg.data.uid,
+    ];
+  }
+
+  if (isRoomChannelWebRTCUserLeft(msg)) {
+    const i = roomChannelStore.uidsInCurrentWebRTCChat.findIndex(
+      (uid) => uid === msg.data.uid
+    );
+    if (i !== -1) roomChannelStore.uidsInCurrentWebRTCChat.splice(i, 1);
   }
 
   if (isRequestAttachment(msg)) {
@@ -263,9 +292,10 @@ function handleSubmit(values: any, file?: File) {
           </div>
         </div>
         <button
+          v-if="room?.author_id === authStore.uid"
           @click="isCreatingChannel = true"
           type="button"
-          name="create room"
+          name="create channel"
           class="create-button"
         >
           <v-icon name="io-add-circle-sharp" />
@@ -282,6 +312,12 @@ function handleSubmit(values: any, file?: File) {
           >
             Enter channel voip/video chat
           </button>
+          <User
+            :noPfp="true"
+            :uid="uid"
+            v-for="uid in roomChannelStore.uidsInCurrentWebRTCChat"
+            v-if="!vidChatOpen"
+          />
           <RoomVidChat
             :exitButtonClicked="() => (vidChatOpen = false)"
             v-if="vidChatOpen"
@@ -420,6 +456,8 @@ function handleSubmit(values: any, file?: File) {
         display: flex;
         align-items: center;
         justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 3px;
         button {
           font-size: var(--xs);
           padding: 3px 6px;

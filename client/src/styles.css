@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Cq Mono";
-  src: url(./assets/CqMono-mBXa.ttf);
+  src: url(./assets/didact-gothic.regular.ttf);
 }
 
 * {
@@ -31,7 +31,7 @@
 
   /* Base sizes (not for margin/padding) */
   --xs: 0.775rem;
-  --sm: 0.9rem;
+  --sm: 0.866rem;
   --md: 1rem;
   --lg: 1.25rem;
   --xl: 1.5rem;
@@ -69,14 +69,14 @@
 
   /* Layout dimensions */
   --nav-height: 1.5rem;
-  --aside-width: 12rem;
+  --aside-width: 13rem;
 }
 
 .dark-mode {
   /* Base colours */
   --text-colour: white;
 
-  --base-colour: #121212;
+  --base-colour: #111111;
   --base-colour-contrast: #e7e7e7;
   --hover: #23232b;
   --hover-contrast: #c2cddc;
@@ -85,10 +85,10 @@
   --button: hsl(22, 100%, 31%);
   --button-hover: hsl(22, 100%, 39%);
 
-  --border-pale: rgb(29, 29, 29);
-  --border-light: rgb(32, 32, 32);
-  --border-medium: rgb(38, 38, 38);
-  --border-heavy: rgb(43, 43, 43);
+  --border-pale: rgb(19, 19, 19);
+  --border-light: rgb(25, 25, 25);
+  --border-medium: rgb(35, 35, 35);
+  --border-heavy: rgb(38, 38, 38);
 
   --background-tile: url(/src/assets/crossbackground_dark.png);
 }
@@ -192,8 +192,8 @@ a {
   align-items: center;
   justify-content: center;
   z-index: 99;
-  backdrop-filter: blur(2px);
-  background: rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(1px);
+  background: rgba(0, 0, 0, 0);
 }
 .modal-container .modal {
   border: 2px solid var(--border-light);
