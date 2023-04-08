@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { makeRequest } from "../../../../../services/makeRequest";
 import {
   IDirectMessage,
@@ -30,6 +30,7 @@ const attachmentStore = useAttachmentStore();
 const section = ref<"USERS" | "MESSAGES">("USERS");
 const resMsg = ref<IResMsg>({});
 const currentUid = ref("");
+const messagesBottomRef = ref<HTMLElement>();
 
 const pendingAttachmentFile = ref<File>();
 
@@ -121,6 +122,16 @@ function handleSubmit(values: any, file?: File) {
   } as DirectMessage);
   pendingAttachmentFile.value = file;
 }
+
+watch(inboxStore.convs, async (oldVal, newVal) => {
+  const oldConv = oldVal[currentUid.value];
+  const newConv = newVal[currentUid.value];
+  if (newConv.length > oldConv.length) {
+    await nextTick(() => {
+      messagesBottomRef.value?.scrollIntoView({ behavior: "auto" });
+    });
+  }
+});
 </script>
 
 <template>
@@ -132,6 +143,7 @@ function handleSubmit(values: any, file?: File) {
             :item="item"
             v-for="item in inboxStore.convs[currentUid] || []"
           />
+          <div ref="messagesBottomRef" class="bottom" />
         </div>
       </div>
       <div class="messages-section-bottom-container">
@@ -178,6 +190,12 @@ function handleSubmit(values: any, file?: File) {
     overflow-y: auto;
     gap: var(--gap-md);
     padding: var(--gap-md);
+    .bottom {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      height: 0px;
+    }
   }
 
   .users {

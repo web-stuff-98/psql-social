@@ -1,6 +1,14 @@
 <script lang="ts" setup>
 import { IResMsg, IRoomChannel } from "../../../interfaces/GeneralInterfaces";
-import { onBeforeUnmount, onMounted, toRef, ref, computed } from "vue";
+import {
+  onBeforeUnmount,
+  onMounted,
+  toRef,
+  ref,
+  computed,
+  nextTick,
+  watch,
+} from "vue";
 import { useRoute } from "vue-router";
 import {
   JoinRoom,
@@ -71,6 +79,7 @@ const room = computed(() => roomStore.getRoom(roomId.value as string));
 const resMsg = ref<IResMsg>({});
 
 const messages = ref<IRoomMessage[]>([]);
+const messagesBottomRef = ref<HTMLElement>();
 
 onMounted(async () => {
   socketStore.send({
@@ -221,8 +230,7 @@ async function handleMessages(e: MessageEvent) {
     }
     if (msg.data.entity === "ROOM")
       if (msg.data.change_type === "DELETE")
-        if(msg.data.data.ID === roomId.value)
-        router.push("/");
+        if (msg.data.data.ID === roomId.value) router.push("/");
   }
 
   if (isRoomChannelWebRTCUserJoined(msg)) {
@@ -265,6 +273,14 @@ function handleSubmit(values: any, file?: File) {
   } as RoomMessageEvent);
   pendingAttachmentFile.value = file;
 }
+
+watch(messages, async (oldVal, newVal) => {
+  if (newVal.length > oldVal.length) {
+    await nextTick(() => {
+      messagesBottomRef.value?.scrollIntoView({ behavior: "auto" });
+    });
+  }
+});
 </script>
 
 <template>
@@ -335,6 +351,7 @@ function handleSubmit(values: any, file?: File) {
               :msg="msg"
               v-for="msg in messages"
             />
+            <div class="bottom" ref="messagesBottomRef" />
           </div>
         </div>
         <div v-else class="res-msg-container">
@@ -393,6 +410,12 @@ function handleSubmit(values: any, file?: File) {
       left: 0;
       top: 0;
       overflow-y: auto;
+      .bottom {
+        width: 100%;
+        height: 0px;
+        padding: 0;
+        margin: 0;
+      }
     }
     .channels {
       width: fit-content;

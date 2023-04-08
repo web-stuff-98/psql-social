@@ -188,11 +188,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="container">
-    <div :style="{ fontSize: '0.666rem', letterSpacing: '-1px' }">
-      {{ userMediaStreamID }}
-      <br />
-      {{ peerUserMediaStreamID }}
-    </div>
     <div class="vid-chat-users">
       <!-- Current user -->
       <VidChatUser

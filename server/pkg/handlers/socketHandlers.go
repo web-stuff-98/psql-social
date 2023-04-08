@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -1361,14 +1360,10 @@ func callUser(inData map[string]interface{}, h handler, uid string, c *websocket
 		return fmt.Errorf("You cannot call a user you have blocked")
 	}
 
-	log.Println("Sending to pending calls chan")
-
 	h.CallServer.CallsPendingChan <- callServer.InCall{
 		Caller: uid,
 		Called: data.Uid,
 	}
-
-	log.Println("Sent to pending calls chan")
 
 	return nil
 }

@@ -16,15 +16,15 @@ const submit = (values: any) => {
   handleSubmit.value(values, attachmentFile.value);
   attachmentFile.value = undefined;
   //@ts-ignore
-  inputRef.value = "";
+  inputRef.value.reset();
 };
 
 function selectAttachment(e: Event) {
   const target = e.target as HTMLInputElement;
   if (!target.files || !target.files[0]) {
-    attachmentFile.value = undefined
-    return
-  };
+    attachmentFile.value = undefined;
+    return;
+  }
   if (target.files[0].size > 30 * 1024 * 1024) {
     messageModalStore.msg = {
       msg: "File too large. Max 30mb.",

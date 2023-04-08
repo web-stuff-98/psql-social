@@ -158,8 +158,6 @@ func callPending(ss *socketServer.SocketServer, cs *CallServer) {
 			MessageType: "CALL_USER_ACKNOWLEDGE",
 		}
 
-		log.Println("Sent CALL_USER_ACKNOWLEDGE event")
-
 		cs.CallsPending.mutex.Unlock()
 		go timeoutCall(ss, cs, data.Caller)
 	}
