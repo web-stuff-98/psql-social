@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/gofiber/websocket/v2"
@@ -156,6 +157,13 @@ func socketEventRegistration(redisClient *redis.Client, sl *SocketLimiter) {
 			go socketEventRegistration(redisClient, sl)
 		}()
 		eventData := <-sl.SocketEvent
+
+		// bypass limiter for development mode
+		if os.Getenv("ENVIRONMENT") != "PRODUCTION" {
+			eventData.RecvChan <- nil
+			continue
+		}
+
 		keyVal := make(map[string]SocketConnectionLimiterData)
 		if rawVal, err := redisClient.Get(context.Background(), "socket-limiter-data:"+eventData.Conn.RemoteAddr().String()).Result(); err != nil {
 			if err != redis.Nil {

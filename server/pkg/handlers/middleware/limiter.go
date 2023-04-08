@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -30,6 +31,11 @@ func errMsg(ctx *fiber.Ctx, s int, m string) error {
 
 func BasicRateLimiter(next fiber.Handler, opts SimpleLimiterOpts, rdb *redis.Client, db *pgxpool.Pool) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
+		// bypass limiter for development mode
+		if os.Getenv("ENVIRONMENT") != "PRODUCTION" {
+			return next(ctx)
+		}
+
 		rctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
