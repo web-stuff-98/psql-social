@@ -37,7 +37,7 @@ type ChannelRTCServer struct {
 type ChannelConnections struct {
 	// Outer map is channel ID, inner map are UIDs of users in the channel
 	data  map[string]map[string]Connection
-	mutex sync.RWMutex
+	mutex sync.Mutex
 }
 
 /* --------------- RECV CHANNEL STRUCTS --------------- */
@@ -143,7 +143,7 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 			continue
 		}
 
-		cRTCs.ChannelConnections.mutex.RLock()
+		cRTCs.ChannelConnections.mutex.Lock()
 		connectionInfo := &Connection{
 			UserMediaStreamID: data.UserMediaStreamID,
 			UserMediaVid:      data.UserMediaVid,
@@ -163,15 +163,13 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 				}
 			}
 			if _, ok := channelUsers[data.Uid]; !ok {
-				cRTCs.ChannelConnections.mutex.RUnlock()
 				// Add the user to the channel map
-				cRTCs.ChannelConnections.mutex.Lock()
 				cRTCs.ChannelConnections.data[data.ChannelID][data.Uid] = *connectionInfo
-				cRTCs.ChannelConnections.mutex.Unlock()
 
 				selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_join_channel_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
 				if err != nil {
 					log.Println("Error in join WebRTC select channel prepare statement:", err)
+					cRTCs.ChannelConnections.mutex.Unlock()
 					continue
 				}
 				var room_id string
@@ -187,8 +185,6 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 					},
 					MessageType: "ROOM_CHANNEL_WEBRTC_USER_JOINED",
 				}
-			} else {
-				cRTCs.ChannelConnections.mutex.RUnlock()
 			}
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid: data.Uid,
@@ -199,11 +195,8 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 			}
 		} else {
 			// Create the channel data and add the user
-			cRTCs.ChannelConnections.mutex.RUnlock()
-			cRTCs.ChannelConnections.mutex.Lock()
 			cRTCs.ChannelConnections.data[data.ChannelID] = make(map[string]Connection)
 			cRTCs.ChannelConnections.data[data.ChannelID][data.Uid] = *connectionInfo
-			cRTCs.ChannelConnections.mutex.Unlock()
 			// Send back empty list of uids, since the user is the only one in the channel
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				MessageType: "CHANNEL_WEBRTC_ALL_USERS",
@@ -214,6 +207,7 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 			}
 		}
 		conn.Release()
+		cRTCs.ChannelConnections.mutex.Unlock()
 	}
 }
 
@@ -243,7 +237,7 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 			continue
 		}
 
-		cRTCs.ChannelConnections.mutex.RLock()
+		cRTCs.ChannelConnections.mutex.Lock()
 		if channelUids, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
 			if _, ok := channelUids[data.Uid]; ok {
 				uids := []string{}
@@ -252,14 +246,12 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 						uids = append(uids, uid)
 					}
 				}
-				cRTCs.ChannelConnections.mutex.RUnlock()
-				cRTCs.ChannelConnections.mutex.Lock()
 				delete(cRTCs.ChannelConnections.data[data.ChannelID], data.Uid)
-				cRTCs.ChannelConnections.mutex.Unlock()
 
 				selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_leave_channel_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
 				if err != nil {
 					log.Println("Error in leave WebRTC select channel prepare statement:", err)
+					cRTCs.ChannelConnections.mutex.Unlock()
 					continue
 				}
 				var room_id string
@@ -283,12 +275,9 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 					},
 				}
 				continue
-			} else {
-				cRTCs.ChannelConnections.mutex.RUnlock()
 			}
-		} else {
-			cRTCs.ChannelConnections.mutex.RUnlock()
 		}
+		cRTCs.ChannelConnections.mutex.Unlock()
 		conn.Release()
 	}
 }
@@ -374,17 +363,17 @@ func retrieveChannelUids(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer)
 		}()
 
 		data := <-cRTCs.GetChannelUids
-		cRTCs.ChannelConnections.mutex.RLock()
+		cRTCs.ChannelConnections.mutex.Lock()
 		if channelConnections, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
 			channelUids := make(map[string]struct{})
 			for oi := range channelConnections {
 				channelUids[oi] = struct{}{}
 			}
-			cRTCs.ChannelConnections.mutex.RUnlock()
 			data.RecvChan <- channelUids
+			cRTCs.ChannelConnections.mutex.Unlock()
 		} else {
-			cRTCs.ChannelConnections.mutex.RUnlock()
 			data.RecvChan <- make(map[string]struct{})
+			cRTCs.ChannelConnections.mutex.Unlock()
 		}
 	}
 }
@@ -407,7 +396,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer) 
 
 		data := <-cRTCs.UpdateMediaOptions
 
-		cRTCs.ChannelConnections.mutex.RLock()
+		cRTCs.ChannelConnections.mutex.Lock()
 		if channelUids, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
 			uids := []string{}
 			for uid := range channelUids {
@@ -427,7 +416,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer) 
 				},
 			}
 		}
-		cRTCs.ChannelConnections.mutex.RUnlock()
+		cRTCs.ChannelConnections.mutex.Unlock()
 	}
 }
 
