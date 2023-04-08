@@ -219,6 +219,10 @@ async function handleMessages(e: MessageEvent) {
         ];
       }
     }
+    if (msg.data.entity === "ROOM")
+      if (msg.data.change_type === "DELETE")
+        if(msg.data.data.ID === roomId.value)
+        router.push("/");
   }
 
   if (isRoomChannelWebRTCUserJoined(msg)) {

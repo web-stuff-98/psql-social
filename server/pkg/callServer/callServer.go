@@ -39,12 +39,12 @@ type CallServer struct {
 type CallsPending struct {
 	// outer map is caller ID, inner map is the user that was called ID
 	data  map[string]string
-	mutex sync.RWMutex
+	mutex sync.Mutex
 }
 type CallsActive struct {
 	// outer map is caller ID, inner map is the user that was called ID
 	data  map[string]string
-	mutex sync.RWMutex
+	mutex sync.Mutex
 }
 
 /* --------------- STRUCTS --------------- */
@@ -167,7 +167,7 @@ func callPending(ss *socketServer.SocketServer, cs *CallServer) {
 
 func timeoutCall(ss *socketServer.SocketServer, cs *CallServer, uid string) {
 	time.Sleep(time.Second * 15)
-	cs.CallsPending.mutex.RLock()
+	cs.CallsPending.mutex.Lock()
 	if callPending, ok := cs.CallsPending.data[uid]; ok {
 		uids := []string{callPending, uid}
 		ss.SendDataToUsers <- socketServer.UsersMessageData{
@@ -179,11 +179,9 @@ func timeoutCall(ss *socketServer.SocketServer, cs *CallServer, uid string) {
 			},
 			MessageType: "CALL_USER_RESPONSE",
 		}
-		cs.CallsPending.mutex.Lock()
 		delete(cs.CallsPending.data, uid)
-		cs.CallsPending.mutex.Unlock()
 	}
-	cs.CallsPending.mutex.RUnlock()
+	cs.CallsPending.mutex.Unlock()
 }
 
 func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
@@ -280,8 +278,8 @@ func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
 			MessageType: "CALL_USER_RESPONSE",
 		}
 
-		cs.CallsPending.mutex.Unlock()
 		cs.CallsActive.mutex.Unlock()
+		cs.CallsPending.mutex.Unlock()
 	}
 }
 
@@ -417,7 +415,7 @@ func callRecipientRequestReInitialization(ss *socketServer.SocketServer, cs *Cal
 		}()
 
 		callerId := <-cs.CallRecipientRequestedReInitialization
-		cs.CallsActive.mutex.RLock()
+		cs.CallsActive.mutex.Lock()
 		for caller, uid := range cs.CallsActive.data {
 			if uid == callerId {
 				ss.SendDataToUser <- socketServer.UserMessageData{
@@ -428,7 +426,7 @@ func callRecipientRequestReInitialization(ss *socketServer.SocketServer, cs *Cal
 				break
 			}
 		}
-		cs.CallsActive.mutex.RUnlock()
+		cs.CallsActive.mutex.Unlock()
 	}
 }
 
@@ -449,7 +447,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cs *CallServer) {
 		}()
 
 		data := <-cs.UpdateMediaOptions
-		cs.CallsActive.mutex.RLock()
+		cs.CallsActive.mutex.Lock()
 		if recipient, ok := cs.CallsActive.data[data.Uid]; ok {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				MessageType: "UPDATE_MEDIA_OPTIONS_OUT",
@@ -476,7 +474,7 @@ func updateMediaOptions(ss *socketServer.SocketServer, cs *CallServer) {
 				}
 			}
 		}
-		cs.CallsActive.mutex.RUnlock()
+		cs.CallsActive.mutex.Unlock()
 	}
 }
 
@@ -498,6 +496,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan str
 
 		uid := <-dc
 		cs.CallsPending.mutex.Lock()
+		cs.CallsActive.mutex.Lock()
 		if callPending, ok := cs.CallsPending.data[uid]; ok {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid:         callPending,
@@ -524,9 +523,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan str
 				delete(cs.CallsPending.data, caller)
 			}
 		}
-		cs.CallsPending.mutex.Unlock()
 
-		cs.CallsActive.mutex.Lock()
 		if called, ok := cs.CallsActive.data[uid]; ok {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid:         called,
@@ -548,5 +545,6 @@ func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan str
 			}
 		}
 		cs.CallsActive.mutex.Unlock()
+		cs.CallsPending.mutex.Unlock()
 	}
 }

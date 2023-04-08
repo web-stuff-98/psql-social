@@ -68,10 +68,12 @@ onBeforeUnmount(() => {
   background-size: cover;
   background-position: center;
   font-weight: 600;
+  font-size: var(--xs);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  background: var(--base-colour);
   filter: drop-shadow(0px, 2px, 2px rgba(0, 0, 0.5));
   button {
     border: none;
@@ -82,8 +84,8 @@ onBeforeUnmount(() => {
     justify-content: center;
     box-shadow: none;
     position: absolute;
-    width: 2rem;
-    height: 2rem;
+    width: 1.5rem;
+    height: 1.5rem;
     svg {
       width: 100%;
       height: 100%;
