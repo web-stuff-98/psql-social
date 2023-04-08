@@ -25,13 +25,15 @@ defineProps<{ resMsg?: IResMsg }>();
   flex-direction: column;
   gap: var(--gap-md);
   text-align: center;
+  max-width: 8rem;
   .msg {
     font-weight: 600;
+    font-size: var(--xs);
   }
   filter: drop-shadow(0px 3px 3px rgba(0, 0, 0, 0.25));
   svg {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
   }
   .error {
     color: red;

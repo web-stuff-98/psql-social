@@ -16,31 +16,13 @@ This works differently to my last 2 projects.
 It can only send JSON messages, in this form:
 { event_type, data }
 
-I used a load of maps to avoid ranging through stuff.
-
-"ConnectionsByWs" and "ConnectionsByID" are both maps
-that contain pointers to all connections, so that
-connections can be accessed by using the id of the user,
-or the user id can be easily accessed by the connection,
-just to avoid ranging through maps because I imagine it's
-not as fast as just accessing the variable more directly
-using a map.
-
-I don't know if it performs better or worse than my
-last projects.
-
-Maybe using a sync.Map here would be better, but I would
-have to rewrite everything and I've already 99% finished
-the project.
+I will end up using sync.Map next time, this
+had a lot more methods but I had to remove them
+since the deadlocks were becoming unmanagable.
 */
 
 type SocketServer struct {
-	ConnectionsByWs ConnectionsByWs
-	ConnectionsByID ConnectionsByID
-
-	// used to avoid ranging through maps. Keeps names of every subscription
-	// a connection is registered to.
-	ConnectionSubscriptions    ConnectionSubscriptions
+	ConnectionsByID            ConnectionsByID
 	GetConnectionSubscriptions chan GetConnectionSubscriptions
 
 	IsUserOnline chan IsUserOnline
@@ -55,25 +37,12 @@ type SocketServer struct {
 	CloseConnChan chan string
 
 	SendDataToUser  chan UserMessageData
-	SendDataToConn  chan ConnMessageData
 	SendDataToUsers chan UsersMessageData
-	SendDataToConns chan ConnsMessageData
 
 	JoinSubscriptionByWs  chan RegisterUnregisterSubsConnWs
-	JoinSubscriptionByID  chan RegisterUnregisterSubsConnID
 	LeaveSubscriptionByWs chan RegisterUnregisterSubsConnWs
-	LeaveSubscriptionByID chan RegisterUnregisterSubsConnID
 
-	SendDataToSub  chan SubscriptionMessageData
-	SendDataToSubs chan SubscriptionsMessageData
-	// Send data to subscription, exclude connection(s)
-	SendDataToSubExcludeByWss chan SubscriptionMessageDataExcludeByWss
-	// Send data to subscription, exclude connection(s) by matching user ids
-	SendDataToSubExcludeByIDs chan SubscriptionMessageDataExcludeByIDs
-	// Send data to multiple subscriptions, exclude connection(s)
-	SendDataToSubsExcludeByWss chan SubscriptionsMessageDataExcludeByWss
-	// Send data to multiple subscriptions, exclude connection(s) by matching user ids
-	SendDataToSubsExcludeByIDs chan SubscriptionsMessageDataExcludeByIDs
+	SendDataToSub chan SubscriptionMessageData
 
 	Subscriptions       Subscriptions
 	GetSubscriptionUids chan GetSubscriptionUids
@@ -81,23 +50,14 @@ type SocketServer struct {
 
 /* ------ INTERNAL MUTEX PROTECTED MAPS ------ */
 
-type ConnectionsByWs struct {
-	data  map[*websocket.Conn]string
-	mutex sync.Mutex
-}
-
 type ConnectionsByID struct {
 	data  map[string]*websocket.Conn
 	mutex sync.Mutex
 }
 
-type ConnectionSubscriptions struct {
-	data  map[*websocket.Conn]map[string]struct{}
-	mutex sync.Mutex
-}
-
 type Subscriptions struct {
-	data  map[string]map[*websocket.Conn]struct{}
+	// outer map is subscription name, inner map is uids
+	data  map[string]map[string]struct{}
 	mutex sync.Mutex
 }
 
@@ -148,12 +108,6 @@ type ConnMessageData struct {
 	MessageType string
 }
 
-type ConnsMessageData struct {
-	Data        interface{}
-	Conns       []*websocket.Conn
-	MessageType string
-}
-
 type RegisterUnregisterSubsConnWs struct {
 	Conn    *websocket.Conn
 	SubName string
@@ -170,57 +124,16 @@ type SubscriptionMessageData struct {
 	Data        interface{}
 }
 
-type SubscriptionsMessageData struct {
-	SubNames    []string
-	MessageType string
-	Data        interface{}
-}
-
-type SubscriptionMessageDataExcludeByWss struct {
-	SubName      string
-	MessageType  string
-	Data         interface{}
-	ExcludeConns map[*websocket.Conn]struct{}
-}
-
-type SubscriptionMessageDataExcludeByIDs struct {
-	SubName     string
-	MessageType string
-	Data        interface{}
-	ExcludeUids map[string]struct{}
-}
-
-type SubscriptionsMessageDataExcludeByWss struct {
-	SubNames     []string
-	MessageType  string
-	Data         interface{}
-	ExcludeConns map[*websocket.Conn]struct{}
-}
-
-type SubscriptionsMessageDataExcludeByIDs struct {
-	SubNames    []string
-	MessageType string
-	Data        interface{}
-	ExcludeUids map[string]struct{}
-}
-
 func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 	ss := &SocketServer{
-		ConnectionsByWs: ConnectionsByWs{
-			data: map[*websocket.Conn]string{},
-		},
 		ConnectionsByID: ConnectionsByID{
 			data: make(map[string]*websocket.Conn),
-		},
-
-		IsUserOnline: make(chan IsUserOnline),
-
-		ConnectionSubscriptions: ConnectionSubscriptions{
-			data: make(map[*websocket.Conn]map[string]struct{}),
 		},
 		GetConnectionSubscriptions: make(chan GetConnectionSubscriptions),
 
 		MessageLoop: make(chan Message),
+
+		IsUserOnline: make(chan IsUserOnline),
 
 		AttachmentServerRemoveUploaderChan: make(chan string),
 
@@ -230,30 +143,16 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 		CloseConnChan: make(chan string),
 
 		SendDataToUser:  make(chan UserMessageData),
-		SendDataToConn:  make(chan ConnMessageData),
 		SendDataToUsers: make(chan UsersMessageData),
-		SendDataToConns: make(chan ConnsMessageData),
 
-		SendDataToSubExcludeByWss:  make(chan SubscriptionMessageDataExcludeByWss),
-		SendDataToSubExcludeByIDs:  make(chan SubscriptionMessageDataExcludeByIDs),
-		SendDataToSubsExcludeByWss: make(chan SubscriptionsMessageDataExcludeByWss),
-		SendDataToSubsExcludeByIDs: make(chan SubscriptionsMessageDataExcludeByIDs),
-
-		JoinSubscriptionByWs:  make(chan RegisterUnregisterSubsConnWs),
-		JoinSubscriptionByID:  make(chan RegisterUnregisterSubsConnID),
-		LeaveSubscriptionByWs: make(chan RegisterUnregisterSubsConnWs),
-		LeaveSubscriptionByID: make(chan RegisterUnregisterSubsConnID),
-
-		SendDataToSub:  make(chan SubscriptionMessageData),
-		SendDataToSubs: make(chan SubscriptionsMessageData),
+		SendDataToSub: make(chan SubscriptionMessageData),
 
 		Subscriptions: Subscriptions{
-			data: make(map[string]map[*websocket.Conn]struct{}),
+			data: make(map[string]map[string]struct{}),
 		},
 		GetSubscriptionUids: make(chan GetSubscriptionUids),
 	}
 	go runServer(ss, csdc, cRTCsdc)
-	log.Println("Socket server initialized")
 	return ss
 }
 
@@ -264,19 +163,10 @@ func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	go closeConn(ss)
 	go messageLoop(ss)
 	go sendUserData(ss)
-	go sendConnData(ss)
 	go sendUsersData(ss)
-	go sendConnsData(ss)
 	go joinSubsByWs(ss)
-	go joinSubsByID(ss)
 	go leaveSubByWs(ss)
-	go leaveSubByID(ss)
 	go sendSubData(ss)
-	go sendSubsData(ss)
-	go sendDataToSubExcludeWss(ss)
-	go sendDataToSubExcludeIDs(ss)
-	go sendDataToSubsExcludeWss(ss)
-	go sendDataToSubsExcludeIDs(ss)
 	go getConnSubscriptions(ss)
 	go getSubscriptionUids(ss)
 }
@@ -300,13 +190,10 @@ func closeConn(ss *SocketServer) {
 		uid := <-ss.CloseConnChan
 
 		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
 		if conn, ok := ss.ConnectionsByID.data[uid]; ok {
-			ss.ConnectionsByWs.mutex.Unlock()
 			ss.ConnectionsByID.mutex.Unlock()
 			ss.UnregisterConn <- conn
 		} else {
-			ss.ConnectionsByWs.mutex.Unlock()
 			ss.ConnectionsByID.mutex.Unlock()
 		}
 	}
@@ -343,12 +230,9 @@ func connection(ss *SocketServer) {
 		}()
 
 		data := <-ss.RegisterConn
-		ss.ConnectionsByWs.mutex.Lock()
 		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.data[data.Conn] = data.Uid
 		ss.ConnectionsByID.data[data.Uid] = data.Conn
 		ss.ConnectionsByID.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
 
 		changeData := make(map[string]interface{})
 		changeData["ID"] = data.Uid
@@ -382,32 +266,23 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 
 		conn := <-ss.UnregisterConn
 
-		ss.ConnectionsByWs.mutex.Lock()
 		ss.ConnectionsByID.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionSubscriptions.mutex.Lock()
-		uid, ok := ss.ConnectionsByWs.data[conn]
-		if ok {
-			csdc <- uid
-			cRTCsdc <- uid
-			ss.AttachmentServerRemoveUploaderChan <- uid
-
-			delete(ss.ConnectionsByID.data, uid)
-
-			if subs, ok := ss.ConnectionSubscriptions.data[conn]; ok {
-				for sub := range subs {
-					if _, ok := ss.Subscriptions.data[sub]; ok {
-						delete(ss.Subscriptions.data[sub], conn)
-					}
-				}
+		var uid string
+		for k, c := range ss.ConnectionsByID.data {
+			if c == conn {
+				uid = k
+				break
 			}
-			delete(ss.ConnectionSubscriptions.data, conn)
 		}
-		delete(ss.ConnectionsByWs.data, conn)
-		ss.ConnectionSubscriptions.mutex.Unlock()
+
+		csdc <- uid
+		cRTCsdc <- uid
+		ss.AttachmentServerRemoveUploaderChan <- uid
+		delete(ss.ConnectionsByID.data, uid)
+
 		ss.Subscriptions.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
 
 		if conn != nil {
 			conn.Close()
@@ -490,15 +365,13 @@ func sendUserData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToUser
-		// mutex lock all maps that contain connections
+
 		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
 		if conn, ok := ss.ConnectionsByID.data[data.Uid]; ok {
 			WriteMessage(data.MessageType, data.Data, conn, ss)
 		}
 		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
 	}
 }
@@ -520,79 +393,25 @@ func sendUsersData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToUsers
-		// mutex lock all maps that contain connections
-		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
-		for _, v := range data.Uids {
-			if conn, ok := ss.ConnectionsByID.data[v]; ok {
-				WriteMessage(data.MessageType, data.Data, conn, ss)
-			}
-		}
-		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
-		ss.ConnectionsByID.mutex.Unlock()
-	}
-}
 
-func sendConnData(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send conn data loop:", r)
-				if failCount < 10 {
-					go sendConnData(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
+		ss.ConnectionsByID.mutex.Lock()
+		ss.Subscriptions.mutex.Lock()
+
+		conns := []*websocket.Conn{}
+
+		for k, c := range ss.ConnectionsByID.data {
+			for _, v := range data.Uids {
+				if v == k {
+					conns = append(conns, c)
 				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.SendDataToConn
-		// mutex lock all maps that contain connections
-		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
-		if _, ok := ss.ConnectionsByWs.data[data.Conn]; ok {
-			WriteMessage(data.MessageType, data.Data, data.Conn, ss)
-		}
-		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
-		ss.ConnectionsByID.mutex.Unlock()
-	}
-}
-
-func sendConnsData(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send connections data loop:", r)
-				if failCount < 10 {
-					go sendConnsData(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.SendDataToConns
-		// mutex lock all maps that contain connections
-		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
-		for _, conn := range data.Conns {
-			if _, ok := ss.ConnectionsByWs.data[conn]; ok {
-				WriteMessage(data.MessageType, data.Data, conn, ss)
 			}
 		}
+
+		for _, c := range conns {
+			WriteMessage(data.MessageType, data.Data, c, ss)
+		}
+
 		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
 	}
 }
@@ -614,69 +433,28 @@ func joinSubsByWs(ss *SocketServer) {
 		}()
 
 		data := <-ss.JoinSubscriptionByWs
+
 		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionSubscriptions.mutex.Lock()
-		if _, ok := ss.Subscriptions.data[data.SubName]; ok {
-			ss.Subscriptions.data[data.SubName][data.Conn] = struct{}{}
-		} else {
-			conns := make(map[*websocket.Conn]struct{})
-			conns[data.Conn] = struct{}{}
-			ss.Subscriptions.data[data.SubName] = conns
-		}
-
-		if _, ok := ss.ConnectionSubscriptions.data[data.Conn]; ok {
-			ss.ConnectionSubscriptions.data[data.Conn][data.SubName] = struct{}{}
-		} else {
-			subs := make(map[string]struct{})
-			subs[data.SubName] = struct{}{}
-			ss.ConnectionSubscriptions.data[data.Conn] = subs
-		}
-		ss.ConnectionSubscriptions.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
-	}
-}
-
-func joinSubsByID(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws register subscription by uid loop:", r)
-				if failCount < 10 {
-					go joinSubsByID(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.JoinSubscriptionByID
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionSubscriptions.mutex.Lock()
 		ss.ConnectionsByID.mutex.Lock()
-		if conn, ok := ss.ConnectionsByID.data[data.Uid]; ok {
-			if _, ok := ss.Subscriptions.data[data.SubName]; ok {
-				ss.Subscriptions.data[data.SubName][conn] = struct{}{}
-			} else {
-				conns := make(map[*websocket.Conn]struct{})
-				conns[conn] = struct{}{}
-				ss.Subscriptions.data[data.SubName] = conns
-			}
 
-			if _, ok := ss.ConnectionSubscriptions.data[conn]; ok {
-				ss.ConnectionSubscriptions.data[conn][data.SubName] = struct{}{}
-			} else {
-				subs := make(map[string]struct{})
-				subs[data.SubName] = struct{}{}
-				ss.ConnectionSubscriptions.data[conn] = subs
+		var uid string
+
+		for k, c := range ss.ConnectionsByID.data {
+			if c == data.Conn {
+				uid = k
+				break
 			}
-		} else {
-			log.Println("Could not register user ID to subscription - connection information not found in memory")
 		}
+
+		if _, ok := ss.Subscriptions.data[data.SubName]; ok {
+			ss.Subscriptions.data[data.SubName][uid] = struct{}{}
+		} else {
+			uids := make(map[string]struct{})
+			uids[uid] = struct{}{}
+			ss.Subscriptions.data[data.SubName] = uids
+		}
+
 		ss.ConnectionsByID.mutex.Unlock()
-		ss.ConnectionSubscriptions.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
 	}
 }
@@ -698,58 +476,26 @@ func leaveSubByWs(ss *SocketServer) {
 		}()
 
 		data := <-ss.LeaveSubscriptionByWs
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionSubscriptions.mutex.Lock()
-		if _, ok := ss.Subscriptions.data[data.SubName]; ok {
-			delete(ss.Subscriptions.data[data.SubName], data.Conn)
-			if len(ss.Subscriptions.data[data.SubName]) == 0 {
-				delete(ss.Subscriptions.data, data.SubName)
-			}
-		}
 
-		delete(ss.ConnectionSubscriptions.data[data.Conn], data.SubName)
-		ss.ConnectionSubscriptions.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
-	}
-}
-
-func leaveSubByID(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws leave subscription by uid loop:", r)
-				if failCount < 10 {
-					go leaveSubByID(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.LeaveSubscriptionByID
 		ss.Subscriptions.mutex.Lock()
 		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionSubscriptions.mutex.Lock()
-		conn, connRegistered := ss.ConnectionsByID.data[data.Uid]
-		if !connRegistered {
-			ss.Subscriptions.mutex.Unlock()
-			ss.ConnectionsByID.mutex.Unlock()
-			ss.ConnectionSubscriptions.mutex.Unlock()
-			ss.Subscriptions.mutex.Unlock()
-			continue
+
+		var uid string
+
+		for k, c := range ss.ConnectionsByID.data {
+			if c == data.Conn {
+				uid = k
+				break
+			}
 		}
+
 		if _, ok := ss.Subscriptions.data[data.SubName]; ok {
-			delete(ss.Subscriptions.data[data.SubName], conn)
+			delete(ss.Subscriptions.data[data.SubName], uid)
 			if len(ss.Subscriptions.data[data.SubName]) == 0 {
 				delete(ss.Subscriptions.data, data.SubName)
 			}
 		}
 
-		delete(ss.ConnectionSubscriptions.data[conn], data.SubName)
-		ss.ConnectionSubscriptions.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
 	}
@@ -772,197 +518,21 @@ func sendSubData(ss *SocketServer) {
 		}()
 
 		data := <-ss.SendDataToSub
-		// mutex lock all maps that contain connections
-		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
-		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
-			for c := range conns {
-				WriteMessage(data.MessageType, data.Data, c, ss)
-			}
-		}
-		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
-		ss.ConnectionsByID.mutex.Unlock()
-	}
-}
 
-func sendSubsData(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send data to subscriptions loop:", r)
-				if failCount < 10 {
-					go sendSubsData(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.SendDataToSubs
-		// mutex lock all maps that contain connections
 		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
-		for _, v := range data.SubNames {
-			if _, ok := ss.Subscriptions.data[v]; ok {
-				if conns, ok := ss.Subscriptions.data[v]; ok {
-					for c := range conns {
+
+		if uids, ok := ss.Subscriptions.data[data.SubName]; ok {
+			for uid := range uids {
+				for k, c := range ss.ConnectionsByID.data {
+					if k == uid {
 						WriteMessage(data.MessageType, data.Data, c, ss)
 					}
 				}
 			}
 		}
+
 		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
-		ss.ConnectionsByID.mutex.Unlock()
-	}
-}
-
-func sendDataToSubExcludeWss(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send data to subscription excluding connections loop:", r)
-				if failCount < 10 {
-					go sendDataToSubExcludeWss(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.SendDataToSubExcludeByWss
-		// mutex lock all maps that contain connections
-		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
-		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
-			for c := range conns {
-				if _, ok := data.ExcludeConns[c]; !ok {
-					WriteMessage(data.MessageType, data.Data, c, ss)
-				}
-			}
-		}
-		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
-		ss.ConnectionsByID.mutex.Unlock()
-	}
-}
-
-func sendDataToSubExcludeIDs(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send data to subscription excluding user ids loop:", r)
-				if failCount < 10 {
-					go sendDataToSubExcludeIDs(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.SendDataToSubExcludeByIDs
-		// mutex lock all maps that contain connections
-		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
-		if conns, ok := ss.Subscriptions.data[data.SubName]; ok {
-			for c := range conns {
-				if id, ok := ss.ConnectionsByWs.data[c]; ok {
-					if _, ok := data.ExcludeUids[id]; !ok {
-						WriteMessage(data.MessageType, data.Data, c, ss)
-					}
-				}
-			}
-		}
-		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
-		ss.ConnectionsByID.mutex.Unlock()
-	}
-}
-
-func sendDataToSubsExcludeIDs(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send data to subscriptions excluding user ids loop:", r)
-				if failCount < 10 {
-					go sendDataToSubsExcludeIDs(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.SendDataToSubsExcludeByIDs
-		// mutex lock all maps that contain connections
-		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
-		for _, subName := range data.SubNames {
-			if conns, ok := ss.Subscriptions.data[subName]; ok {
-				for c := range conns {
-					if id, ok := ss.ConnectionsByWs.data[c]; ok {
-						if _, ok := data.ExcludeUids[id]; !ok {
-							WriteMessage(data.MessageType, data.Data, c, ss)
-						}
-					}
-				}
-			}
-		}
-		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
-		ss.ConnectionsByID.mutex.Unlock()
-	}
-}
-
-func sendDataToSubsExcludeWss(ss *SocketServer) {
-	var failCount uint8
-	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send data to subscriptions excluding connections loop:", r)
-				if failCount < 10 {
-					go sendDataToSubsExcludeWss(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
-		data := <-ss.SendDataToSubsExcludeByWss
-		// mutex lock all maps that contain connections
-		ss.ConnectionsByID.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
-		for _, subName := range data.SubNames {
-			if conns, ok := ss.Subscriptions.data[subName]; ok {
-				for c := range conns {
-					if _, ok := data.ExcludeConns[c]; !ok {
-						WriteMessage(data.MessageType, data.Data, c, ss)
-					}
-				}
-			}
-		}
-		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
 	}
 }
@@ -984,14 +554,32 @@ func getConnSubscriptions(ss *SocketServer) {
 		}()
 
 		data := <-ss.GetConnectionSubscriptions
-		ss.ConnectionSubscriptions.mutex.Lock()
-		if subs, ok := ss.ConnectionSubscriptions.data[data.Conn]; ok {
-			ss.ConnectionSubscriptions.mutex.Unlock()
-			data.RecvChan <- subs
-		} else {
-			ss.ConnectionSubscriptions.mutex.Unlock()
-			data.RecvChan <- make(map[string]struct{})
+
+		ss.Subscriptions.mutex.Lock()
+		ss.ConnectionsByID.mutex.Lock()
+
+		var uid string
+
+		for k, c := range ss.ConnectionsByID.data {
+			if c == data.Conn {
+				uid = k
+			}
 		}
+
+		subs := make(map[string]struct{})
+
+		for subName, uids := range ss.Subscriptions.data {
+			for k := range uids {
+				if k == uid {
+					subs[subName] = struct{}{}
+				}
+			}
+		}
+
+		data.RecvChan <- subs
+
+		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
@@ -1012,19 +600,17 @@ func getSubscriptionUids(ss *SocketServer) {
 		}()
 
 		data := <-ss.GetSubscriptionUids
+
 		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByWs.mutex.Lock()
-		uids := make(map[string]struct{})
-		conns, ok := ss.Subscriptions.data[data.SubName]
-		if ok {
-			for c := range conns {
-				if uid, ok := ss.ConnectionsByWs.data[c]; ok {
-					uids[uid] = struct{}{}
-				}
-			}
+		ss.ConnectionsByID.mutex.Lock()
+
+		if uids, ok := ss.Subscriptions.data[data.SubName]; ok {
+			data.RecvChan <- uids
+		} else {
+			data.RecvChan <- make(map[string]struct{})
 		}
-		ss.ConnectionsByWs.mutex.Unlock()
+
+		ss.ConnectionsByID.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
-		data.RecvChan <- uids
 	}
 }

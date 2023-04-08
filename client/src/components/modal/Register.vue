@@ -84,7 +84,10 @@ async function handleSubmit(values: any) {
   gap: var(--gap-md);
   width: 10rem;
   max-width: 10rem;
+  align-items: center;
+  justify-content: center;
   button {
+    width: 100%;
     font-weight: 600;
     font-size: var(--md);
   }

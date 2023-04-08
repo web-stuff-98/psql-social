@@ -66,8 +66,9 @@ const username = computed(
 
 <style lang="scss" scoped>
 .layout {
-  height: min(30rem, 95vh);
-  width: min(40rem, 95vw);
+  height: min(30rem, calc(100% - var(--gap-lg)));
+  width: min(40rem, calc(100% - var(--gap-lg)));
+  transition: height 100ms ease;
   display: flex;
   flex-direction: column;
   border-radius: var(--border-radius-lg);
@@ -120,6 +121,12 @@ const username = computed(
       display: flex;
       height: 100%;
     }
+  }
+}
+
+@media (max-width: 600px) {
+  .layout {
+    height: calc(100% - var(--gap-lg));
   }
 }
 </style>
