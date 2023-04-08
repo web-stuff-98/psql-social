@@ -1,7 +1,9 @@
 <template>
-  <div class="modal-container">
-    <div class="modal">
-      <slot> </slot>
+  <Teleport to="body">
+    <div class="modal-container">
+      <div class="modal">
+        <slot> </slot>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>

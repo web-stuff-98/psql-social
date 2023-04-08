@@ -104,11 +104,12 @@ onBeforeUnmount(() => {
     position: relative;
     .online-indicator {
       position: absolute;
-      top: -3px;
-      right: -3px;
-      width: 5px;
-      height: 5px;
-      border: 1px solid var(--border-heavy);
+      top: -5px;
+      right: -5px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--text-colour);
       background: lime;
     }
   }

@@ -434,7 +434,7 @@ func checkUserOnline(ss *SocketServer) {
 		} else {
 			data.RecvChan <- false
 		}
-		ss.ConnectionsByID.mutex.Unlock()
+		ss.ConnectionsByID.mutex.RUnlock()
 	}
 }
 

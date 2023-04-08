@@ -87,7 +87,6 @@ watch(show, (_, newShow) => {
 aside {
   height: 100%;
   border-right: 2px solid var(--border-light);
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -134,6 +133,7 @@ aside {
     height: 100%;
     display: flex;
     flex-direction: column;
+    position: relative;
     .aside-close-button {
       position: absolute;
       bottom: 3px;
