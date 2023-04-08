@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -52,16 +51,12 @@ func (h handler) GetUser(ctx *fiber.Ctx) error {
 		}
 	}
 
-	log.Println("CHANNEL")
-
 	recvChan := make(chan bool)
 	h.SocketServer.IsUserOnline <- socketServer.IsUserOnline{
 		RecvChan: recvChan,
 		Uid:      id,
 	}
 	isOnline := <-recvChan
-
-	log.Println("CHANNEL THROUGH")
 
 	if bytes, err := json.Marshal(responses.User{
 		ID:       id,
