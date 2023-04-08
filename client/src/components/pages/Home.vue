@@ -32,7 +32,7 @@ const authStore = useAuthStore();
   
   hr {
     border: none;
-    border-bottom: 2px solid var(--border-heavy);
+    border-bottom: 2px solid var(--text-colour);
     width: 100%;
     max-width: 25rem;
     margin: 4px;

@@ -87,6 +87,7 @@ func (h handler) CreateRoom(ctx *fiber.Ctx) error {
 	outChangeData["ID"] = id
 	outChangeData["name"] = name
 	outChangeData["is_private"] = body.Private
+	outChangeData["author_id"] = uid
 
 	h.SocketServer.SendDataToUser <- socketServer.UserMessageData{
 		Uid: uid,

@@ -26,6 +26,7 @@ defineProps<{ resMsg?: IResMsg }>();
   gap: var(--gap-md);
   text-align: center;
   max-width: 8rem;
+  margin: auto;
   .msg {
     font-weight: 600;
     font-size: var(--xs);

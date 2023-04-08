@@ -46,8 +46,8 @@ function handleInput(e: Event) {
 </script>
 
 <template>
-  <div :style="result ? { height: '100%' } : {}" class="find-user">
-    <div v-if="result" class="result"><User :uid="result" /></div>
+  <div class="find-user">
+    <div class="result"><User v-if="result" :uid="result" /></div>
     <ErrorMessage name="username" />
     <ResMsg
       v-if="resMsg.msg && resMsg.msg !== 'User not found'"
@@ -73,6 +73,7 @@ function handleInput(e: Event) {
   gap: var(--gap-sm);
   display: flex;
   flex-direction: column;
+  height: 100%;
   .result {
     flex-grow: 1;
     width: 100%;
