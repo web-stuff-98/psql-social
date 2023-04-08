@@ -69,7 +69,7 @@ onBeforeUnmount(() => {
     <ResMsg :resMsg="resMsg" />
     <div class="list">
       <div v-for="uid in blocked" class="item">
-        <User :uid="uid" />
+        <User :noPfp="true" :uid="uid" />
         <button @click="unblock(uid)" type="button">Unblock</button>
       </div>
     </div>
@@ -102,12 +102,13 @@ onBeforeUnmount(() => {
     .item {
       display: flex;
       justify-content: space-between;
+      width: 100%;
       gap: 4px;
       align-items: center;
       button {
         padding: 3px;
         margin: 0;
-        font-size: xs;
+        font-size: var(--xs);
       }
     }
   }
