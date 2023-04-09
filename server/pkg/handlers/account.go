@@ -140,7 +140,6 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 	if cookie, err := authHelpers.GenerateCookieAndSession(h.RedisClient, rctx, id); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
-		go authHelpers.DeleteAccount(id, h.DB, h.SocketServer, true)
 		ctx.Response().Header.Add("Content-Type", "text/plain")
 		ctx.Cookie(cookie)
 		ctx.WriteString(id)
@@ -161,6 +160,7 @@ func (h handler) Logout(ctx *fiber.Ctx) error {
 		h.SocketServer.CloseConnChan <- uid
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
 		ctx.Cookie(authHelpers.GetClearedCookie())
+		go authHelpers.DeleteAccount(uid, h.DB, h.SocketServer, true)
 	}
 
 	return nil

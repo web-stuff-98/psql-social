@@ -95,7 +95,7 @@ function animate() {
   animationFrameId = requestAnimationFrame(animate);
 
   mesh.rotation.x += 0.000002;
-  mesh.rotation.y += 0.0005;
+  mesh.rotation.y += 0.0003;
 
   renderer.render(scene, camera);
 }
@@ -105,13 +105,16 @@ function animate() {
   <div class="container">
     <div id="sphere" class="sphere-background" />
     <Layout />
-    <!-- Intervals response message modal (eg, when refreshing token failed) -->
+    <!-- Background process response message modal (eg, when refreshing token failed) -->
     <Modal v-if="backgroundProcessResMsg?.msg">
       <ModalCloseButton @click="() => (backgroundProcessResMsg = {})" />
       <ResMsg :resMsg="backgroundProcessResMsg" />
     </Modal>
     <!-- Welcome / Login / Register modal -->
-    <Modal v-if="!authStore.uid">
+    <Modal
+      :noExtraTopPadding="noUserModalSection === 'WELCOME'"
+      v-if="!authStore.uid"
+    >
       <ModalCloseButton
         v-if="noUserModalSection !== 'WELCOME'"
         @click="() => (noUserModalSection = 'WELCOME')"

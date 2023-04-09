@@ -24,7 +24,7 @@ type AttachmentServer struct {
 
 type Uploaders struct {
 	data  map[string]map[string]Upload
-	mutex sync.RWMutex
+	mutex sync.Mutex
 }
 
 type Upload struct {
@@ -101,15 +101,21 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 
 		var i int = 0
 		var size float32
+		var failed bool
 
-		if selectSizeStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_meta_size_stmt", fmt.Sprintf("SELECT size FROM %v WHERE message_id = $1", metaTable)); err != nil {
+		if selectSizeStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_meta_size_failed_stmt", fmt.Sprintf("SELECT size,failed FROM %v WHERE message_id = $1", metaTable)); err != nil {
 			errored(err, conn)
 			continue
 		} else {
-			if err = conn.Conn().QueryRow(data.Ctx, selectSizeStmt.Name, data.ID).Scan(&size); err != nil {
+			if err = conn.Conn().QueryRow(data.Ctx, selectSizeStmt.Name, data.ID).Scan(&size, &failed); err != nil {
 				errored(err, conn)
 				continue
 			}
+		}
+
+		if failed {
+			errored(fmt.Errorf("Attachment failed already"), conn)
+			continue
 		}
 
 		as.Uploaders.mutex.Lock()
@@ -209,6 +215,10 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 			}
 		}
 
+		if ratio == 1 {
+			cleanup(data.Uid, data.ID, *conn, as)
+		}
+
 		conn.Release()
 
 		data.RecvChan <- true
@@ -251,15 +261,19 @@ func deleteAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *p
 			continue
 		}
 
-		if deleteStmt, err := conn.Conn().Prepare(ctx, "attachment_server_delete_chunk_loop_stmt", fmt.Sprintf("DELETE FROM %v WHERE message_id = $1", chunkTable)); err != nil {
+		var author_id string
+
+		if deleteStmt, err := conn.Conn().Prepare(ctx, "attachment_server_delete_chunk_loop_stmt", fmt.Sprintf("DELETE FROM %v WHERE message_id = $1 RETURNING author_id", chunkTable)); err != nil {
 			errored(err, conn)
 			continue
 		} else {
-			if _, err = conn.Conn().Exec(ctx, deleteStmt.Name, id); err != nil {
+			if err = conn.Conn().QueryRow(ctx, deleteStmt.Name, id).Scan(&author_id); err != nil {
 				errored(err, conn)
 				continue
 			}
 		}
+
+		cleanup(author_id, id, *conn, as)
 
 		conn.Release()
 	}
@@ -315,4 +329,16 @@ func failAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *pgx
 
 		as.DeleteChan <- id
 	}
+}
+
+// for removing data from uploaders map after an attachment completes, fails or is deleted
+func cleanup(uid string, msgId string, conn pgxpool.Conn, as *AttachmentServer) {
+	as.Uploaders.mutex.Lock()
+	if _, ok := as.Uploaders.data[uid]; ok {
+		delete(as.Uploaders.data[uid], msgId)
+		if len(as.Uploaders.data[uid]) == 0 {
+			delete(as.Uploaders.data, uid)
+		}
+	}
+	as.Uploaders.mutex.Unlock()
 }

@@ -10,7 +10,7 @@
     <h2>Privacy Policy</h2>
     <p>
       None of your information is shared with any 3rd party, and your account
-      will be automatically deleted after 20 minutes.
+      will be automatically deleted 20 minutes after you logout.
     </p>
   </div>
 </template>

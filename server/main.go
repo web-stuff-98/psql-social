@@ -47,12 +47,7 @@ func main() {
 		log.Fatalf("Unable to read SQL file: %v\n", err)
 	}
 	sql := string(sqlBytes)
-	conn, err := db.Acquire(context.Background())
-	if err != nil {
-		log.Fatalf("Unable to acquire connection: %v\n", err)
-	}
-	defer conn.Release()
-	if _, err := conn.Exec(context.Background(), sql); err != nil {
+	if _, err := db.Exec(context.Background(), sql); err != nil {
 		log.Fatalf("Unable to execute SQL schema: %v\n", err)
 	}
 

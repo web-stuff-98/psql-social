@@ -16,9 +16,8 @@ This works differently to my last 2 projects.
 It can only send JSON messages, in this form:
 { event_type, data }
 
-I will end up using sync.Map next time, this
-had a lot more methods but I had to remove them
-since the deadlocks were becoming unmanagable.
+I will end up using sync.Map next time instead
+of mutex locks
 */
 
 type SocketServer struct {

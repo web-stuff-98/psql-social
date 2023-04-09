@@ -170,6 +170,7 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 				if err != nil {
 					log.Println("Error in join WebRTC select channel prepare statement:", err)
 					cRTCs.ChannelConnections.mutex.Unlock()
+					conn.Release()
 					continue
 				}
 				var room_id string
@@ -252,12 +253,15 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 				if err != nil {
 					log.Println("Error in leave WebRTC select channel prepare statement:", err)
 					cRTCs.ChannelConnections.mutex.Unlock()
+					conn.Release()
 					continue
 				}
 				var room_id string
 				if err = conn.QueryRow(ctx, selectChannelStmt.Name, data.ChannelID).Scan(&room_id); err != nil {
 					log.Println("Error in leave WebRTC select channel statement:", err)
 				}
+
+				conn.Release()
 
 				ss.SendDataToSub <- socketServer.SubscriptionMessageData{
 					SubName: fmt.Sprintf("channel:%v", data.ChannelID),
@@ -460,12 +464,14 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 					if err != nil {
 						log.Println("Error in cRTCs socket disconnect event select channel prepare statement:", err)
 						cRTCs.ChannelConnections.mutex.Unlock()
+						conn.Release()
 						continue
 					}
 					var room_id string
 					if err = conn.QueryRow(ctx, selectChannelStmt.Name, channelId).Scan(&room_id); err != nil {
 						log.Println("Error in cRTCs socket disconnect event select channel statement:", err)
 						cRTCs.ChannelConnections.mutex.Unlock()
+						conn.Release()
 						continue
 					}
 
