@@ -2,8 +2,6 @@
 
 https://psql-social.herokuapp.com
 
-# BROKEN - LOTS OF DEADLOCKS
-
 ## Features:
 
 - Everything is live
