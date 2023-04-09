@@ -1,17 +1,17 @@
 @font-face {
-  font-family: "Cq Mono";
-  src: url(./assets/CqMono-mBXa.ttf);
+  font-family: "Didact Gothic";
+  src: url(./assets/didact-gothic.regular.ttf);
 }
 
 * {
-  font-family: "Cq Mono";
+  font-family: "Didact Gothic";
   color: var(--text-colour);
   line-height: 1;
   box-sizing: border-box;
 }
 
 :root {
-  font-family: "Cq Mono";
+  font-family: "Didact Gothic";
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
@@ -76,7 +76,7 @@
   /* Base colours */
   --text-colour: white;
 
-  --base-colour: #111111;
+  --base-colour: #131313;
   --base-colour-contrast: #e7e7e7;
   --hover: #23232b;
   --hover-contrast: #c2cddc;
@@ -181,6 +181,17 @@ a {
   padding: 0;
 }
 
+.modal-backdrop {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 98;
+  background: rgba(0, 0, 0, 0.166);
+  backdrop-filter: blur(2px);
+  filter: opacity(0.5);
+}
 .modal-container {
   position: fixed;
   left: 0;
@@ -191,12 +202,11 @@ a {
   align-items: center;
   justify-content: center;
   z-index: 99;
-  backdrop-filter: blur(1px);
-  background: rgba(0, 0, 0, 0.05);
 }
 .modal-container .modal {
   border: 2px solid var(--border-light);
   padding: var(--gap-md);
+  padding-top: calc(var(--gap-md) + var(--gap-lg));
   border-radius: var(--border-radius-md);
   box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.166), 0px 4px 8px rgba(0, 0, 0, 0.166);
   background: var(--base-colour);

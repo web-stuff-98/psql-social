@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { IResMsg } from "../../interfaces/GeneralInterfaces";
 import useAuthStore from "../../store/AuthStore";
 import useUserStore from "../../store/UserStore";
+import useInterfaceStore from "../../store/InterfaceStore";
 import Modal from "../modal/Modal.vue";
 import Aside from "./aside/Aside.vue";
 import ModalCloseButton from "../shared/ModalCloseButton.vue";
@@ -11,6 +12,7 @@ import { useRouter } from "vue-router";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
+const interfaceStore = useInterfaceStore();
 
 const router = useRouter();
 
@@ -26,7 +28,7 @@ async function logout() {
 }
 
 function toggleDarkMode() {
-  document.body.classList.toggle("dark-mode");
+  interfaceStore.darkMode = !interfaceStore.darkMode;
 }
 
 const username = computed(
@@ -76,6 +78,8 @@ const username = computed(
   border: 2px solid var(--border-heavy);
   box-shadow: 0px 2px 16px rgba(0, 0, 0, 0.33);
   background: var(--base-colour);
+  position: fixed;
+  z-index: 98;
   nav {
     width: 100%;
     height: var(--nav-height);
@@ -124,7 +128,7 @@ const username = computed(
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 40rem) {
   .layout {
     height: calc(100% - var(--gap-lg));
   }

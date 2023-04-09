@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, Ref, ref, watchEffect } from "vue";
+import { onBeforeUnmount, onMounted, Ref, ref, watch, watchEffect } from "vue";
 import {
   IDirectMessage,
   IFriendRequest,
@@ -34,6 +34,7 @@ import { getUserPfp } from "../services/user";
 import { pendingCallsStore } from "../store/CallsStore";
 import { useRouter } from "vue-router";
 import { getRoomImage } from "../services/room";
+import useInterface from "../store/InterfaceStore";
 
 /**
  * This composable is for intervals that run in the background
@@ -58,10 +59,16 @@ export default function useBackgroundProcess({
   const roomStore = useRoomStore();
   const inboxStore = useInboxStore();
   const attachmentStore = useAttachmentStore();
+  const interfaceStore = useInterface();
 
   const router = useRouter();
 
   const currentlyWatching = ref<string[]>([]);
+
+  watch(interfaceStore, (_, newVal) => {
+    if (newVal.darkMode) document.body.classList.add("dark-mode");
+    else document.body.classList.remove("dark-mode");
+  });
 
   async function watchForChangeEvents(e: MessageEvent) {
     const msg = JSON.parse(e.data);

@@ -36,6 +36,10 @@ defineProps<{ resMsg?: IResMsg }>();
     width: 1.5rem;
     height: 1.5rem;
   }
+  .spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
   .error {
     color: red;
     fill: red;

@@ -84,7 +84,6 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .bio-container {
-  margin-top: var(--gap-lg);
   text-align: center;
   display: flex;
   align-items: center;

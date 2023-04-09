@@ -133,9 +133,9 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 		},
 		GetConnectionSubscriptions: make(chan GetConnectionSubscriptions),
 
-		MessageLoop: make(chan Message),
-
 		IsUserOnline: make(chan IsUserOnline),
+
+		MessageLoop: make(chan Message),
 
 		AttachmentServerRemoveUploaderChan: make(chan string),
 
@@ -146,6 +146,9 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 
 		SendDataToUser:  make(chan UserMessageData),
 		SendDataToUsers: make(chan UsersMessageData),
+
+		JoinSubscriptionByWs:  make(chan RegisterUnregisterSubsConnWs),
+		LeaveSubscriptionByWs: make(chan RegisterUnregisterSubsConnWs),
 
 		SendDataToSub:  make(chan SubscriptionMessageData),
 		SendDataToSubs: make(chan SubscriptionsMessageData),
@@ -176,21 +179,7 @@ func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 }
 
 func closeConn(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws close connection loop:", r)
-				if failCount < 10 {
-					go connection(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		uid := <-ss.CloseConnChan
 
 		ss.ConnectionsByID.mutex.Lock()
@@ -218,22 +207,10 @@ func WriteMessage(t string, m interface{}, c *websocket.Conn, ss *SocketServer) 
 }
 
 func connection(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws connection loop:", r)
-				if failCount < 10 {
-					go connection(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.RegisterConn
+
+		log.Println("Connection registration")
 
 		ss.ConnectionsByID.mutex.Lock()
 
@@ -256,22 +233,10 @@ func connection(ss *SocketServer) {
 }
 
 func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws disconnect loop:", r)
-				if failCount < 10 {
-					go disconnect(ss, csdc, cRTCsdc)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		conn := <-ss.UnregisterConn
+
+		log.Println("Disconnect registration")
 
 		ss.ConnectionsByID.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
@@ -311,21 +276,7 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 }
 
 func checkUserOnline(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws checkUserOnline loop:", r)
-				if failCount < 10 {
-					go checkUserOnline(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.IsUserOnline
 
 		ss.ConnectionsByID.mutex.Lock()
@@ -333,119 +284,66 @@ func checkUserOnline(ss *SocketServer) {
 		_, ok := ss.ConnectionsByID.data[data.Uid]
 
 		ss.ConnectionsByID.mutex.Unlock()
+
 		data.RecvChan <- ok
 	}
 }
 
 func messageLoop(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws message loop:", r)
-				if failCount < 10 {
-					go sendUserData(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		msg := <-ss.MessageLoop
 		msg.Conn.WriteMessage(1, msg.Data)
 	}
 }
 
 func sendUserData(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send user data loop:", r)
-				if failCount < 10 {
-					go sendUserData(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.SendDataToUser
 
-		ss.ConnectionsByID.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
+		ss.ConnectionsByID.mutex.Lock()
 
-		if conn, ok := ss.ConnectionsByID.data[data.Uid]; ok {
-			WriteMessage(data.MessageType, data.Data, conn, ss)
-		} else {
-			log.Println("Connection not found in send data to user")
+		if c, ok := ss.ConnectionsByID.data[data.Uid]; ok {
+			WriteMessage(data.MessageType, data.Data, c, ss)
 		}
 
-		ss.Subscriptions.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
 func sendUsersData(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send users data loop:", r)
-				if failCount < 10 {
-					go sendUsersData(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.SendDataToUsers
 
-		ss.ConnectionsByID.mutex.Lock()
+		log.Println("Send")
+
 		ss.Subscriptions.mutex.Lock()
+		ss.ConnectionsByID.mutex.Lock()
 
 		conns := []*websocket.Conn{}
 
 		for k, c := range ss.ConnectionsByID.data {
 			for _, v := range data.Uids {
 				if v == k {
+					log.Println("Append")
 					conns = append(conns, c)
 				}
 			}
 		}
 
 		for _, c := range conns {
+			log.Println("Supposed to have written message")
 			WriteMessage(data.MessageType, data.Data, c, ss)
 		}
 
-		ss.Subscriptions.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
 func joinSubsByWs(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws register subscription by ws connection loop:", r)
-				if failCount < 10 {
-					go joinSubsByWs(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.JoinSubscriptionByWs
 
 		ss.Subscriptions.mutex.Lock()
@@ -474,21 +372,7 @@ func joinSubsByWs(ss *SocketServer) {
 }
 
 func leaveSubByWs(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws leave subscription by ws conn loop:", r)
-				if failCount < 10 {
-					go leaveSubByWs(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.LeaveSubscriptionByWs
 
 		ss.Subscriptions.mutex.Lock()
@@ -516,25 +400,11 @@ func leaveSubByWs(ss *SocketServer) {
 }
 
 func sendSubData(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send data to subscription loop:", r)
-				if failCount < 10 {
-					go sendSubData(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.SendDataToSub
 
-		ss.ConnectionsByID.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
+		ss.ConnectionsByID.mutex.Lock()
 
 		if uids, ok := ss.Subscriptions.data[data.SubName]; ok {
 			for uid := range uids {
@@ -546,31 +416,17 @@ func sendSubData(ss *SocketServer) {
 			}
 		}
 
-		ss.Subscriptions.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
 func sendSubsData(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws send data to subscriptions loop:", r)
-				if failCount < 10 {
-					go sendSubsData(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.SendDataToSubs
 
-		ss.ConnectionsByID.mutex.Lock()
 		ss.Subscriptions.mutex.Lock()
+		ss.ConnectionsByID.mutex.Lock()
 
 		for _, subName := range data.SubNames {
 			if uids, ok := ss.Subscriptions.data[subName]; ok {
@@ -584,27 +440,13 @@ func sendSubsData(ss *SocketServer) {
 			}
 		}
 
-		ss.Subscriptions.mutex.Unlock()
 		ss.ConnectionsByID.mutex.Unlock()
+		ss.Subscriptions.mutex.Unlock()
 	}
 }
 
 func getConnSubscriptions(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws get connection subscriptions loop:", r)
-				if failCount < 10 {
-					go getConnSubscriptions(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.GetConnectionSubscriptions
 
 		ss.Subscriptions.mutex.Lock()
@@ -628,41 +470,29 @@ func getConnSubscriptions(ss *SocketServer) {
 			}
 		}
 
-		data.RecvChan <- subs
-
 		ss.ConnectionsByID.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
+
+		data.RecvChan <- subs
 	}
 }
 
 func getSubscriptionUids(ss *SocketServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in ws get connection subscriptions loop:", r)
-				if failCount < 10 {
-					go getSubscriptionUids(ss)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-ss.GetSubscriptionUids
 
 		ss.Subscriptions.mutex.Lock()
 		ss.ConnectionsByID.mutex.Lock()
 
+		out := make(map[string]struct{})
+
 		if uids, ok := ss.Subscriptions.data[data.SubName]; ok {
-			data.RecvChan <- uids
-		} else {
-			data.RecvChan <- make(map[string]struct{})
+			out = uids
 		}
 
 		ss.ConnectionsByID.mutex.Unlock()
 		ss.Subscriptions.mutex.Unlock()
+
+		data.RecvChan <- out
 	}
 }

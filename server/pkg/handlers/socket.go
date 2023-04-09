@@ -22,35 +22,44 @@ func SendSocketErrorMessage(m string, c *websocket.Conn) {
 	})
 }
 
-func handleConnection(h handler, ctx *fiber.Ctx, uid string, c *websocket.Conn) {
-	for {
-		if _, p, err := c.ReadMessage(); err != nil {
-			log.Println("ws reader error:", err)
-			return
-		} else {
-			if len(p) == 4 {
-				if string(p) == "PING" {
-					continue
-				}
-			}
-			decoded := &decodedMsg{}
-			if err = json.Unmarshal(p, decoded); err != nil {
-				log.Println("Invalid message - connection closed")
-				c.Close()
+func (h handler) WebSocketHandler() func(*fiber.Ctx) error {
+	return websocket.New(func(c *websocket.Conn) {
+		h.SocketServer.RegisterConn <- socketServer.ConnnectionData{
+			Uid:  c.Locals("uid").(string),
+			Conn: c,
+		}
+		defer func() {
+			h.SocketServer.UnregisterConn <- c
+		}()
+		for {
+			if _, p, err := c.ReadMessage(); err != nil {
+				log.Println("ws reader error:", err)
 				return
 			} else {
-				if err := handleSocketEvent(decoded.Data, decoded.Type, h, uid, c); err != nil {
-					log.Println("Socket event error:", err)
-					SendSocketErrorMessage(err.Error(), c)
+				if len(p) == 4 {
+					if string(p) == "PING" {
+						log.Println("PING")
+						continue
+					}
+				}
+				decoded := &decodedMsg{}
+				if err = json.Unmarshal(p, decoded); err != nil {
+					log.Println("Invalid message - connection closed")
+					c.Close()
+					return
+				} else {
+					if err := handleSocketEvent(decoded.Data, decoded.Type, h, c.Locals("uid").(string), c); err != nil {
+						SendSocketErrorMessage(err.Error(), c)
+					}
 				}
 			}
 		}
-	}
+	})
 }
 
-func (h handler) WebSocketEndpoint(ctx *fiber.Ctx) error {
+func (h handler) WebSocketAuth(ctx *fiber.Ctx) error {
 	if uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, context.Background(), h.DB); err != nil {
-		return ctx.Status(fiber.StatusForbidden).SendString("Forbidden - Log in to gain access")
+		return fiber.ErrForbidden
 	} else {
 		if websocket.IsWebSocketUpgrade(ctx) {
 			ctx.Locals("uid", uid)
@@ -58,15 +67,4 @@ func (h handler) WebSocketEndpoint(ctx *fiber.Ctx) error {
 		}
 		return fiber.ErrUpgradeRequired
 	}
-}
-
-func (h handler) WebSocketHandler(c *websocket.Conn) {
-	defer func() {
-		h.SocketServer.UnregisterConn <- c
-	}()
-	h.SocketServer.RegisterConn <- socketServer.ConnnectionData{
-		Uid:  c.Locals("uid").(string),
-		Conn: c,
-	}
-	handleConnection(h, nil, c.Locals("uid").(string), c)
 }

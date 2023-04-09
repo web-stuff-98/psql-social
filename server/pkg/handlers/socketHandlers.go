@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -20,6 +21,8 @@ import (
 
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {
 	var err error
+
+	log.Printf("Event:%v\n", event)
 
 	recvChan := make(chan error)
 	h.SocketLimiter.SocketEvent <- socketLimiter.SocketEvent{
@@ -565,10 +568,9 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 		return fmt.Errorf("This user has blocked your account")
 	}
 
-	createMsgStmt := "INSERT INTO direct_messages (content, author_id, recipient_id, has_attachment) VALUES ($1, $2, $3, $4) RETURNING id"
 	var id string
 	content := strings.TrimSpace(data.Content)
-	if err := conn.QueryRow(ctx, createMsgStmt, content, uid, data.Uid, data.HasAttachment).Scan(&id); err != nil {
+	if err := conn.QueryRow(ctx, "INSERT INTO direct_messages (content, author_id, recipient_id, has_attachment) VALUES ($1, $2, $3, $4) RETURNING id", content, uid, data.Uid, data.HasAttachment).Scan(&id); err != nil {
 		return fmt.Errorf("Internal error")
 	}
 

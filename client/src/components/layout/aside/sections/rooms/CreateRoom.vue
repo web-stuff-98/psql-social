@@ -94,7 +94,6 @@ form {
   align-items: center;
   justify-content: center;
   gap: var(--gap-md);
-  margin-top: var(--gap-lg);
   button {
     width: 100%;
   }

@@ -64,7 +64,6 @@ async function handleSubmit(values: any) {
 
 <style lang="scss" scoped>
 form {
-  margin-top: var(--gap-lg);
   gap: var(--gap-md);
   display: flex;
   flex-direction: column;

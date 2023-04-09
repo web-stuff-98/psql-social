@@ -58,7 +58,6 @@ async function handleSubmit(values: any) {
 <style lang="scss" scoped>
 .edit-channel-container {
   form {
-    margin-top: var(--gap-lg);
     gap: var(--gap-md);
     display: flex;
     flex-direction: column;

@@ -1,5 +1,6 @@
 <template>
   <Teleport to="body">
+    <div class="modal-backdrop"/>
     <div class="modal-container">
       <div class="modal">
         <slot> </slot>

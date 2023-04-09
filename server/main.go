@@ -9,7 +9,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
 	attachmentServer "github.com/web-stuff-98/psql-social/pkg/attachmentServer"
 	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
@@ -280,8 +279,8 @@ func main() {
 		RouteName:     "download-attachment-chunks",
 	}, rdb, db))
 
-	app.Use("/api/ws", h.WebSocketEndpoint)
-	app.Get("/api/ws", websocket.New(h.WebSocketHandler))
+	app.Use("/api/ws", h.WebSocketAuth)
+	app.Get("/api/ws", h.WebSocketHandler())
 
 	app.Static("/", "./dist")
 
