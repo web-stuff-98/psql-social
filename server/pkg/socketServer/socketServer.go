@@ -3,6 +3,7 @@ package socketServer
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/gofiber/websocket/v2"
@@ -61,7 +62,7 @@ type SocketServer struct {
 
 type Server struct {
 	data  ServerData
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 type ServerData struct {
@@ -73,17 +74,17 @@ type ServerData struct {
 /* ------ RECV CHAN STRUCTS ------ */
 
 type GetConnectionSubscriptions struct {
-	RecvChan chan map[string]struct{}
+	RecvChan chan<- map[string]struct{}
 	Conn     *websocket.Conn
 }
 
 type GetSubscriptionUids struct {
-	RecvChan chan map[string]struct{}
+	RecvChan chan<- map[string]struct{}
 	SubName  string
 }
 
 type IsUserOnline struct {
-	RecvChan chan bool
+	RecvChan chan<- bool
 	Uid      string
 }
 
@@ -191,8 +192,10 @@ func closeConn(ss *SocketServer) {
 		uid := <-ss.CloseConnChan
 
 		ss.Server.mutex.Lock()
+
 		if conn, ok := ss.Server.data.ConnectionsByID[uid]; ok {
 			ss.UnregisterConn <- conn
+
 			ss.Server.mutex.Unlock()
 		} else {
 			ss.Server.mutex.Unlock()
@@ -250,12 +253,13 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 			}
 		}
 
-		csdc <- uid
-		cRTCsdc <- uid
-		ss.AttachmentServerRemoveUploaderChan <- uid
 		delete(ss.Server.data.ConnectionsByID, uid)
 
 		ss.Server.mutex.Unlock()
+
+		csdc <- uid
+		cRTCsdc <- uid
+		ss.AttachmentServerRemoveUploaderChan <- uid
 
 		if conn != nil {
 			conn.Close()
@@ -279,13 +283,15 @@ func checkUserOnline(ss *SocketServer) {
 	for {
 		data := <-ss.IsUserOnline
 
-		ss.Server.mutex.Lock()
+		log.Printf("Is user online channel received request for uid:%v\n", data.Uid)
+
+		ss.Server.mutex.RLock()
 
 		_, ok := ss.Server.data.ConnectionsByID[data.Uid]
 
 		data.RecvChan <- ok
 
-		ss.Server.mutex.Unlock()
+		ss.Server.mutex.RUnlock()
 	}
 }
 
@@ -433,7 +439,7 @@ func getConnSubscriptions(ss *SocketServer) {
 	for {
 		data := <-ss.GetConnectionSubscriptions
 
-		ss.Server.mutex.Lock()
+		ss.Server.mutex.RLock()
 
 		var uid string
 
@@ -455,7 +461,7 @@ func getConnSubscriptions(ss *SocketServer) {
 
 		data.RecvChan <- subs
 
-		ss.Server.mutex.Unlock()
+		ss.Server.mutex.RUnlock()
 	}
 }
 
@@ -463,7 +469,7 @@ func getSubscriptionUids(ss *SocketServer) {
 	for {
 		data := <-ss.GetSubscriptionUids
 
-		ss.Server.mutex.Lock()
+		ss.Server.mutex.RLock()
 
 		out := make(map[string]struct{})
 
@@ -473,6 +479,6 @@ func getSubscriptionUids(ss *SocketServer) {
 
 		data.RecvChan <- out
 
-		ss.Server.mutex.Unlock()
+		ss.Server.mutex.RUnlock()
 	}
 }

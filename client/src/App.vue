@@ -47,7 +47,7 @@ onUnmounted(() => {
 
 watch(interfaceStore, (_, newVal) => {
   if (newVal.darkMode) {
-    changeSphereColor(0xffffff);
+    changeSphereColor(0x646464);
   } else {
     changeSphereColor(0x000000);
   }
@@ -78,7 +78,7 @@ function init() {
 
   const geometry = new THREE.SphereGeometry(0.666, 32, 32);
   const material = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: 0x646464,
     wireframe: true,
   });
   mesh = new THREE.Mesh(geometry, material);
@@ -106,7 +106,7 @@ function animate() {
     <div id="sphere" class="sphere-background" />
     <Layout />
     <!-- Background process response message modal (eg, when refreshing token failed) -->
-    <Modal v-if="backgroundProcessResMsg?.msg">
+    <Modal :noExtraTopPadding="true" v-if="backgroundProcessResMsg?.msg">
       <ModalCloseButton @click="() => (backgroundProcessResMsg = {})" />
       <ResMsg :resMsg="backgroundProcessResMsg" />
     </Modal>
@@ -151,7 +151,7 @@ function animate() {
     height: 100vh;
     pointer-events: none;
     z-index: 2;
-    filter: opacity(0.02);
+    filter: opacity(0.05);
   }
   .dark-mode {
     .sphere-background {
