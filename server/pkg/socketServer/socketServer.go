@@ -446,6 +446,7 @@ func getConnSubscriptions(ss *SocketServer) {
 		for k, c := range ss.Server.data.ConnectionsByID {
 			if c == data.Conn {
 				uid = k
+				break
 			}
 		}
 

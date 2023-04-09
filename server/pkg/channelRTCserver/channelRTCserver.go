@@ -37,12 +37,12 @@ type ChannelRTCServer struct {
 type ChannelConnections struct {
 	// Outer map is channel ID, inner map are UIDs of users in the channel
 	data  map[string]map[string]Connection
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 /* --------------- RECV CHANNEL STRUCTS --------------- */
 type GetChannelUids struct {
-	RecvChan  chan map[string]struct{}
+	RecvChan  chan<- map[string]struct{}
 	ChannelID string
 }
 
@@ -118,25 +118,12 @@ func runServer(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db *pgxpo
 }
 
 func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db *pgxpool.Pool) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in cRTCs join webRTC loop:", r)
-				if failCount < 10 {
-					go joinWebRTCChannel(ss, cRTCs, db)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cRTCs.JoinChannelRTC
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 		defer cancel()
+
 		conn, err := db.Acquire(ctx)
 		if err != nil {
 			log.Println("Error acquiring pgxpool connection:", err)
@@ -144,11 +131,13 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 		}
 
 		cRTCs.ChannelConnections.mutex.Lock()
+
 		connectionInfo := &Connection{
 			UserMediaStreamID: data.UserMediaStreamID,
 			UserMediaVid:      data.UserMediaVid,
 			DisplayMediaVid:   data.DisplayMediaVid,
 		}
+
 		if channelUsers, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
 			// Send back uids of other users in the channel WebRTC chat
 			users := []socketMessages.ChannelWebRTCOutUser{}
@@ -207,31 +196,20 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 				Uid: data.Uid,
 			}
 		}
+
 		conn.Release()
+
 		cRTCs.ChannelConnections.mutex.Unlock()
 	}
 }
 
 func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db *pgxpool.Pool) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in cRTCs leave webRTC loop:", r)
-				if failCount < 10 {
-					go leaveWebRTCChannel(ss, cRTCs, db)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cRTCs.LeaveChannelRTC
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 		defer cancel()
+
 		conn, err := db.Acquire(ctx)
 		if err != nil {
 			log.Println("Error acquiring pgxpool connection:", err)
@@ -239,6 +217,7 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 		}
 
 		cRTCs.ChannelConnections.mutex.Lock()
+
 		if channelUids, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
 			if _, ok := channelUids[data.Uid]; ok {
 				uids := []string{}
@@ -252,7 +231,9 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 				selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_leave_channel_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
 				if err != nil {
 					log.Println("Error in leave WebRTC select channel prepare statement:", err)
+
 					cRTCs.ChannelConnections.mutex.Unlock()
+
 					conn.Release()
 					continue
 				}
@@ -262,6 +243,8 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 				}
 
 				conn.Release()
+
+				cRTCs.ChannelConnections.mutex.Unlock()
 
 				ss.SendDataToSub <- socketServer.SubscriptionMessageData{
 					SubName: fmt.Sprintf("channel:%v", data.ChannelID),
@@ -281,27 +264,15 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 				continue
 			}
 		}
+
 		cRTCs.ChannelConnections.mutex.Unlock()
+
 		conn.Release()
 	}
 }
 
 func sendWebRTCSignals(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db *pgxpool.Pool) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in cRTCs send webRTC signal loop:", r)
-				if failCount < 10 {
-					go sendWebRTCSignals(ss, cRTCs, db)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cRTCs.SignalRTC
 
 		ss.SendDataToUser <- socketServer.UserMessageData{
@@ -319,21 +290,7 @@ func sendWebRTCSignals(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 }
 
 func returningWebRTCSignals(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db *pgxpool.Pool) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in cRTCs returning webRTC signal loop:", r)
-				if failCount < 10 {
-					go returningWebRTCSignals(ss, cRTCs, db)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cRTCs.ReturnSignalRTC
 
 		ss.SendDataToUser <- socketServer.UserMessageData{
@@ -351,56 +308,33 @@ func returningWebRTCSignals(ss *socketServer.SocketServer, cRTCs *ChannelRTCServ
 }
 
 func retrieveChannelUids(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in cRTCs retrieve uids loop:", r)
-				if failCount < 10 {
-					go retrieveChannelUids(ss, cRTCs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cRTCs.GetChannelUids
-		cRTCs.ChannelConnections.mutex.Lock()
+
+		cRTCs.ChannelConnections.mutex.RLock()
+
 		if channelConnections, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
 			channelUids := make(map[string]struct{})
 			for oi := range channelConnections {
 				channelUids[oi] = struct{}{}
 			}
 			data.RecvChan <- channelUids
-			cRTCs.ChannelConnections.mutex.Unlock()
+
+			cRTCs.ChannelConnections.mutex.RUnlock()
 		} else {
 			data.RecvChan <- make(map[string]struct{})
-			cRTCs.ChannelConnections.mutex.Unlock()
+
+			cRTCs.ChannelConnections.mutex.RUnlock()
 		}
 	}
 }
 
 func updateMediaOptions(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in cRTCs update media options loop:", r)
-				if failCount < 10 {
-					go updateMediaOptions(ss, cRTCs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cRTCs.UpdateMediaOptions
 
-		cRTCs.ChannelConnections.mutex.Lock()
+		cRTCs.ChannelConnections.mutex.RLock()
+
 		if channelUids, ok := cRTCs.ChannelConnections.data[data.ChannelID]; ok {
 			uids := []string{}
 			for uid := range channelUids {
@@ -420,30 +354,18 @@ func updateMediaOptions(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer) 
 				},
 			}
 		}
-		cRTCs.ChannelConnections.mutex.Unlock()
+
+		cRTCs.ChannelConnections.mutex.RUnlock()
 	}
 }
 
 func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db *pgxpool.Pool, dc chan string) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in cRTCs disconnect loop:", r)
-				if failCount < 10 {
-					go socketDisconnect(ss, cRTCs, db, dc)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		uid := <-dc
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 		defer cancel()
+
 		conn, err := db.Acquire(ctx)
 		if err != nil {
 			log.Println("Error acquiring pgxpool connection:", err)
@@ -451,6 +373,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 		}
 
 		cRTCs.ChannelConnections.mutex.Lock()
+
 		for channelId, uids := range cRTCs.ChannelConnections.data {
 			for oi := range uids {
 				if oi == uid {
@@ -507,7 +430,9 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 				}
 			}
 		}
+
 		conn.Release()
+
 		cRTCs.ChannelConnections.mutex.Unlock()
 	}
 }

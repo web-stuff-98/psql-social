@@ -95,7 +95,7 @@ function animate() {
   animationFrameId = requestAnimationFrame(animate);
 
   mesh.rotation.x += 0.000002;
-  mesh.rotation.y += 0.0003;
+  mesh.rotation.y += 0.00015;
 
   renderer.render(scene, camera);
 }

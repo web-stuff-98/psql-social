@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -1009,6 +1010,8 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 		})
 	}
 
+	log.Println("Chan")
+
 	recvChan := make(chan map[string]struct{}, 1)
 	h.ChannelRTCServer.GetChannelUids <- channelRTCserver.GetChannelUids{
 		RecvChan:  recvChan,
@@ -1017,6 +1020,8 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 	uidsMap := <-recvChan
 
 	close(recvChan)
+
+	log.Println("Chan through")
 
 	usersInWebRTC := []string{}
 	for k := range uidsMap {
