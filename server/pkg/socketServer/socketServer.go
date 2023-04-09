@@ -296,9 +296,17 @@ func checkUserOnline(ss *SocketServer) {
 }
 
 func messageLoop(ss *SocketServer) {
+	var wg sync.WaitGroup
+
 	for {
 		msg := <-ss.MessageLoop
+
+		wg.Wait()
+		wg.Add(1)
+
 		msg.Conn.WriteMessage(1, msg.Data)
+
+		wg.Done()
 	}
 }
 

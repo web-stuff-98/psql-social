@@ -1,7 +1,6 @@
 package callserver
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 
 /*
 	For 1-1 calls, handles
-	WebRTC events also
+	call WebRTC events also
 */
 
 type CallServer struct {
@@ -113,21 +112,7 @@ func runServer(ss *socketServer.SocketServer, cs *CallServer, dc chan string) {
 }
 
 func callPending(ss *socketServer.SocketServer, cs *CallServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in call server pending calls loop:", r)
-				if failCount < 10 {
-					go callPending(ss, cs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cs.CallsPendingChan
 		cs.CallsPending.mutex.Lock()
 		if called, ok := cs.CallsPending.data[data.Caller]; ok {
@@ -164,8 +149,10 @@ func callPending(ss *socketServer.SocketServer, cs *CallServer) {
 }
 
 func timeoutCall(ss *socketServer.SocketServer, cs *CallServer, uid string) {
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 30)
+
 	cs.CallsPending.mutex.Lock()
+
 	if callPending, ok := cs.CallsPending.data[uid]; ok {
 		uids := []string{callPending, uid}
 		ss.SendDataToUsers <- socketServer.UsersMessageData{
@@ -179,28 +166,17 @@ func timeoutCall(ss *socketServer.SocketServer, cs *CallServer, uid string) {
 		}
 		delete(cs.CallsPending.data, uid)
 	}
+
 	cs.CallsPending.mutex.Unlock()
 }
 
 func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in call server call response loop:", r)
-				if failCount < 10 {
-					go callResponse(ss, cs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cs.ResponseToCallChan
+
 		cs.CallsPending.mutex.Lock()
 		cs.CallsActive.mutex.Lock()
+
 		delete(cs.CallsPending.data, data.Caller)
 
 		if data.Accept {
@@ -282,23 +258,11 @@ func callResponse(ss *socketServer.SocketServer, cs *CallServer) {
 }
 
 func leaveCall(ss *socketServer.SocketServer, cs *CallServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in call server leave calls loop:", r)
-				if failCount < 10 {
-					go leaveCall(ss, cs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		uid := <-cs.LeaveCallChan
+
 		cs.CallsActive.mutex.Lock()
+
 		if called, ok := cs.CallsActive.data[uid]; ok {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				MessageType: "CALL_LEFT",
@@ -319,28 +283,17 @@ func leaveCall(ss *socketServer.SocketServer, cs *CallServer) {
 				}
 			}
 		}
+
 		cs.CallsActive.mutex.Unlock()
 	}
 }
 
 func sendCallRecipientOffer(ss *socketServer.SocketServer, cs *CallServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in call server send call recipient offer loop:", r)
-				if failCount < 10 {
-					go sendCallRecipientOffer(ss, cs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cs.SendCallRecipientOffer
+
 		cs.CallsActive.mutex.Lock()
+
 		if called, ok := cs.CallsActive.data[data.Caller]; ok {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid:         called,
@@ -354,28 +307,17 @@ func sendCallRecipientOffer(ss *socketServer.SocketServer, cs *CallServer) {
 				},
 			}
 		}
+
 		cs.CallsActive.mutex.Unlock()
 	}
 }
 
 func sendCallerAnswer(ss *socketServer.SocketServer, cs *CallServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in call server send caller answer loop:", r)
-				if failCount < 10 {
-					go sendCallerAnswer(ss, cs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cs.SendCalledAnswer
+
 		cs.CallsActive.mutex.Lock()
+
 		for caller, oi2 := range cs.CallsActive.data {
 			if oi2 == data.Called {
 				ss.SendDataToUser <- socketServer.UserMessageData{
@@ -392,28 +334,17 @@ func sendCallerAnswer(ss *socketServer.SocketServer, cs *CallServer) {
 				break
 			}
 		}
+
 		cs.CallsActive.mutex.Unlock()
 	}
 }
 
 func callRecipientRequestReInitialization(ss *socketServer.SocketServer, cs *CallServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in call server request WebRTC reinitialization loop:", r)
-				if failCount < 10 {
-					go callRecipientRequestReInitialization(ss, cs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		callerId := <-cs.CallRecipientRequestedReInitialization
+
 		cs.CallsActive.mutex.Lock()
+
 		for caller, uid := range cs.CallsActive.data {
 			if uid == callerId {
 				ss.SendDataToUser <- socketServer.UserMessageData{
@@ -424,28 +355,17 @@ func callRecipientRequestReInitialization(ss *socketServer.SocketServer, cs *Cal
 				break
 			}
 		}
+
 		cs.CallsActive.mutex.Unlock()
 	}
 }
 
 func updateMediaOptions(ss *socketServer.SocketServer, cs *CallServer) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in call server update media options loop:", r)
-				if failCount < 10 {
-					go updateMediaOptions(ss, cs)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		data := <-cs.UpdateMediaOptions
+
 		cs.CallsActive.mutex.Lock()
+
 		if recipient, ok := cs.CallsActive.data[data.Uid]; ok {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				MessageType: "UPDATE_MEDIA_OPTIONS_OUT",
@@ -472,29 +392,18 @@ func updateMediaOptions(ss *socketServer.SocketServer, cs *CallServer) {
 				}
 			}
 		}
+
 		cs.CallsActive.mutex.Unlock()
 	}
 }
 
 func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan string) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in call server socket disconnect loop:", r)
-				if failCount < 10 {
-					go socketDisconnect(ss, cs, dc)
-				} else {
-					log.Println("Panic recovery count in ws loop exceeded maximum. Loop will not recover.")
-				}
-				failCount++
-			}
-		}()
-
 		uid := <-dc
+
 		cs.CallsPending.mutex.Lock()
 		cs.CallsActive.mutex.Lock()
+
 		if callPending, ok := cs.CallsPending.data[uid]; ok {
 			ss.SendDataToUser <- socketServer.UserMessageData{
 				Uid:         callPending,
@@ -542,6 +451,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cs *CallServer, dc chan str
 				}
 			}
 		}
+
 		cs.CallsActive.mutex.Unlock()
 		cs.CallsPending.mutex.Unlock()
 	}
