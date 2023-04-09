@@ -9,6 +9,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -62,15 +63,24 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 		}
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(body.Password)); err != nil {
-		if err == bcrypt.ErrMismatchedHashAndPassword {
+	// passwords aren't hashed in development mode, because it doesn't work with CGO and I need to use the -race flag to debug
+	// turns out there aren't any race conditions or deadlocks the db connection pool is being exhausted somehow. I will keep
+	// this here anyway because it's convenient being able to run with the race flag.
+	if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+		if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(body.Password)); err != nil {
+			if err == bcrypt.ErrMismatchedHashAndPassword {
+				return fiber.NewError(fiber.StatusUnauthorized, "Invalid credentials")
+			} else {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			}
+		}
+	} else {
+		if body.Password != hash {
 			return fiber.NewError(fiber.StatusUnauthorized, "Invalid credentials")
-		} else {
-			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
 
-	if cookie, err := authHelpers.GenerateCookieAndSession(h.RedisClient, rctx, id); err != nil {
+	if cookie, err := authHelpers.Authorize(h.RedisClient, rctx, id); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Cookie(cookie)
@@ -124,20 +134,33 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 	}
 
 	var id string
-	if hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 14); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+
+	// dont hash passwords in development mode, because it doesn't work with CGO and I need to use the -race flag to debug
+	if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+		if hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 14); err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		} else {
+			insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
+			if err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			}
+
+			if err := conn.QueryRow(rctx, insertStmt.Name, body.Username, string(hash)).Scan(&id); err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			}
+		}
 	} else {
-		insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
+		insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_nohash_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 
-		if err := conn.QueryRow(rctx, insertStmt.Name, body.Username, string(hash)).Scan(&id); err != nil {
+		if err := conn.QueryRow(rctx, insertStmt.Name, body.Username, body.Password).Scan(&id); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
 
-	if cookie, err := authHelpers.GenerateCookieAndSession(h.RedisClient, rctx, id); err != nil {
+	if cookie, err := authHelpers.Authorize(h.RedisClient, rctx, id); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "text/plain")
@@ -152,14 +175,18 @@ func (h handler) Logout(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	if uid, sid, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB); err != nil {
+	if uid, sid, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB); err != nil {
 		log.Println(err)
 		ctx.Cookie(authHelpers.GetClearedCookie())
 		return fiber.NewError(fiber.StatusForbidden, "You are not logged in")
 	} else {
 		h.SocketServer.CloseConnChan <- uid
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
-		ctx.Cookie(authHelpers.GetClearedCookie())
+		if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+			ctx.Cookie(authHelpers.GetClearedCookie())
+		} else {
+			ctx.Locals("fake-cookie", "")
+		}
 		go authHelpers.DeleteAccount(uid, h.DB, h.SocketServer, true)
 	}
 
@@ -173,7 +200,11 @@ func (h handler) Refresh(ctx *fiber.Ctx) error {
 	if cookie, err := authHelpers.RefreshToken(h.RedisClient, ctx, rctx, h.DB); err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized. Your session most likely expired.")
 	} else {
-		ctx.Cookie(cookie)
+		if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+			ctx.Cookie(cookie)
+		} else {
+			ctx.Locals("fake-cookie", cookie)
+		}
 	}
 
 	return nil
@@ -183,7 +214,7 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -280,7 +311,7 @@ func (h handler) UploadPfp(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -363,7 +394,7 @@ func (h handler) GetConversees(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -467,7 +498,7 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -587,7 +618,7 @@ func (h handler) GetFriends(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -628,7 +659,7 @@ func (h handler) GetBlocked(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}

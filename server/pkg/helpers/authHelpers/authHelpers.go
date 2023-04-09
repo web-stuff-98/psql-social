@@ -65,39 +65,29 @@ func PasswordValidates(pass string) bool {
 	return count >= 3
 }
 
-func GenerateCookieAndSession(redisClient *redis.Client, ctx context.Context, uid string) (*fiber.Cookie, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println("Recovered from panic in generate token helper function")
-		}
-	}()
-
+func Authorize(redisClient *redis.Client, ctx context.Context, uid string) (*fiber.Cookie, error) {
 	sid := uuid.New()
 	sessionDuration := time.Minute * 2
+
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
 		Issuer:    sid.String(),
 		ExpiresAt: time.Now().Add(sessionDuration).Unix(),
 	})
 	token, err := claims.SignedString([]byte(os.Getenv("SECRET")))
 	if err != nil {
-		log.Fatalln("Error in GenerateCookieAndSession helper function generating token:", err)
-	}
-	cmd := redisClient.Set(ctx, sid.String(), uid, sessionDuration)
-	if cmd.Err() != nil {
-		log.Fatalln("Redis error in GenerateCookieAndSession helper function:", cmd.Err())
+		log.Fatalln("Error in Authorize helper function generating token:", err)
 	}
 	cookie := createCookie(token, time.Now().Add(sessionDuration))
+
+	cmd := redisClient.Set(ctx, sid.String(), uid, sessionDuration)
+	if cmd.Err() != nil {
+		log.Fatalln("Redis error in Authorize helper function:", cmd.Err())
+	}
 
 	return cookie, nil
 }
 
-func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fiber.Ctx, rctx context.Context, db *pgxpool.Pool) (uid string, sid string, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println("Recovered from panic in get user ID from session token helper function")
-		}
-	}()
-
+func GetUidAndSid(redisClient *redis.Client, ctx *fiber.Ctx, rctx context.Context, db *pgxpool.Pool) (uid string, sid string, err error) {
 	cookie := string(ctx.Request().Header.Cookie("session_token"))
 	if cookie == "" {
 		return "", "", fmt.Errorf("No cookie")
@@ -119,17 +109,11 @@ func GetUidAndSidFromCookie(redisClient *redis.Client, ctx *fiber.Ctx, rctx cont
 }
 
 func RefreshToken(redisClient *redis.Client, ctx *fiber.Ctx, rctx context.Context, db *pgxpool.Pool) (*fiber.Cookie, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Println("Recovered from panic in refresh session token helper function")
-		}
-	}()
-
-	if uid, sid, err := GetUidAndSidFromCookie(redisClient, ctx, rctx, db); err != nil {
+	if uid, sid, err := GetUidAndSid(redisClient, ctx, rctx, db); err != nil {
 		return GetClearedCookie(), err
 	} else {
 		redisClient.Del(rctx, sid)
-		if cookie, err := GenerateCookieAndSession(redisClient, rctx, uid); err != nil {
+		if cookie, err := Authorize(redisClient, rctx, uid); err != nil {
 			return GetClearedCookie(), err
 		} else {
 			return cookie, nil
@@ -173,8 +157,9 @@ func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, 
 	ss.SendDataToSub <- socketServer.SubscriptionMessageData{
 		SubName: fmt.Sprintf("user:%v", uid),
 		Data: socketMessages.ChangeEvent{
-			Type: "DELETE",
-			Data: changeData,
+			Type:   "DELETE",
+			Data:   changeData,
+			Entity: "USER",
 		},
 		MessageType: "CHANGE",
 	}

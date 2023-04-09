@@ -3,7 +3,6 @@ package socketServer
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/gofiber/websocket/v2"
@@ -210,16 +209,12 @@ func WriteMessage(t string, m interface{}, c *websocket.Conn, ss *SocketServer) 
 			Conn: c,
 			Data: b,
 		}
-	} else {
-		log.Println("Error marshalling message:", err)
 	}
 }
 
 func connection(ss *SocketServer) {
 	for {
 		data := <-ss.RegisterConn
-
-		log.Println("Connection registration")
 
 		ss.Server.mutex.Lock()
 
@@ -244,8 +239,6 @@ func connection(ss *SocketServer) {
 func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 	for {
 		conn := <-ss.UnregisterConn
-
-		log.Println("Disconnect registration")
 
 		ss.Server.mutex.Lock()
 
@@ -328,14 +321,12 @@ func sendUsersData(ss *SocketServer) {
 		for k, c := range ss.Server.data.ConnectionsByID {
 			for _, v := range data.Uids {
 				if v == k {
-					log.Println("Append")
 					conns = append(conns, c)
 				}
 			}
 		}
 
 		for _, c := range conns {
-			log.Println("Supposed to have written message")
 			WriteMessage(data.MessageType, data.Data, c, ss)
 		}
 

@@ -21,7 +21,7 @@ func (h handler) GetUser(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	_, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -51,12 +51,14 @@ func (h handler) GetUser(ctx *fiber.Ctx) error {
 		}
 	}
 
-	recvChan := make(chan bool)
+	recvChan := make(chan bool, 1)
 	h.SocketServer.IsUserOnline <- socketServer.IsUserOnline{
 		RecvChan: recvChan,
 		Uid:      id,
 	}
 	isOnline := <-recvChan
+
+	close(recvChan)
 
 	if bytes, err := json.Marshal(responses.User{
 		ID:       id,
@@ -77,7 +79,7 @@ func (h handler) GetUserByName(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	_, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -121,7 +123,7 @@ func (h handler) GetUserBio(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	_, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -161,7 +163,7 @@ func (h handler) GetUserPfp(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	_, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	_, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}

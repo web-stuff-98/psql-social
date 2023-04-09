@@ -38,7 +38,6 @@ func (h handler) WebSocketHandler() func(*fiber.Ctx) error {
 			} else {
 				if len(p) == 4 {
 					if string(p) == "PING" {
-						log.Println("PING")
 						continue
 					}
 				}
@@ -58,7 +57,7 @@ func (h handler) WebSocketHandler() func(*fiber.Ctx) error {
 }
 
 func (h handler) WebSocketAuth(ctx *fiber.Ctx) error {
-	if uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, context.Background(), h.DB); err != nil {
+	if uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, context.Background(), h.DB); err != nil {
 		return fiber.ErrForbidden
 	} else {
 		if websocket.IsWebSocketUpgrade(ctx) {

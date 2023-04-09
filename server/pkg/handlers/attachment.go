@@ -24,7 +24,7 @@ func (h handler) CreateAttachmentMetadata(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -163,7 +163,7 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -219,6 +219,9 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 			RecvChan: recvChan,
 		}
 		uidsMap := <-recvChan
+
+		close(recvChan)
+
 		for k := range uidsMap {
 			uids = append(uids, k)
 		}
@@ -234,7 +237,7 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 		uids = []string{uid, recipient_id}
 	}
 
-	recvChan := make(chan bool)
+	recvChan := make(chan bool, 1)
 	h.AttachmentServer.ChunkChan <- attachmentServer.InChunk{
 		Uid:      uid,
 		Data:     ctx.Body(),
@@ -243,6 +246,8 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 		Ctx:      rctx,
 	}
 	complete := <-recvChan
+
+	close(recvChan)
 
 	if !complete {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
@@ -255,7 +260,7 @@ func (h handler) GetAttachmentMetadata(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	uid, _, err := authHelpers.GetUidAndSidFromCookie(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}

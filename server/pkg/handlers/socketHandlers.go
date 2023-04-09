@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -22,8 +21,6 @@ import (
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {
 	var err error
 
-	log.Printf("Event:%v\n", event)
-
 	recvChan := make(chan error)
 	h.SocketLimiter.SocketEvent <- socketLimiter.SocketEvent{
 		RecvChan: recvChan,
@@ -31,6 +28,9 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		Conn:     c,
 	}
 	err = <-recvChan
+
+	close(recvChan)
+
 	if err != nil {
 		return err
 	}
@@ -262,6 +262,8 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 	}
 	subs := <-recvChan
 
+	close(recvChan)
+
 	for sub := range subs {
 		_, ok := channelIds[sub]
 		if strings.HasPrefix(sub, "channel:") && ok {
@@ -461,6 +463,9 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 		Conn:     c,
 	}
 	subs := <-recvChan
+
+	close(recvChan)
+
 	channelName := ""
 	for k := range subs {
 		if strings.HasPrefix(k, "channel:") {
@@ -516,6 +521,9 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 		Conn:     c,
 	}
 	subs := <-recvChan
+
+	close(recvChan)
+
 	channelName := ""
 	for k := range subs {
 		if strings.HasPrefix(k, "channel:") {

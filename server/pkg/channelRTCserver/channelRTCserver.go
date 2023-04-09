@@ -482,6 +482,8 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 					}
 					uidsMap := <-recvChan
 
+					close(recvChan)
+
 					uids := []string{}
 					for k := range uidsMap {
 						uids = append(uids, k)
