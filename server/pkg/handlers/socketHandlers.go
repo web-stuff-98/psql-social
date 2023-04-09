@@ -21,7 +21,7 @@ import (
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {
 	var err error
 
-	recvChan := make(chan error)
+	recvChan := make(chan error, 1)
 	h.SocketLimiter.SocketEvent <- socketLimiter.SocketEvent{
 		RecvChan: recvChan,
 		Type:     event,
@@ -255,7 +255,7 @@ func leaveRoom(inData map[string]interface{}, h handler, uid string, c *websocke
 		channelIds[id] = struct{}{}
 	}
 
-	recvChan := make(chan map[string]struct{})
+	recvChan := make(chan map[string]struct{}, 1)
 	h.SocketServer.GetConnectionSubscriptions <- socketServer.GetConnectionSubscriptions{
 		RecvChan: recvChan,
 		Conn:     c,
@@ -457,7 +457,7 @@ func roomMessageUpdate(inData map[string]interface{}, h handler, uid string, c *
 		}
 	}
 
-	recvChan := make(chan map[string]struct{})
+	recvChan := make(chan map[string]struct{}, 1)
 	h.SocketServer.GetConnectionSubscriptions <- socketServer.GetConnectionSubscriptions{
 		RecvChan: recvChan,
 		Conn:     c,
@@ -515,7 +515,7 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 		}
 	}
 
-	recvChan := make(chan map[string]struct{})
+	recvChan := make(chan map[string]struct{}, 1)
 	h.SocketServer.GetConnectionSubscriptions <- socketServer.GetConnectionSubscriptions{
 		RecvChan: recvChan,
 		Conn:     c,

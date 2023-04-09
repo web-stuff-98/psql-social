@@ -213,7 +213,7 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 		}
-		recvChan := make(chan map[string]struct{})
+		recvChan := make(chan map[string]struct{}, 1)
 		h.SocketServer.GetSubscriptionUids <- socketServer.GetSubscriptionUids{
 			SubName:  fmt.Sprintf("channel:%v", room_channel_id),
 			RecvChan: recvChan,

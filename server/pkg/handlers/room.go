@@ -1009,7 +1009,7 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 		})
 	}
 
-	recvChan := make(chan map[string]struct{})
+	recvChan := make(chan map[string]struct{}, 1)
 	h.ChannelRTCServer.GetChannelUids <- channelRTCserver.GetChannelUids{
 		RecvChan:  recvChan,
 		ChannelID: room_channel_id,
