@@ -17,11 +17,22 @@ It can only send JSON messages, in this form:
 { event_type, data }
 
 I will end up using sync.Map next time instead
-of mutex locks
+of mutex locks.
+
+I ended up using only 1 mutex lock for all
+data since I was getting loads of random
+deadlocks and couldn't be asked with it
+anymore, even that still didn't fix it, I
+cannot run with -race flag because fasthttp
+doesn't work properly with CGO... not fun
+
+I also removed panic recovery because it's
+kind of pointless. There shouldn't be any
+panics anyway
 */
 
 type SocketServer struct {
-	ConnectionsByID            ConnectionsByID
+	Server                     Server
 	GetConnectionSubscriptions chan GetConnectionSubscriptions
 
 	IsUserOnline chan IsUserOnline
@@ -44,21 +55,20 @@ type SocketServer struct {
 	SendDataToSub  chan SubscriptionMessageData
 	SendDataToSubs chan SubscriptionsMessageData
 
-	Subscriptions       Subscriptions
 	GetSubscriptionUids chan GetSubscriptionUids
 }
 
 /* ------ INTERNAL MUTEX PROTECTED MAPS ------ */
 
-type ConnectionsByID struct {
-	data  map[string]*websocket.Conn
+type Server struct {
+	data  ServerData
 	mutex sync.Mutex
 }
 
-type Subscriptions struct {
+type ServerData struct {
+	ConnectionsByID map[string]*websocket.Conn
 	// outer map is subscription name, inner map is uids
-	data  map[string]map[string]struct{}
-	mutex sync.Mutex
+	Subscriptions map[string]map[string]struct{}
 }
 
 /* ------ RECV CHAN STRUCTS ------ */
@@ -127,8 +137,11 @@ type SubscriptionsMessageData struct {
 
 func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 	ss := &SocketServer{
-		ConnectionsByID: ConnectionsByID{
-			data: make(map[string]*websocket.Conn),
+		Server: Server{
+			data: ServerData{
+				ConnectionsByID: make(map[string]*websocket.Conn),
+				Subscriptions:   make(map[string]map[string]struct{}),
+			},
 		},
 		GetConnectionSubscriptions: make(chan GetConnectionSubscriptions),
 
@@ -152,9 +165,6 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 		SendDataToSub:  make(chan SubscriptionMessageData),
 		SendDataToSubs: make(chan SubscriptionsMessageData),
 
-		Subscriptions: Subscriptions{
-			data: make(map[string]map[string]struct{}),
-		},
 		GetSubscriptionUids: make(chan GetSubscriptionUids),
 	}
 	go runServer(ss, csdc, cRTCsdc)
@@ -181,12 +191,12 @@ func closeConn(ss *SocketServer) {
 	for {
 		uid := <-ss.CloseConnChan
 
-		ss.ConnectionsByID.mutex.Lock()
-		if conn, ok := ss.ConnectionsByID.data[uid]; ok {
-			ss.ConnectionsByID.mutex.Unlock()
+		ss.Server.mutex.Lock()
+		if conn, ok := ss.Server.data.ConnectionsByID[uid]; ok {
 			ss.UnregisterConn <- conn
+			ss.Server.mutex.Unlock()
 		} else {
-			ss.ConnectionsByID.mutex.Unlock()
+			ss.Server.mutex.Unlock()
 		}
 	}
 }
@@ -211,11 +221,11 @@ func connection(ss *SocketServer) {
 
 		log.Println("Connection registration")
 
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
-		ss.ConnectionsByID.data[data.Uid] = data.Conn
+		ss.Server.data.ConnectionsByID[data.Uid] = data.Conn
 
-		ss.ConnectionsByID.mutex.Unlock()
+		ss.Server.mutex.Unlock()
 
 		changeData := make(map[string]interface{})
 		changeData["ID"] = data.Uid
@@ -237,11 +247,10 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 
 		log.Println("Disconnect registration")
 
-		ss.ConnectionsByID.mutex.Lock()
-		ss.Subscriptions.mutex.Lock()
+		ss.Server.mutex.Lock()
 
 		var uid string
-		for k, c := range ss.ConnectionsByID.data {
+		for k, c := range ss.Server.data.ConnectionsByID {
 			if c == conn {
 				uid = k
 				break
@@ -251,10 +260,9 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 		csdc <- uid
 		cRTCsdc <- uid
 		ss.AttachmentServerRemoveUploaderChan <- uid
-		delete(ss.ConnectionsByID.data, uid)
+		delete(ss.Server.data.ConnectionsByID, uid)
 
-		ss.Subscriptions.mutex.Unlock()
-		ss.ConnectionsByID.mutex.Unlock()
+		ss.Server.mutex.Unlock()
 
 		if conn != nil {
 			conn.Close()
@@ -278,13 +286,13 @@ func checkUserOnline(ss *SocketServer) {
 	for {
 		data := <-ss.IsUserOnline
 
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
-		_, ok := ss.ConnectionsByID.data[data.Uid]
-
-		ss.ConnectionsByID.mutex.Unlock()
+		_, ok := ss.Server.data.ConnectionsByID[data.Uid]
 
 		data.RecvChan <- ok
+
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -299,15 +307,13 @@ func sendUserData(ss *SocketServer) {
 	for {
 		data := <-ss.SendDataToUser
 
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
-		if c, ok := ss.ConnectionsByID.data[data.Uid]; ok {
+		if c, ok := ss.Server.data.ConnectionsByID[data.Uid]; ok {
 			WriteMessage(data.MessageType, data.Data, c, ss)
 		}
 
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -315,14 +321,11 @@ func sendUsersData(ss *SocketServer) {
 	for {
 		data := <-ss.SendDataToUsers
 
-		log.Println("Send")
-
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
 		conns := []*websocket.Conn{}
 
-		for k, c := range ss.ConnectionsByID.data {
+		for k, c := range ss.Server.data.ConnectionsByID {
 			for _, v := range data.Uids {
 				if v == k {
 					log.Println("Append")
@@ -336,8 +339,7 @@ func sendUsersData(ss *SocketServer) {
 			WriteMessage(data.MessageType, data.Data, c, ss)
 		}
 
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -345,28 +347,26 @@ func joinSubsByWs(ss *SocketServer) {
 	for {
 		data := <-ss.JoinSubscriptionByWs
 
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
 		var uid string
 
-		for k, c := range ss.ConnectionsByID.data {
+		for k, c := range ss.Server.data.ConnectionsByID {
 			if c == data.Conn {
 				uid = k
 				break
 			}
 		}
 
-		if _, ok := ss.Subscriptions.data[data.SubName]; ok {
-			ss.Subscriptions.data[data.SubName][uid] = struct{}{}
+		if _, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
+			ss.Server.data.Subscriptions[data.SubName][uid] = struct{}{}
 		} else {
 			uids := make(map[string]struct{})
 			uids[uid] = struct{}{}
-			ss.Subscriptions.data[data.SubName] = uids
+			ss.Server.data.Subscriptions[data.SubName] = uids
 		}
 
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -374,27 +374,25 @@ func leaveSubByWs(ss *SocketServer) {
 	for {
 		data := <-ss.LeaveSubscriptionByWs
 
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
 		var uid string
 
-		for k, c := range ss.ConnectionsByID.data {
+		for k, c := range ss.Server.data.ConnectionsByID {
 			if c == data.Conn {
 				uid = k
 				break
 			}
 		}
 
-		if _, ok := ss.Subscriptions.data[data.SubName]; ok {
-			delete(ss.Subscriptions.data[data.SubName], uid)
-			if len(ss.Subscriptions.data[data.SubName]) == 0 {
-				delete(ss.Subscriptions.data, data.SubName)
+		if _, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
+			delete(ss.Server.data.Subscriptions[data.SubName], uid)
+			if len(ss.Server.data.Subscriptions[data.SubName]) == 0 {
+				delete(ss.Server.data.Subscriptions, data.SubName)
 			}
 		}
 
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -402,12 +400,11 @@ func sendSubData(ss *SocketServer) {
 	for {
 		data := <-ss.SendDataToSub
 
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
-		if uids, ok := ss.Subscriptions.data[data.SubName]; ok {
+		if uids, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
 			for uid := range uids {
-				for k, c := range ss.ConnectionsByID.data {
+				for k, c := range ss.Server.data.ConnectionsByID {
 					if k == uid {
 						WriteMessage(data.MessageType, data.Data, c, ss)
 					}
@@ -415,8 +412,7 @@ func sendSubData(ss *SocketServer) {
 			}
 		}
 
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -424,13 +420,12 @@ func sendSubsData(ss *SocketServer) {
 	for {
 		data := <-ss.SendDataToSubs
 
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
 		for _, subName := range data.SubNames {
-			if uids, ok := ss.Subscriptions.data[subName]; ok {
+			if uids, ok := ss.Server.data.Subscriptions[subName]; ok {
 				for uid := range uids {
-					for k, c := range ss.ConnectionsByID.data {
+					for k, c := range ss.Server.data.ConnectionsByID {
 						if k == uid {
 							WriteMessage(data.MessageType, data.Data, c, ss)
 						}
@@ -439,8 +434,7 @@ func sendSubsData(ss *SocketServer) {
 			}
 		}
 
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -448,12 +442,11 @@ func getConnSubscriptions(ss *SocketServer) {
 	for {
 		data := <-ss.GetConnectionSubscriptions
 
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
 		var uid string
 
-		for k, c := range ss.ConnectionsByID.data {
+		for k, c := range ss.Server.data.ConnectionsByID {
 			if c == data.Conn {
 				uid = k
 			}
@@ -461,7 +454,7 @@ func getConnSubscriptions(ss *SocketServer) {
 
 		subs := make(map[string]struct{})
 
-		for subName, uids := range ss.Subscriptions.data {
+		for subName, uids := range ss.Server.data.Subscriptions {
 			for k := range uids {
 				if k == uid {
 					subs[subName] = struct{}{}
@@ -469,10 +462,9 @@ func getConnSubscriptions(ss *SocketServer) {
 			}
 		}
 
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
-
 		data.RecvChan <- subs
+
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -480,18 +472,16 @@ func getSubscriptionUids(ss *SocketServer) {
 	for {
 		data := <-ss.GetSubscriptionUids
 
-		ss.Subscriptions.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
+		ss.Server.mutex.Lock()
 
 		out := make(map[string]struct{})
 
-		if uids, ok := ss.Subscriptions.data[data.SubName]; ok {
+		if uids, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
 			out = uids
 		}
 
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.Subscriptions.mutex.Unlock()
-
 		data.RecvChan <- out
+
+		ss.Server.mutex.Unlock()
 	}
 }

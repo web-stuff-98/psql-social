@@ -637,6 +637,7 @@ func (h handler) GetBlocked(ctx *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
+	defer rows.Close()
 
 	uids := []string{}
 
@@ -649,8 +650,6 @@ func (h handler) GetBlocked(ctx *fiber.Ctx) error {
 
 		uids = append(uids, blocked)
 	}
-
-	defer rows.Close()
 
 	if outBytes, err := json.Marshal(uids); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
