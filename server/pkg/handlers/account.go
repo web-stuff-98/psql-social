@@ -55,7 +55,7 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 	}
 
 	var id, hash string
-	if err := conn.QueryRow(rctx, stmt.Name, strings.TrimSpace(body.Username)).Scan(&id, &hash); err != nil {
+	if err = conn.QueryRow(rctx, stmt.Name, strings.TrimSpace(body.Username)).Scan(&id, &hash); err != nil {
 		if err == pgx.ErrNoRows {
 			return fiber.NewError(fiber.StatusNotFound, "Not found")
 		} else {
@@ -182,11 +182,7 @@ func (h handler) Logout(ctx *fiber.Ctx) error {
 	} else {
 		h.SocketServer.CloseConnChan <- uid
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
-		if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
-			ctx.Cookie(authHelpers.GetClearedCookie())
-		} else {
-			ctx.Locals("fake-cookie", "")
-		}
+		ctx.Cookie(authHelpers.GetClearedCookie())
 		go authHelpers.DeleteAccount(uid, h.DB, h.SocketServer, true)
 	}
 
@@ -200,11 +196,7 @@ func (h handler) Refresh(ctx *fiber.Ctx) error {
 	if cookie, err := authHelpers.RefreshToken(h.RedisClient, ctx, rctx, h.DB); err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized. Your session most likely expired.")
 	} else {
-		if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
-			ctx.Cookie(cookie)
-		} else {
-			ctx.Locals("fake-cookie", cookie)
-		}
+		ctx.Cookie(cookie)
 	}
 
 	return nil

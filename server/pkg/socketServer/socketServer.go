@@ -3,7 +3,6 @@ package socketServer
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/gofiber/websocket/v2"
@@ -282,8 +281,6 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 func checkUserOnline(ss *SocketServer) {
 	for {
 		data := <-ss.IsUserOnline
-
-		log.Printf("Is user online channel received request for uid:%v\n", data.Uid)
 
 		ss.Server.mutex.RLock()
 

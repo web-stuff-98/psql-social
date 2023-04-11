@@ -80,14 +80,12 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 
 		conn, err := db.Acquire(data.Ctx)
 		if err != nil {
-			log.Printf("Error in attachment server process chunk loop:%v\n", err)
 			as.FailChan <- data.ID
 			data.RecvChan <- false
 			continue
 		}
 
 		errored := func(err error, conn *pgxpool.Conn) {
-			log.Printf("Error in attachment server process chunk loop:%v\n", err)
 			conn.Release()
 			as.FailChan <- data.ID
 			data.RecvChan <- false
