@@ -133,13 +133,13 @@ func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	if _, err := db.Exec(ctx, "DELETE FROM users WHERE id = $1", uid); err != nil {
+	if _, err := db.Exec(ctx, "DELETE FROM users WHERE id = $1;", uid); err != nil {
 		return err
 	}
 
 	roomSubs := []string{}
 
-	if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE id = $1", uid); err != nil {
+	if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE id = $1;", uid); err != nil {
 		return err
 	} else {
 		defer rows.Close()

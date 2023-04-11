@@ -101,7 +101,7 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 		var size float32
 		var failed bool
 
-		if selectSizeStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_meta_size_failed_stmt", fmt.Sprintf("SELECT size,failed FROM %v WHERE message_id = $1", metaTable)); err != nil {
+		if selectSizeStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_meta_size_failed_stmt", fmt.Sprintf("SELECT size,failed FROM %v WHERE message_id = $1;", metaTable)); err != nil {
 			errored(err, conn)
 			continue
 		} else {
@@ -149,7 +149,7 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 
 		as.Uploaders.mutex.Unlock()
 
-		if insertStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_insert_stmt", fmt.Sprintf("INSERT INTO %v (bytes,message_id,chunk_index) VALUES($1,$2,$3)", chunkTable)); err != nil {
+		if insertStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_insert_stmt", fmt.Sprintf("INSERT INTO %v (bytes,message_id,chunk_index) VALUES($1,$2,$3);", chunkTable)); err != nil {
 			errored(err, conn)
 			continue
 		} else {
@@ -159,7 +159,7 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 			}
 		}
 
-		if updateMetaStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_update_ratio_stmt", fmt.Sprintf("UPDATE %v SET ratio = $1 WHERE message_id = $2", metaTable)); err != nil {
+		if updateMetaStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_update_ratio_stmt", fmt.Sprintf("UPDATE %v SET ratio = $1 WHERE message_id = $2;", metaTable)); err != nil {
 			errored(err, conn)
 			continue
 		} else {
@@ -171,7 +171,7 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 
 		if strings.HasPrefix(metaTable, "room") {
 			var room_channel_id string
-			if selectChannelStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_channel_id_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1"); err != nil {
+			if selectChannelStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_channel_id_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1;"); err != nil {
 				errored(err, conn)
 				continue
 			} else {
@@ -193,7 +193,7 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 		}
 		if strings.HasPrefix(metaTable, "direct") {
 			var recipient_id string
-			if selectRecipientStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_recipient_id_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1"); err != nil {
+			if selectRecipientStmt, err := conn.Conn().Prepare(data.Ctx, "attachment_server_chunk_loop_select_recipient_id_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1;"); err != nil {
 				errored(err, conn)
 				continue
 			} else {
@@ -261,7 +261,7 @@ func deleteAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *p
 
 		var author_id string
 
-		if deleteStmt, err := conn.Conn().Prepare(ctx, "attachment_server_delete_chunk_loop_stmt", fmt.Sprintf("DELETE FROM %v WHERE message_id = $1 RETURNING author_id", chunkTable)); err != nil {
+		if deleteStmt, err := conn.Conn().Prepare(ctx, "attachment_server_delete_chunk_loop_stmt", fmt.Sprintf("DELETE FROM %v WHERE message_id = $1 RETURNING author_id;", chunkTable)); err != nil {
 			errored(err, conn)
 			continue
 		} else {
@@ -313,7 +313,7 @@ func failAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *pgx
 			continue
 		}
 
-		if updateStmt, err := conn.Conn().Prepare(ctx, "attachment_server_fail_attachment_metadata_update_stmt", fmt.Sprintf("UPDATE %v SET failed = TRUE WHERE message_id = $1", metaTable)); err != nil {
+		if updateStmt, err := conn.Conn().Prepare(ctx, "attachment_server_fail_attachment_metadata_update_stmt", fmt.Sprintf("UPDATE %v SET failed = TRUE WHERE message_id = $1;", metaTable)); err != nil {
 			errored(err, conn)
 			continue
 		} else {

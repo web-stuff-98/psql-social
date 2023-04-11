@@ -49,7 +49,7 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	stmt, err := conn.Conn().Prepare(rctx, "login_stmt", "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1)")
+	stmt, err := conn.Conn().Prepare(rctx, "login_stmt", "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1);")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -118,7 +118,7 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	existsStmt, err := conn.Conn().Prepare(rctx, "register_exists_stmt", "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))")
+	existsStmt, err := conn.Conn().Prepare(rctx, "register_exists_stmt", "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1));")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -140,7 +140,7 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 		if hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 14); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
-			insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
+			insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id;")
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
@@ -150,7 +150,7 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 			}
 		}
 	} else {
-		insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_nohash_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id")
+		insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_nohash_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id;")
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -269,7 +269,7 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 		}
 
 		if !exists {
-			insertStmt, err := conn.Conn().Prepare(rctx, "insert_bio_stmt", "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id")
+			insertStmt, err := conn.Conn().Prepare(rctx, "insert_bio_stmt", "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id;")
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
@@ -282,7 +282,7 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 			ctx.WriteString(id)
 			ctx.Status(fiber.StatusCreated)
 		} else {
-			updateStmt, err := conn.Conn().Prepare(rctx, "update_bio_stmt", "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id")
+			updateStmt, err := conn.Conn().Prepare(rctx, "update_bio_stmt", "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id;")
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
@@ -397,7 +397,7 @@ func (h handler) GetConversees(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectDmsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_messages_stmt", "SELECT author_id,recipient_id FROM direct_messages WHERE author_id = $1 OR recipient_id = $1")
+	selectDmsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_messages_stmt", "SELECT author_id,recipient_id FROM direct_messages WHERE author_id = $1 OR recipient_id = $1;")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -421,7 +421,7 @@ func (h handler) GetConversees(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectFrqsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_friend_reqeusts_stmt", "SELECT friender,friended FROM friend_requests WHERE friender = $1 OR friended = $1")
+	selectFrqsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_friend_reqeusts_stmt", "SELECT friender,friended FROM friend_requests WHERE friender = $1 OR friended = $1;")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -444,7 +444,7 @@ func (h handler) GetConversees(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectInvsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_invitations_stmt", "SELECT inviter,invited FROM invitations WHERE inviter = $1 OR invited = $1")
+	selectInvsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_invitations_stmt", "SELECT inviter,invited FROM invitations WHERE inviter = $1 OR invited = $1;")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -506,7 +506,7 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at,has_attachment FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at ASC LIMIT 50")
+	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at,has_attachment FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at ASC LIMIT 50;")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -537,7 +537,7 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectFrqStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_friend_requests_stmt", "SELECT friender,friended,created_at FROM friend_requests WHERE (friender = $1) OR (friended = $1)")
+	selectFrqStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_friend_requests_stmt", "SELECT friender,friended,created_at FROM friend_requests WHERE (friender = $1) OR (friended = $1);")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -564,7 +564,7 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", "SELECT inviter,invited,created_at,room_id FROM invitations WHERE (inviter = $1) OR (invited = $1)")
+	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", "SELECT inviter,invited,created_at,room_id FROM invitations WHERE (inviter = $1) OR (invited = $1);")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}

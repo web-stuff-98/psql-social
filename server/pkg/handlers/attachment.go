@@ -45,14 +45,14 @@ func (h handler) CreateAttachmentMetadata(ctx *fiber.Ctx) error {
 	}
 
 	var isRoomMsg, isDirectMessage bool
-	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
+	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2);"); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectRoomMsgStmt.Name, body.ID, uid).Scan(&isRoomMsg); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
-	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
+	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2);"); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectDirectMsgStmt.Name, body.ID, uid).Scan(&isDirectMessage); err != nil {
@@ -71,7 +71,7 @@ func (h handler) CreateAttachmentMetadata(ctx *fiber.Ctx) error {
 		tableName = "direct_message_attachment_metadata"
 	}
 
-	if selectStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_stmt", fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %v WHERE id = $1)", tableName)); err != nil {
+	if selectStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_stmt", fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %v WHERE id = $1);", tableName)); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		var exists bool
@@ -91,7 +91,7 @@ func (h handler) CreateAttachmentMetadata(ctx *fiber.Ctx) error {
 	}
 
 	var author_id string
-	if selectAuthorStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_author_stmt", fmt.Sprintf("SELECT author_id FROM %v WHERE id = $1", messagesTableName)); err != nil {
+	if selectAuthorStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_author_stmt", fmt.Sprintf("SELECT author_id FROM %v WHERE id = $1;", messagesTableName)); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectAuthorStmt.Name, body.ID).Scan(&author_id); err != nil {
@@ -107,7 +107,7 @@ func (h handler) CreateAttachmentMetadata(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	if insertStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_insert_stmt", fmt.Sprintf("INSERT INTO %v (meta,name,size,failed,ratio,message_id) VALUES($1,$2,$3,$4,$5,$6)", tableName)); err != nil {
+	if insertStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_insert_stmt", fmt.Sprintf("INSERT INTO %v (meta,name,size,failed,ratio,message_id) VALUES($1,$2,$3,$4,$5,$6);", tableName)); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if _, err = conn.Conn().Exec(rctx, insertStmt.Name, body.Mime, body.Name, body.Size, false, 0, body.ID); err != nil {
@@ -117,7 +117,7 @@ func (h handler) CreateAttachmentMetadata(ctx *fiber.Ctx) error {
 
 	if isRoomMsg {
 		var room_channel_id string
-		if selectRoomChannelStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_room_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1"); err != nil {
+		if selectRoomChannelStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_room_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1;"); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
 			if err = conn.QueryRow(rctx, selectRoomChannelStmt.Name, body.ID).Scan(&room_channel_id); err != nil {
@@ -137,7 +137,7 @@ func (h handler) CreateAttachmentMetadata(ctx *fiber.Ctx) error {
 		}
 	} else {
 		var recipient_id string
-		if selectRecipientStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_recipient_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1"); err != nil {
+		if selectRecipientStmt, err := conn.Conn().Prepare(rctx, "create_attachment_metadata_select_recipient_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1;"); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
 			if err = conn.QueryRow(rctx, selectRecipientStmt.Name, body.ID).Scan(&recipient_id); err != nil {
@@ -184,14 +184,14 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 	}
 
 	var isRoomMsg, isDirectMessage bool
-	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
+	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2);"); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectRoomMsgStmt.Name, id, uid).Scan(&isRoomMsg); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
-	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
+	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2);"); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectDirectMsgStmt.Name, id, uid).Scan(&isDirectMessage); err != nil {
@@ -206,7 +206,7 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 	uids := []string{}
 	if isRoomMsg {
 		var room_channel_id string
-		if selectRoomChannelStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_channel_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1"); err != nil {
+		if selectRoomChannelStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_channel_stmt", "SELECT room_channel_id FROM room_messages WHERE id = $1;"); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
 			if err = conn.QueryRow(rctx, selectRoomChannelStmt.Name, id).Scan(&room_channel_id); err != nil {
@@ -227,7 +227,7 @@ func (h handler) UploadAttachmentChunk(ctx *fiber.Ctx) error {
 		}
 	} else {
 		var recipient_id string
-		if selectRecipientStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_recipient_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1"); err != nil {
+		if selectRecipientStmt, err := conn.Conn().Prepare(rctx, "upload_attachment_chunk_select_recipient_stmt", "SELECT recipient_id FROM direct_messages WHERE id = $1;"); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
 			if err = conn.QueryRow(rctx, selectRecipientStmt.Name, id).Scan(&recipient_id); err != nil {
@@ -277,14 +277,14 @@ func (h handler) GetAttachmentMetadata(ctx *fiber.Ctx) error {
 	}
 
 	var isRoomMsg, isDirectMessage bool
-	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "get_attachment_metadata_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
+	if selectRoomMsgStmt, err := conn.Conn().Prepare(rctx, "get_attachment_metadata_select_room_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2);"); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectRoomMsgStmt.Name, id, uid).Scan(&isRoomMsg); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
-	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "get_attachment_metadata_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2)"); err != nil {
+	if selectDirectMsgStmt, err := conn.Conn().Prepare(rctx, "get_attachment_metadata_select_direct_message_stmt", "SELECT EXISTS(SELECT 1 FROM room_messages WHERE id = $1 AND author_id = $2);"); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectDirectMsgStmt.Name, id, uid).Scan(&isDirectMessage); err != nil {
@@ -307,7 +307,7 @@ func (h handler) GetAttachmentMetadata(ctx *fiber.Ctx) error {
 	var size int
 	var name, meta string
 	var failed bool
-	if selectStmt, err := conn.Conn().Prepare(rctx, "get_attachment_metadata_select_stmt", fmt.Sprintf("SELECT meta,name,size,ratio,failed FROM %v WHERE id = $1", tableName)); err != nil {
+	if selectStmt, err := conn.Conn().Prepare(rctx, "get_attachment_metadata_select_stmt", fmt.Sprintf("SELECT meta,name,size,ratio,failed FROM %v WHERE id = $1;", tableName)); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectStmt.Name, id).Scan(&meta, &name, &size, &ratio, &failed); err != nil {
@@ -355,7 +355,7 @@ func (h handler) DownloadAttachment(ctx *fiber.Ctx) error {
 	var name, meta string
 	var failed bool
 	var ratio float32
-	if selectMetadataStmt, err := conn.Conn().Prepare(rctx, "download_attachment_select_metadata_stmt", fmt.Sprintf("SELECT size,name,meta,failed,ratio FROM %v WHERE message_id = $1", metaTable)); err != nil {
+	if selectMetadataStmt, err := conn.Conn().Prepare(rctx, "download_attachment_select_metadata_stmt", fmt.Sprintf("SELECT size,name,meta,failed,ratio FROM %v WHERE message_id = $1;", metaTable)); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.Conn().QueryRow(rctx, selectMetadataStmt.Name, id).Scan(&size, &name, &meta, &failed, &ratio); err != nil {

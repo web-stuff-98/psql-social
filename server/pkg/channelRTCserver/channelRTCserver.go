@@ -155,7 +155,7 @@ func joinWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, d
 				// Add the user to the channel map
 				cRTCs.ChannelConnections.data[data.ChannelID][data.Uid] = *connectionInfo
 
-				selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_join_channel_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
+				selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_join_channel_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1;")
 				if err != nil {
 					log.Println("Error in join WebRTC select channel prepare statement:", err)
 					cRTCs.ChannelConnections.mutex.Unlock()
@@ -228,7 +228,7 @@ func leaveWebRTCChannel(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, 
 				}
 				delete(cRTCs.ChannelConnections.data[data.ChannelID], data.Uid)
 
-				selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_leave_channel_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
+				selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_leave_channel_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1;")
 				if err != nil {
 					log.Println("Error in leave WebRTC select channel prepare statement:", err)
 
@@ -383,7 +383,7 @@ func socketDisconnect(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer, db
 						uidsInWebRTC = append(uidsInWebRTC, uid)
 					}
 
-					selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_socket_disconnect_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1")
+					selectChannelStmt, err := conn.Conn().Prepare(ctx, "cRTCs_socket_disconnect_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1;")
 					if err != nil {
 						log.Println("Error in cRTCs socket disconnect event select channel prepare statement:", err)
 						cRTCs.ChannelConnections.mutex.Unlock()
