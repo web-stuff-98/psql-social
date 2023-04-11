@@ -2,7 +2,7 @@ package socketmessages
 
 /* This is for Outbound messages, not well organized */
 
-// TYPE: ROOM_MESSAGE_NOTIFY (there is no DIRECT_MESSAGE_NOTIFY, because the user always recieves messages whether or not the messenger is open)
+// TYPE: ROOM_MESSAGE_NOTIFY (unused, cba)
 type RoomMessageNotify struct {
 	RoomID    string `json:"room_id"`
 	ChannelID string `json:"channel_id"`
