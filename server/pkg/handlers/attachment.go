@@ -410,6 +410,7 @@ func (h handler) DownloadAttachment(ctx *fiber.Ctx) error {
 	return nil
 }
 
+// Doesn't work, cant be asked to fix, I wasted days on this last time
 func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	if id == "" {
@@ -435,7 +436,7 @@ func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 	var failed bool
 	var ratio float32
 
-	if selectMetaStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_metadata_stmt", fmt.Sprintf("SELECT size,meta,failed,ratio FROM %v WHERE id = $1", metaTable)); err != nil {
+	if selectMetaStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_metadata_stmt", fmt.Sprintf("SELECT size,meta,failed,ratio FROM %v WHERE message_id = $1", metaTable)); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if err = conn.QueryRow(rctx, selectMetaStmt.Name, id).Scan(&size, &meta, &failed, &ratio); err != nil {
@@ -482,7 +483,7 @@ func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 	}
 	// Retrieve the data from relevant chunks
 	var chunkBytes []byte
-	if selectChunksStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_chunks_stmt", fmt.Sprintf("SELECT bytes FROM %v WHERE id = $1 AND chunk_index IN (%v);", chunkTable, strings.Join(nums, ","))); err != nil {
+	if selectChunksStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_chunks_stmt", fmt.Sprintf("SELECT bytes FROM %v WHERE message_id = $1 AND chunk_index IN (%v);", chunkTable, strings.Join(nums, ","))); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if rows, err := conn.Query(rctx, selectChunksStmt.Name, id); err != nil {

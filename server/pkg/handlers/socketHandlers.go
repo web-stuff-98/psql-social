@@ -401,8 +401,52 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 		return fmt.Errorf("Internal error")
 	}
 
+	subName := fmt.Sprintf("channel:%v", data.ChannelID)
+
+	// get uids of users in the channel, needed for excluding users already in the channel from notifications
+	recvChan := make(chan map[string]struct{})
+	h.SocketServer.GetSubscriptionUids <- socketServer.GetSubscriptionUids{
+		SubName:  subName,
+		RecvChan: recvChan,
+	}
+	uidsMap := <-recvChan
+	var receiveNotifications []string
+	if rows, err := h.DB.Query(ctx, "SELECT user_id FROM members WHERE room_id = $1;", room_id); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var uid string
+			if err = rows.Scan(&uid); err != nil {
+				return fmt.Errorf("Internal error")
+			}
+			if _, ok := uidsMap[uid]; !ok {
+				receiveNotifications = append(receiveNotifications, uid)
+			}
+		}
+	}
+	var owner_id string
+	if err = h.DB.QueryRow(ctx, "SELECT author_id FROM rooms WHERE id = $1;", room_id).Scan(&owner_id); err != nil {
+		return fmt.Errorf("Internal error")
+	} else {
+		if _, ok := uidsMap[owner_id]; !ok {
+			receiveNotifications = append(receiveNotifications, owner_id)
+		}
+	}
+
+	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
+		Uids: receiveNotifications,
+		Data: socketMessages.RoomMessageNotify{
+			RoomID:    room_id,
+			ChannelID: data.ChannelID,
+		},
+		MessageType: "ROOM_MESSAGE_NOTIFY",
+	}
+
 	h.SocketServer.SendDataToSub <- socketServer.SubscriptionMessageData{
-		SubName: fmt.Sprintf("channel:%v", data.ChannelID),
+		SubName: subName,
 		Data: socketMessages.RoomMessage{
 			ID:            id,
 			Content:       content,

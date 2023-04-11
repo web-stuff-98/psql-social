@@ -73,17 +73,17 @@ type ServerData struct {
 /* ------ RECV CHAN STRUCTS ------ */
 
 type GetConnectionSubscriptions struct {
-	RecvChan chan<- map[string]struct{}
+	RecvChan chan map[string]struct{}
 	Conn     *websocket.Conn
 }
 
 type GetSubscriptionUids struct {
-	RecvChan chan<- map[string]struct{}
+	RecvChan chan map[string]struct{}
 	SubName  string
 }
 
 type IsUserOnline struct {
-	RecvChan chan<- bool
+	RecvChan chan bool
 	Uid      string
 }
 

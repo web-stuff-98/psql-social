@@ -61,7 +61,6 @@ async function download() {
         v-if="
           meta.mime === 'image/jpeg' ||
           meta.mime === 'image/png' ||
-          meta.mime === 'image/webp' ||
           meta.mime === 'image/avif'
         "
       />
