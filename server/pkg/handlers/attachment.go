@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -403,6 +406,122 @@ func (h handler) DownloadAttachment(ctx *fiber.Ctx) error {
 	if err = recursivelyWriteAttachmentChunksToResponse(); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
+
+	return nil
+}
+
+func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
+	}
+
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	defer conn.Release()
+
+	metaTable, chunkTable, err := attachmentHelpers.GetTableNames(conn, rctx, id)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+
+	var size int
+	var meta string
+	var failed bool
+	var ratio float32
+
+	if selectMetaStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_metadata_stmt", fmt.Sprintf("SELECT size,meta,failed,ratio FROM %v WHERE id = $1", metaTable)); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		if err = conn.QueryRow(rctx, selectMetaStmt.Name, id).Scan(&size, &meta, &failed, &ratio); err != nil {
+			if err == pgx.ErrNoRows {
+				return fiber.NewError(fiber.StatusNotFound, "Attachment metadata not found")
+			}
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		}
+	}
+
+	if failed || ratio != 1 {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
+	}
+	// Process the range header
+	var maxLength int64
+	var start, end int64
+	if rangeHeader := ctx.Get("Range"); rangeHeader != "" {
+		_, err := fmt.Sscanf(rangeHeader, "bytes=%d-", &start)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "Invalid range header")
+		}
+		maxLength = 4 * 1024 * 1024
+		if start+maxLength > int64(size) {
+			maxLength = int64(size) - start
+		}
+		// check if end is present in the range header
+		if i := strings.Index(rangeHeader, "-"); i != -1 {
+			if end, err = strconv.ParseInt(rangeHeader[i+1:], 10, 64); err != nil {
+				// if end is absent, set it
+				end = start + maxLength
+			}
+		} else {
+			// if end is absent, set it
+			end = start + maxLength
+		}
+	}
+
+	// Calculate the start and end chunk indexes
+	startChunkIndex := int(start / 4 * 1024 * 1024)
+	endChunkIndex := int(math.Ceil(float64(end+1)/float64(4*1024*1024))) - 1
+	var nums []string
+	for i := startChunkIndex; i <= endChunkIndex; i++ {
+		nums = append(nums, strconv.Itoa(i))
+	}
+	// Retrieve the data from relevant chunks
+	var chunkBytes []byte
+	if selectChunksStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_chunks_stmt", fmt.Sprintf("SELECT bytes FROM %v WHERE id = $1 AND chunk_index IN (%v);", chunkTable, strings.Join(nums, ","))); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		if rows, err := conn.Query(rctx, selectChunksStmt.Name, id); err != nil {
+			if err == pgx.ErrNoRows {
+				return fiber.NewError(fiber.StatusNotFound, "Attachment chunk data not found")
+			}
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		} else {
+			i := 0
+			defer rows.Close()
+			for rows.Next() {
+				var bytes pgtype.Bytea
+				if err = rows.Scan(&bytes); err != nil {
+					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+				}
+				if i == 0 {
+					chunkStart := start - int64(startChunkIndex)*4*1024*1024
+					chunkEnd := chunkStart + int64(len(bytes.Bytes))
+					if chunkEnd > end {
+						chunkEnd = end
+					}
+					chunkBytes = append(chunkBytes, bytes.Bytes[chunkStart:chunkEnd]...)
+				} else if i == endChunkIndex-startChunkIndex {
+					chunkEnd := end - int64(endChunkIndex)*4*1024*1024
+					chunkBytes = append(chunkBytes, bytes.Bytes[:chunkEnd]...)
+				} else {
+					chunkBytes = append(chunkBytes, bytes.Bytes...)
+				}
+				i++
+			}
+		}
+	}
+
+	ctx.Response().Header.Add("Accept-Ranges", "bytes")
+	ctx.Response().Header.Add("Content-Length", fmt.Sprint(maxLength))
+	ctx.Response().Header.Add("Content-Range", fmt.Sprint(start)+"-"+fmt.Sprint(end)+"/"+fmt.Sprint(size))
+	ctx.Response().Header.Add("Content-Type", "video/mp4")
+
+	ctx.Write(chunkBytes[:maxLength])
 
 	return nil
 }

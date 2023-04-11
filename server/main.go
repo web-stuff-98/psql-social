@@ -273,6 +273,13 @@ func main() {
 		Message:       "Too many requests",
 		RouteName:     "download-attachment-chunks",
 	}, rdb, db))
+	app.Get("/api/attachment/video/:id", mw.BasicRateLimiter(h.GetAttachmentVideoPartialContent, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       80,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-attachment-video-chunks",
+	}, rdb, db))
 
 	app.Use("/api/ws", h.WebSocketAuth)
 	app.Get("/api/ws", h.WebSocketHandler())
