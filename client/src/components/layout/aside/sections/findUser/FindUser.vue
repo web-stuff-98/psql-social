@@ -47,7 +47,11 @@ function handleInput(e: Event) {
 
 <template>
   <div class="find-user">
-    <div class="result"><User v-for="uid in result" :uid="uid" /></div>
+    <div class="result-container">
+      <div class="list">
+        <User v-for="uid in result" :uid="uid" />
+      </div>
+    </div>
     <ErrorMessage name="username" />
     <ResMsg
       v-if="resMsg.msg && resMsg.msg !== 'User not found'"
@@ -74,14 +78,21 @@ function handleInput(e: Event) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  .result {
+  .result-container {
+    position: relative;
     flex-grow: 1;
     width: 100%;
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: var(--gap-sm);
+    .list {
+      position: absolute;
+      overflow-y: auto;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--gap-sm);
+    }
   }
   .search-container {
     padding: 0;
