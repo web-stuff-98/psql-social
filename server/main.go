@@ -381,5 +381,7 @@ func handleUserDeleteListUserDisconnected(udl *sync.Map, ss *socketServer.Socket
 		}
 
 		udl.Delete(uid)
+
+		ctx.Done()
 	}
 }
