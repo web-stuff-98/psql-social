@@ -13,19 +13,11 @@ import (
 )
 
 /*
-	Rate limit socket events.
-
 	Data for each connection is stored on redis as a
 	map containing SocketConnectionLimiterData for
 	each eventType name. The data is keyed as the
 	connections remote address suffixed with
 	"socket-limiter-data:". It expires after 2 minutes.
-
-	All socket events have to go through this first, to
-	make sure that they are not exceeding the rate limits
-
-	Stops people spamming messages, slows DDOS, as if anyone
-	will ever use this example app
 */
 
 type SocketLimiter struct {
@@ -131,7 +123,6 @@ func Init(redisClient *redis.Client) *SocketLimiter {
 }
 
 func runLimiter(redisClient *redis.Client, sl *SocketLimiter) {
-	// watch for socket events, sends err through recvChan if exceeding rate limit
 	go socketEventRegistration(redisClient, sl)
 }
 

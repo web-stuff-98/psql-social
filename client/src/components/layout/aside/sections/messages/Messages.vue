@@ -1,12 +1,6 @@
 <script lang="ts" setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { makeRequest } from "../../../../../services/makeRequest";
-import {
-  IDirectMessage,
-  IFriendRequest,
-  IInvitation,
-  IResMsg,
-} from "../../../../../interfaces/GeneralInterfaces";
+import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
 import useInboxStore from "../../../../../store/InboxStore";
 import useUserStore from "../../../../../store/UserStore";
 import useSocketStore from "../../../../../store/SocketStore";
@@ -20,6 +14,10 @@ import {
 } from "../../../../../socketHandling/InterpretEvent";
 import useAuthStore from "../../../../../store/AuthStore";
 import useAttachmentStore from "../../../../../store/AttachmentStore";
+import {
+  getConversationUids,
+  getConversationContent,
+} from "../../../../../services/account";
 
 const inboxStore = useInboxStore();
 const userStore = useUserStore();
@@ -61,7 +59,7 @@ function watchForBlocksAndAttachmentRequest(e: MessageEvent) {
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", pen: true, err: false };
-    let uids: string[] | null = await makeRequest("/api/acc/uids");
+    let uids: string[] | null = await getConversationUids();
     // remove duplicates that somehow magically end up in the array
     if (uids)
       uids = uids.filter((item, index) => uids?.indexOf(item) === index);
@@ -89,11 +87,7 @@ onBeforeUnmount(() => {
 async function getConversation(uid: string) {
   try {
     resMsg.value = { msg: "", pen: true, err: false };
-    const data: {
-      friend_requests: IFriendRequest[] | null;
-      invitations: IInvitation[] | null;
-      direct_messages: IDirectMessage[] | null;
-    } | null = await makeRequest(`/api/acc/conv/${uid}`);
+    const data = await getConversationContent(uid);
     if (data) {
       inboxStore.convs[uid] = [
         ...(data.friend_requests || []),

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { Form, Field } from "vee-validate";
-import { createRoom } from "../../../../../services/room";
+import { createRoom, uploadRoomImage } from "../../../../../services/room";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
 import { validateRoomName } from "../../../../../validators/validators";
 import Modal from "../../../../modal/Modal.vue";
@@ -9,7 +9,6 @@ import ModalCloseButton from "../../../../shared/ModalCloseButton.vue";
 import ResMsg from "../../../../shared/ResMsg.vue";
 import CustomCheckbox from "../../../../shared/CustomCheckbox.vue";
 import ErrorMessage from "../../../../shared/ErrorMessage.vue";
-import { makeRequest } from "../../../../../services/makeRequest";
 
 defineProps<{ closeClicked: Function }>();
 
@@ -23,18 +22,8 @@ async function handleSubmit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
     console.log(values);
-    const id = await createRoom({
-      name: values.name,
-      isPrivate: values.isPrivate,
-    });
-    if (imgFile.value) {
-      const formData = new FormData();
-      formData.append("file", imgFile.value!);
-      await makeRequest(`/api/room/${id}/img`, {
-        method: "POST",
-        data: formData,
-      });
-    }
+    const id = await createRoom(values.name, values.isPrivate);
+    if (imgFile.value) uploadRoomImage(id, imgFile.value);
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };

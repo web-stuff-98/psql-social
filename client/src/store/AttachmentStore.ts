@@ -21,7 +21,7 @@ const useAttachmentStore = defineStore("attachments", {
       disappearedAttachments: [],
     } as AttachmentStoreState),
   getters: {
-    getRoom(state) {
+    getAttachment(state) {
       return (id: string) => state.attachments.find((a) => a.ID === id);
     },
   },

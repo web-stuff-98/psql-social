@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
-import { makeRequest } from "../../../../../services/makeRequest";
+import { getFriendsUids } from "../../../../../services/account"
 import User from "../../../../shared/User.vue";
 import ResMsg from "../../../../shared/ResMsg.vue";
 import {
@@ -39,7 +39,7 @@ function watchForBlocksAndDeletes(e: MessageEvent) {
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    const ids: string[] | null = await makeRequest("/api/acc/friends");
+    const ids: string[] | null = await getFriendsUids();
     // remove duplicates that somehow magically end up in the array
     friends.value =
       ids?.filter((item, index) => ids.indexOf(item) === index) || [];

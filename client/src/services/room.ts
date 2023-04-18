@@ -5,27 +5,13 @@ import {
 } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "./makeRequest";
 
-export const createRoom = ({
-  name,
-  isPrivate,
-}: {
-  name: string;
-  isPrivate: boolean;
-}) =>
+export const createRoom = (name: string, isPrivate: boolean) =>
   makeRequest("/api/room", {
     method: "POST",
     data: { name, private: isPrivate },
   });
 
-export const updateRoom = ({
-  name,
-  isPrivate,
-  id,
-}: {
-  name: string;
-  isPrivate: boolean;
-  id: string;
-}) =>
+export const updateRoom = (id: string, name: string, isPrivate: boolean) =>
   makeRequest(`/api/room/${id}`, {
     method: "PATCH",
     data: { name, private: isPrivate },
@@ -85,3 +71,12 @@ export const getRoomChannel = (
   messages: IRoomMessage[] | null;
   users_in_webrtc: string[] | null;
 }> => makeRequest(`/api/room/channel/${id}`);
+
+export const uploadRoomImage = (id: string, file: File) => {
+  const data = new FormData();
+  data.append("file", file);
+  return makeRequest(`/api/room/${id}/img`, {
+    method: "POST",
+    data,
+  });
+};

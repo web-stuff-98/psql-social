@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
-import { makeRequest } from "../../../../../services/makeRequest";
 import User from "../../../../shared/User.vue";
 import ResMsg from "../../../../shared/ResMsg.vue";
 import {
@@ -12,6 +11,7 @@ import useAuthStore from "../../../../../store/AuthStore";
 import useSocketStore from "../../../../../store/SocketStore";
 import useUserStore from "../../../../../store/UserStore";
 import { UnBlock } from "../../../../../socketHandling/OutEvents";
+import { getBlockedUids } from "../../../../../services/account";
 
 const authStore = useAuthStore();
 const socketStore = useSocketStore();
@@ -46,7 +46,7 @@ function unblock(uid: string) {
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    const ids: string[] | null = await makeRequest("/api/acc/blocked");
+    const ids: string[] | null = await getBlockedUids();
     // remove duplicates that somehow magically end up in the array
     blocked.value =
       ids?.filter((item, index) => ids.indexOf(item) === index) || [];

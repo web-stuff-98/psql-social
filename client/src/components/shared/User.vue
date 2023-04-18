@@ -18,7 +18,7 @@ const props = defineProps<{
 const { uid, date } = toRefs(props);
 
 const container = ref<HTMLElement>();
-const user = computed(() => userStore.getUser(uid.value));
+const user = userStore.getUser(uid.value);
 const dateAsDate = computed(() => {
   if (!date?.value) return;
   return new Date(date.value);

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref, toRefs } from "vue";
+import { onBeforeUnmount, onMounted, ref, toRefs } from "vue";
 import { IMediaOptions } from "../../../interfaces/GeneralInterfaces";
 import { showFullscreenVid } from "../../../store/FullscreenVidStore";
 import useUserStore from "../../../store/UserStore";
@@ -22,7 +22,7 @@ const props = defineProps<{
 const { userMedia, displayMedia, userMediaStreamID, uid, isOwner } =
   toRefs(props);
 
-const user = computed(() => userStore.getUser(uid?.value!));
+const user = userStore.getUser(uid?.value!);
 const forceMute = ref(false);
 const hideSmallWindow = ref(false);
 

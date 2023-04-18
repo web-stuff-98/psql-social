@@ -17,6 +17,7 @@ const useSocketStore = defineStore("socket", {
         );
       else console.warn("Socket unavailable");
     },
+    
     async connectSocket() {
       return new Promise<WebSocket>((resolve, reject) => {
         const socket = new WebSocket(

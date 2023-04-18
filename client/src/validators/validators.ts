@@ -1,3 +1,7 @@
+/**
+ *  Validators for vee-validate. The server will also validate.
+ */
+
 export function validateUsername(username: string) {
   if (!username) return "Username is required";
   if (username.length > 16) return "Maximum 16 characters";

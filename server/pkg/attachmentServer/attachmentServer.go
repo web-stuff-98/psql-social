@@ -63,19 +63,7 @@ func runServer(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpool.
 }
 
 func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpool.Pool) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if failCount < 10 {
-				failCount++
-				log.Println("Recovered from panic in attachment server handle chunk loop:", r)
-			} else {
-				log.Println("Attachment server panic count exceeded maximum retries")
-			}
-			failCount++
-		}()
-
 		data := <-as.ChunkChan
 
 		conn, err := db.Acquire(data.Ctx)
@@ -224,19 +212,7 @@ func processChunk(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpo
 }
 
 func deleteAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpool.Pool) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if failCount < 10 {
-				failCount++
-				log.Println("Recovered from panic in attachment server handle chunk loop:", r)
-			} else {
-				log.Println("Attachment server panic count exceeded maximum retries")
-			}
-			failCount++
-		}()
-
 		id := <-as.DeleteChan
 
 		errored := func(err error, conn *pgxpool.Conn) {
@@ -278,19 +254,7 @@ func deleteAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *p
 }
 
 func failAttachment(ss *socketServer.SocketServer, as *AttachmentServer, db *pgxpool.Pool) {
-	var failCount uint8
 	for {
-		defer func() {
-			r := recover()
-			if failCount < 10 {
-				failCount++
-				log.Println("Recovered from panic in attachment server handle chunk loop:", r)
-			} else {
-				log.Println("Attachment server panic count exceeded maximum retries")
-			}
-			failCount++
-		}()
-
 		id := <-as.FailChan
 
 		errored := func(err error, conn *pgxpool.Conn) {

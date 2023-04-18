@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch, onUnmounted } from "vue";
+import { IResMsg } from "./interfaces/GeneralInterfaces";
 import useBackgroundProcess from "./composables/useBackgroundProcess";
 import useAuthStore from "./store/AuthStore";
 import useInterfaceStore from "./store/InterfaceStore";
@@ -9,7 +10,6 @@ import Register from "./components/modal/Register.vue";
 import Welcome from "./components/modal/Welcome.vue";
 import ModalCloseButton from "./components/shared/ModalCloseButton.vue";
 import Layout from "./components/layout/Layout.vue";
-import { IResMsg } from "./interfaces/GeneralInterfaces";
 import ResMsg from "./components/shared/ResMsg.vue";
 import UserDropdown from "./components/userDropdown/UserDropdown.vue";
 import PendingCalls from "./components/pendingCalls/PendingCalls.vue";

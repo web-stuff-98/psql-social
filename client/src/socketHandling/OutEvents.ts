@@ -1,4 +1,6 @@
-/* All types for socket messages that go out */
+/**
+ * Types for socket messages that go out
+ */
 
 /* Watch messages (subscribe to updates for entity) */
 type Watchable = "USER" | "ROOM" | "BIO";

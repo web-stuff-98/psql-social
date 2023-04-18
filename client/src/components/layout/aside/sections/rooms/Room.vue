@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref, toRefs } from "vue";
+import { onBeforeUnmount, onMounted, ref, toRefs } from "vue";
+import { deleteRoom } from "../../../../../services/room";
 import useRoomStore from "../../../../../store/RoomStore";
 import useAuthStore from "../../../../../store/AuthStore";
 import EditRoom from "./EditRoom.vue";
-import { deleteRoom } from "../../../../../services/room";
 import messageModalStore from "../../../../../store/MessageModalStore";
 
 const props = defineProps<{ rid: string }>();
@@ -14,7 +14,7 @@ const authStore = useAuthStore();
 const roomStore = useRoomStore();
 
 const container = ref<HTMLElement>();
-const room = computed(() => roomStore.getRoom(rid.value));
+const room = roomStore.getRoom(rid.value);
 
 const isEditing = ref(false);
 

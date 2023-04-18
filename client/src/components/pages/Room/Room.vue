@@ -5,7 +5,6 @@ import {
   onMounted,
   toRef,
   ref,
-  computed,
   nextTick,
   watch,
 } from "vue";
@@ -74,7 +73,7 @@ async function deleteChannelClicked(channelId: string) {
   }
 }
 
-const room = computed(() => roomStore.getRoom(roomId.value as string));
+const room = roomStore.getRoom(roomId.value as string);
 
 const resMsg = ref<IResMsg>({});
 

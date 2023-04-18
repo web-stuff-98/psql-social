@@ -35,7 +35,6 @@ function acceptClicked(index: number) {
   <div class="pending-calls-container">
     <PendingCall
       :key="pendingCall.caller"
-      v-for="(pendingCall, index) in pendingCallsStore"
       :showAcceptDevice="pendingCall.caller !== authStore.uid"
       :cancelHangupClicked="cancelHangupClicked"
       :acceptClicked="acceptClicked"
@@ -45,6 +44,7 @@ function acceptClicked(index: number) {
           : pendingCall.caller
       "
       :index="index"
+      v-for="(pendingCall, index) in pendingCallsStore"
     />
   </div>
 </template>

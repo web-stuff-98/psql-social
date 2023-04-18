@@ -46,6 +46,7 @@ const useUserStore = defineStore("users", {
         console.warn("Failed to cache user data for", id);
       }
     },
+    
     userEnteredView(id: string) {
       this.$state.visibleUsers = [...this.$state.visibleUsers, id];
       const i = this.$state.disappearedUsers.findIndex((u) => u.id === id);

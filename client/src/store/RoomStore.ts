@@ -32,6 +32,7 @@ const useRoomStore = defineStore("rooms", {
         ...rooms,
       ];
     },
+
     async cacheRoom(id: string, force?: boolean) {
       if (this.$state.rooms.findIndex((r) => r.ID === id) !== -1 && !force)
         return;
@@ -53,6 +54,7 @@ const useRoomStore = defineStore("rooms", {
         console.warn("Failed to cache room data for", id);
       }
     },
+
     async cacheRoomImage(id: string) {
       try {
         const img: BlobPart | undefined = await new Promise((resolve) =>
@@ -80,6 +82,7 @@ const useRoomStore = defineStore("rooms", {
         );
       }
     },
+    
     roomEnteredView(id: string) {
       this.$state.visibleRooms = [...this.$state.visibleRooms, id];
       const i = this.$state.disappearedRooms.findIndex((r) => r.id === id);

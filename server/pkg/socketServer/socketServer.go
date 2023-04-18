@@ -15,19 +15,12 @@ This works differently to my last 2 projects.
 It can only send JSON messages, in this form:
 { event_type, data }
 
-I will end up using sync.Map next time instead
-of mutex locks.
-
 I ended up using only 1 mutex lock for all
-data since I was getting loads of random
-deadlocks and couldn't be asked with it
-anymore, even that still didn't fix it, I
-cannot run with -race flag because fasthttp
-doesn't work properly with CGO... not fun
-
-I also removed panic recovery because it's
-kind of pointless. There shouldn't be any
-panics anyway
+data since I thought I was getting deadlocks
+but it turned out to be something else. I
+should revert it back to it's old state with
+seperate RWMutex locks but I can't be asked,
+it's also easier to find bugs
 */
 
 type SocketServer struct {

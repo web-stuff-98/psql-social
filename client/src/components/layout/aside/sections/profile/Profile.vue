@@ -1,10 +1,10 @@
 <script lang="ts" setup>
 import { Field, Form } from "vee-validate";
-import { computed, onMounted, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
-import { makeRequest } from "../../../../../services/makeRequest";
 import { getUserBio } from "../../../../../services/user";
 import { validateBio } from "../../../../../validators/validators";
+import { uploadBio, uploadPfp } from "../../../../../services/account";
 import useUserStore from "../../../../../store/UserStore";
 import useAuthStore from "../../../../../store/AuthStore";
 import Modal from "../../../../modal/Modal.vue";
@@ -15,7 +15,7 @@ defineProps<{ closeClicked: Function }>();
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
-const user = computed(() => userStore.getUser(authStore.uid as string));
+const user = userStore.getUser(authStore.uid as string);
 
 const bio = ref("");
 const bioInput = ref<HTMLElement>();
@@ -27,10 +27,10 @@ const pfpUrl = ref<string>("");
 const resMsg = ref<IResMsg>({});
 
 onMounted(async () => {
-  if (user.value?.pfp) pfpUrl.value = user.value.pfp;
+  if (user?.pfp) pfpUrl.value = user.pfp;
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    const content = await getUserBio(user.value?.ID!);
+    const content = await getUserBio(user?.ID!);
     bio.value = content;
     // @ts-ignore
     bioInput.value = content;
@@ -47,18 +47,8 @@ onMounted(async () => {
 async function handleSubmit() {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    await makeRequest("/api/acc/bio", {
-      method: "POST",
-      data: { content: bio.value },
-    });
-    const formData = new FormData();
-    formData.append("file", pfpFile.value!);
-    if (pfpFile.value) {
-      await makeRequest("/api/acc/pfp", {
-        method: "POST",
-        data: formData,
-      });
-    }
+    await uploadBio(bio.value);
+    if (pfpFile.value) uploadPfp(pfpFile.value);
     resMsg.value = { msg: "", err: false, pen: false };
     const i = userStore.users.findIndex((u) => u.ID === authStore.uid);
     if (i !== -1) userStore.users[i].pfp = pfpUrl.value;

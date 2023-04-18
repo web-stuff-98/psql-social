@@ -11,6 +11,7 @@ export const userdropdownStore: IUserDropdownStore = reactive({
   open: false,
   subject: "",
   roomId: "",
+  
   openOnSubject: (uid: string, roomId?: string) => {
     userdropdownStore.roomId = roomId || "";
     userdropdownStore.subject = uid;

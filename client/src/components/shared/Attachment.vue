@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { toRefs, ref, onMounted, onBeforeUnmount, computed } from "vue";
+import { toRefs, ref, onMounted, onBeforeUnmount } from "vue";
 import { IResMsg } from "../../interfaces/GeneralInterfaces";
 import { baseURL, makeRequest } from "../../services/makeRequest";
 import useAttachmentStore from "../../store/AttachmentStore";
@@ -17,9 +17,7 @@ const { msgId } = toRefs(props);
 const resMsg = ref<IResMsg>({ msg: "", err: false, pen: false });
 const containerRef = ref<HTMLElement | null>(null);
 
-const meta = computed(() =>
-  attachmentStore.attachments.find((m) => m.ID === msgId.value)
-);
+const meta = attachmentStore.getAttachment(msgId.value);
 
 const observer = new IntersectionObserver(([entry]) => {
   if (entry.isIntersecting) {
@@ -37,13 +35,13 @@ onBeforeUnmount(() => {
 });
 
 async function download() {
-  const data = await makeRequest(`/api/attachment/${meta?.value?.ID}`, {
+  const data = await makeRequest(`/api/attachment/${meta?.ID}`, {
     responseType: "arraybuffer",
   });
-  const blob = new Blob([data], { type: meta?.value?.mime });
+  const blob = new Blob([data], { type: meta?.mime });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `${baseURL}/api/attachment/${meta?.value?.ID}`;
+  link.download = `${baseURL}/api/attachment/${meta?.ID}`;
   link.click();
   URL.revokeObjectURL(link.href);
 }

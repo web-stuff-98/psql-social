@@ -1,16 +1,16 @@
 <script lang="ts" setup>
 import ModalCloseButton from "../../../../shared/ModalCloseButton.vue";
-import { computed, onMounted, ref, toRefs } from "vue";
+import { onMounted, ref, toRefs } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
 import { updateRoom } from "../../../../../services/room";
 import { validateRoomName } from "../../../../../validators/validators";
 import { Field, Form } from "vee-validate";
+import { uploadRoomImage } from "../../../../../services/room";
 import useRoomStore from "../../../../../store/RoomStore";
 import Modal from "../../../../modal/Modal.vue";
 import ErrorMessage from "../../../../shared/ErrorMessage.vue";
 import CustomCheckbox from "../../../../shared/CustomCheckbox.vue";
 import ResMsg from "../../../../shared/ResMsg.vue";
-import { makeRequest } from "../../../../../services/makeRequest";
 
 const props = defineProps<{ closeClicked: Function; roomId: string }>();
 
@@ -25,28 +25,17 @@ const imgUrl = ref<string>();
 const imgInput = ref<HTMLInputElement>();
 
 // used for initial image url value
-const r = computed(() => roomStore.getRoom(roomId.value));
+const r = roomStore.getRoom(roomId.value);
 
 onMounted(() => {
-  if (r.value?.img) imgUrl.value = r.value.img;
+  if (r?.img) imgUrl.value = r.img;
 });
 
 async function handleSubmitEdit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    await updateRoom({
-      name: values.name,
-      isPrivate: values.isPrivate,
-      id: roomId.value,
-    });
-    if (imgFile.value) {
-      const formData = new FormData();
-      formData.append("file", imgFile.value!);
-      await makeRequest(`/api/room/${r.value?.ID}/img`, {
-        method: "POST",
-        data: formData,
-      });
-    }
+    await updateRoom(roomId.value, values.name, values.isPrivate);
+    if (imgFile.value) await uploadRoomImage(r?.ID!, imgFile.value!);
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };

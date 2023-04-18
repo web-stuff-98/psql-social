@@ -19,34 +19,34 @@ import (
 )
 
 func createCookie(token string, expiry time.Time) *fiber.Cookie {
-	cookie := new(fiber.Cookie)
-	cookie.Name = "session_token"
-	cookie.Value = token
-	cookie.Expires = expiry
-	cookie.MaxAge = 120
-	cookie.Secure = os.Getenv("ENVIRONMENT") == "PRODUCTION"
-	cookie.HTTPOnly = true
-	cookie.SameSite = "Strict"
-	cookie.Path = "/"
-	return cookie
+	return &fiber.Cookie{
+		Name:     "session_token",
+		Value:    token,
+		Expires:  expiry,
+		MaxAge:   120,
+		Secure:   os.Getenv("ENVIRONMENT") == "PRODUCTION",
+		HTTPOnly: true,
+		SameSite: "Strict",
+		Path:     "/",
+	}
 }
 
 func GetClearedCookie() *fiber.Cookie {
-	cookie := new(fiber.Cookie)
-	cookie.Name = "session_token"
-	cookie.Value = ""
-	cookie.Expires = time.Unix(0, 0)
-	cookie.MaxAge = -1
-	cookie.Secure = os.Getenv("ENVIRONMENT") == "PRODUCTION"
-	cookie.HTTPOnly = true
-	cookie.SameSite = "Strict"
-	cookie.Path = "/"
-	return cookie
+	return &fiber.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		Secure:   os.Getenv("ENVIRONMENT") == "PRODUCTION",
+		HTTPOnly: true,
+		SameSite: "Strict",
+		Path:     "/",
+	}
 }
 
+// copied the regex from some stack overflow post. Same validation as with client.
 func PasswordValidates(pass string) bool {
 	count := 0
-
 	if 8 <= len(pass) && len(pass) <= 72 {
 		if matched, _ := regexp.MatchString(".*\\d.*", pass); matched {
 			count++
@@ -61,10 +61,10 @@ func PasswordValidates(pass string) bool {
 			count++
 		}
 	}
-
 	return count >= 3
 }
 
+// Creates the session ID on redis and encodes it as a JWT into a cookie
 func Authorize(redisClient *redis.Client, ctx context.Context, uid string) (*fiber.Cookie, error) {
 	sid := uuid.New()
 	sessionDuration := time.Minute * 2
@@ -87,6 +87,7 @@ func Authorize(redisClient *redis.Client, ctx context.Context, uid string) (*fib
 	return cookie, nil
 }
 
+// Decrypt the JWT stored inside the cookie, queries the db for the user ID and returns the user ID and session ID
 func GetUidAndSid(redisClient *redis.Client, ctx *fiber.Ctx, rctx context.Context, db *pgxpool.Pool) (uid string, sid string, err error) {
 	cookie := string(ctx.Request().Header.Cookie("session_token"))
 	if cookie == "" {

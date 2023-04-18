@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
+import { ref } from "vue";
 import { IResMsg } from "../../interfaces/GeneralInterfaces";
 import useAuthStore from "../../store/AuthStore";
 import useUserStore from "../../store/UserStore";
@@ -8,7 +9,6 @@ import Modal from "../modal/Modal.vue";
 import Aside from "./aside/Aside.vue";
 import ModalCloseButton from "../shared/ModalCloseButton.vue";
 import ResMsg from "../shared/ResMsg.vue";
-import { useRouter } from "vue-router";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
@@ -30,10 +30,6 @@ async function logout() {
 function toggleDarkMode() {
   interfaceStore.darkMode = !interfaceStore.darkMode;
 }
-
-const username = computed(
-  () => userStore.getUser(authStore.uid as string)?.username
-);
 </script>
 
 <template>
@@ -43,7 +39,9 @@ const username = computed(
   </Modal>
   <div v-if="authStore.uid" class="layout">
     <nav>
-      <div class="name">{{ username }}</div>
+      <div class="name">
+        {{ userStore.getUser(authStore.uid as string)?.username }}
+      </div>
       <div class="nav-items">
         <RouterLink to="/policy">
           <button type="button" class="nav-item">Policy</button>

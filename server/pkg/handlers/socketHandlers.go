@@ -18,6 +18,8 @@ import (
 	socketValidation "github.com/web-stuff-98/psql-social/pkg/socketValidation"
 )
 
+// This could maybe do with some code splitting, but I can't be asked
+
 func handleSocketEvent(data map[string]interface{}, event string, h handler, uid string, c *websocket.Conn) error {
 	var err error
 

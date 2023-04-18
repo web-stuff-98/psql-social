@@ -35,6 +35,7 @@ import { pendingCallsStore } from "../store/CallsStore";
 import { useRouter } from "vue-router";
 import { getRoomImage } from "../services/room";
 import useInterface from "../store/InterfaceStore";
+import { refreshToken } from "../services/account";
 
 /**
  * This composable is for intervals that run in the background
@@ -365,10 +366,7 @@ export default function useBackgroundProcess({
     /* Refresh the token */
     refreshTokenInterval.value = setInterval(async () => {
       try {
-        if (authStore.uid)
-          await makeRequest("/api/acc/refresh", {
-            method: "POST",
-          });
+        if (authStore.uid) await refreshToken();
       } catch (e) {
         resMsg.value = {
           msg: `${e}`,

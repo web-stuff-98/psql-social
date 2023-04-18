@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { toRefs, computed, onMounted, onBeforeUnmount } from "vue";
+import { toRefs, onMounted, onBeforeUnmount } from "vue";
 import useRoomStore from "../../store/RoomStore";
 const props = defineProps<{ id: string }>();
 
@@ -7,7 +7,7 @@ const { id } = toRefs(props);
 
 const roomStore = useRoomStore();
 
-const room = computed(() => roomStore.getRoom(id.value));
+const room = roomStore.getRoom(id.value);
 
 onMounted(() => {
   roomStore.cacheRoom(id.value);

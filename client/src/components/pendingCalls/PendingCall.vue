@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, toRefs, ref, onBeforeUnmount, computed } from "vue";
+import { onMounted, toRefs, ref, onBeforeUnmount } from "vue";
 import useUserStore from "../../store/UserStore";
 import ring from "../../assets/ring.wav";
 
@@ -13,7 +13,7 @@ const props = defineProps<{
   showAcceptDevice: boolean;
 }>();
 const { uid } = toRefs(props);
-const user = computed(() => userStore.getUser(uid.value));
+const user = userStore.getUser(uid.value);
 
 const sound = ref();
 
