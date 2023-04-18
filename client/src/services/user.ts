@@ -12,3 +12,6 @@ export const getUserPfp = (id: string) =>
 
 export const getUserByName = (username: string): Promise<string> =>
   makeRequest(`/api/user/name`, { data: { username }, method: "POST" });
+
+export const searchUsers = (username: string): Promise<string[] | null> =>
+  makeRequest(`/api/user/search`, { data: { username } });

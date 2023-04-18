@@ -125,6 +125,85 @@ func (h handler) GetUserByName(ctx *fiber.Ctx) error {
 	return nil
 }
 
+func (h handler) SearchUsers(ctx *fiber.Ctx) error {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	result := []string{}
+
+	v := validator.New()
+	body := &validation.SearchUser{}
+	if err := json.Unmarshal(ctx.Body(), body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
+	}
+	if err := v.Struct(body); err != nil {
+		out := []byte{}
+		if err = json.Unmarshal(out, &result); err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		} else {
+			// if validation failed, don't return an error, just send an empty list
+			ctx.Response().Header.Add("Content-Type", "application/json")
+			ctx.Write(out)
+			return nil
+		}
+	}
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	defer conn.Release()
+
+	if selectStmt, err := conn.Conn().Prepare(rctx, "search_users_select_stmt", "SELECT id FROM users WHERE username LIKE $1;"); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		if rows, err := conn.Conn().Query(rctx, selectStmt.Name, body.Username); err != nil {
+			if err == pgx.ErrNoRows {
+				out := []byte{}
+				if err = json.Unmarshal(out, &result); err != nil {
+					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+				} else {
+					// if nothing was found just send an empty list
+					ctx.Response().Header.Add("Content-Type", "application/json")
+					ctx.Write(out)
+					return nil
+				}
+			} else {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			}
+		} else {
+			defer rows.Close()
+			for rows.Next() {
+				var id string
+				if err = rows.Scan(&id); err != nil {
+					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+				}
+				var blocked bool
+				if err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1);", uid).Scan(&blocked); err != nil {
+					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+				}
+				if !blocked {
+					result = append(result, id)
+				}
+			}
+		}
+	}
+
+	var out []byte
+	if err = json.Unmarshal(out, &result); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Write(out)
+		return nil
+	}
+}
+
 func (h handler) GetUserBio(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()

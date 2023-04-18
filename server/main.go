@@ -251,6 +251,13 @@ func main() {
 		Message:       "Too many requests",
 		RouteName:     "get-user-by-name",
 	}, rdb, db))
+	app.Post("/api/user/search", mw.BasicRateLimiter(h.SearchUsers, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       90,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "search users",
+	}, rdb, db))
 
 	app.Post("/api/attachment/metadata", mw.BasicRateLimiter(h.CreateAttachmentMetadata, mw.SimpleLimiterOpts{
 		Window:        time.Minute * 1,
