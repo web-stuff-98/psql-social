@@ -1,19 +1,20 @@
 <script lang="ts" setup>
 import { CallResponse } from "../../socketHandling/OutEvents";
-import { pendingCallsStore } from "../../store/CallsStore";
+import useCallStore from "../../store/CallsStore";
 import useAuthStore from "../../store/AuthStore";
 import useSocketStore from "../../store/SocketStore";
 import PendingCall from "./PendingCall.vue";
 
 const authStore = useAuthStore();
 const socketStore = useSocketStore();
+const callStore = useCallStore();
 
 function cancelHangupClicked(index: number) {
   socketStore.send({
     event_type: "CALL_USER_RESPONSE",
     data: {
-      caller: pendingCallsStore[index].caller,
-      called: pendingCallsStore[index].called,
+      caller: callStore.$state[index].caller,
+      called: callStore.$state[index].called,
       accept: false,
     },
   } as CallResponse);
@@ -23,8 +24,8 @@ function acceptClicked(index: number) {
   socketStore.send({
     event_type: "CALL_USER_RESPONSE",
     data: {
-      caller: pendingCallsStore[index].caller,
-      called: pendingCallsStore[index].called,
+      caller: callStore.$state[index].caller,
+      called: callStore.$state[index].called,
       accept: true,
     },
   } as CallResponse);
@@ -34,7 +35,7 @@ function acceptClicked(index: number) {
 <template>
   <div class="pending-calls-container">
     <PendingCall
-      :key="pendingCall.caller"
+      :key="index"
       :showAcceptDevice="pendingCall.caller !== authStore.uid"
       :cancelHangupClicked="cancelHangupClicked"
       :acceptClicked="acceptClicked"
@@ -44,7 +45,7 @@ function acceptClicked(index: number) {
           : pendingCall.caller
       "
       :index="index"
-      v-for="(pendingCall, index) in pendingCallsStore"
+      v-for="(pendingCall, index) in callStore.$state"
     />
   </div>
 </template>

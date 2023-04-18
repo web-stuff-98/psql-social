@@ -1,25 +1,29 @@
 import { defineStore } from "pinia";
 import { IAttachmentMetadata } from "../interfaces/GeneralInterfaces";
 import { baseURL, makeRequest } from "../services/makeRequest";
+import {
+  isAttachmentMetadataCreated,
+  isAttachmentProgress,
+} from "../socketHandling/InterpretEvent";
 
 type DisappearedAttachment = {
   id: string;
   disappearedAt: number;
 };
 
-type AttachmentStoreState = {
+type thisState = {
   attachments: IAttachmentMetadata[];
   visibleAttachments: string[];
   disappearedAttachments: DisappearedAttachment[];
 };
 
-const useAttachmentStore = defineStore("attachments", {
+const usethis = defineStore("attachments", {
   state: () =>
     ({
       attachments: [],
       visibleAttachments: [],
       disappearedAttachments: [],
-    } as AttachmentStoreState),
+    } as thisState),
   getters: {
     getAttachment(state) {
       return (id: string) => state.attachments.find((a) => a.ID === id);
@@ -45,6 +49,50 @@ const useAttachmentStore = defineStore("attachments", {
         console.warn("Failed to cache attachment data for", id);
       }
     },
+
+    cleanupInterval() {
+      const disappeared = this.disappearedAttachments.map((da) =>
+        Date.now() - da.disappearedAt > 30000 ? da.id : ""
+      );
+      this.attachments = [
+        ...this.attachments.filter((a) => !disappeared.includes(a.ID)),
+      ];
+      this.disappearedAttachments = [
+        ...this.disappearedAttachments.filter(
+          (da) => !disappeared.includes(da.id)
+        ),
+      ];
+    },
+
+    watchAttachments(e: MessageEvent) {
+      const msg = JSON.parse(e.data);
+      if (!msg) return;
+      if (isAttachmentProgress(msg)) {
+        const i = this.attachments.findIndex((a) => a.ID === msg.data.ID);
+        if (i !== -1) {
+          const newMeta = {
+            ...this.attachments[i],
+            ratio: msg.data.ratio,
+            failed: msg.data.failed,
+          };
+          this.attachments = [
+            ...this.attachments.filter((a) => a.ID !== msg.data.ID),
+            newMeta,
+          ];
+        }
+      }
+      if (isAttachmentMetadataCreated(msg)) {
+        this.attachments = [
+          ...this.attachments.filter((a) => a.ID !== msg.data.ID),
+          {
+            ...msg.data,
+            failed: false,
+            ratio: 0,
+          },
+        ];
+      }
+    },
+
     attachmentEnteredView(id: string) {
       this.cacheAttachment(id);
       this.$state.visibleAttachments = [...this.$state.visibleAttachments, id];
@@ -100,4 +148,4 @@ const useAttachmentStore = defineStore("attachments", {
   },
 });
 
-export default useAttachmentStore;
+export default usethis;

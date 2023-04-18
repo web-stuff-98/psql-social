@@ -330,10 +330,10 @@ func handleUserDeleteListUserDisconnected(udl *sync.Map, ss *socketServer.Socket
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
 
 		if _, err := db.Exec(ctx, "DELETE FROM users WHERE id = $1;", uid); err != nil {
 			log.Printf("Error A in user delete list disconnect sleep channel:%v\n", err)
+			cancel()
 			continue
 		}
 
@@ -341,17 +341,21 @@ func handleUserDeleteListUserDisconnected(udl *sync.Map, ss *socketServer.Socket
 
 		if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE id = $1;", uid); err != nil {
 			log.Printf("Error B in user delete list disconnect sleep channel:%v\n", err)
+			cancel()
 			continue
 		} else {
-			defer rows.Close()
 			for rows.Next() {
 				var id string
 				if err := rows.Scan(&id); err != nil {
+					rows.Close()
+					cancel()
 					log.Printf("Error C in user delete list disconnect sleep channel:%v\n", err)
 					continue
 				}
 				roomSubs = append(roomSubs, fmt.Sprintf("channel:%v", id))
 			}
+
+			rows.Close()
 		}
 
 		changeData := make(map[string]interface{})

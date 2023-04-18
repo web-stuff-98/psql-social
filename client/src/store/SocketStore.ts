@@ -2,12 +2,14 @@ import { defineStore } from "pinia";
 
 type SocketStoreState = {
   socket?: WebSocket;
+  currentlyWatching: string[];
 };
 
 const useSocketStore = defineStore("socket", {
   state: () =>
     ({
       socket: undefined,
+      currentlyWatching: [],
     } as SocketStoreState),
   actions: {
     send(data: "PING" | object) {
@@ -17,7 +19,7 @@ const useSocketStore = defineStore("socket", {
         );
       else console.warn("Socket unavailable");
     },
-    
+
     async connectSocket() {
       return new Promise<WebSocket>((resolve, reject) => {
         const socket = new WebSocket(

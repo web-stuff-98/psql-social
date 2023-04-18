@@ -3,7 +3,7 @@
  * Matches with socketMessages.go
  */
 
-type ChangeEventData = {
+export type ChangeEventData = {
   data: {
     change_type: "UPDATE" | "DELETE" | "INSERT" | "UPDATE_IMAGE";
     entity: "ROOM" | "USER" | "BIO" | "CHANNEL";
