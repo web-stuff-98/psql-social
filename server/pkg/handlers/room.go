@@ -661,7 +661,6 @@ func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 	if data, err := json.Marshal(result); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
-		// return empty list for not found result
 		ctx.Response().Header.Add("Content-Type", "application/json")
 		ctx.Write(data)
 		return nil
