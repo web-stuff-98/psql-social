@@ -28,16 +28,12 @@ import (
 
 func (h handler) Login(ctx *fiber.Ctx) error {
 	v := validator.New()
-	body := &validation.LoginRegister{}
+	body := &validation.Login{}
 	if err := json.Unmarshal(ctx.Body(), &body); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 	if err := v.Struct(body); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
-	}
-
-	if !body.Policy {
-		return fiber.NewError(fiber.StatusBadRequest, "You must agree to the policy")
 	}
 
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
@@ -93,7 +89,7 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 
 func (h handler) Register(ctx *fiber.Ctx) error {
 	v := validator.New()
-	body := &validation.LoginRegister{}
+	body := &validation.Register{}
 	if err := json.Unmarshal(ctx.Body(), &body); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
