@@ -17,6 +17,7 @@ const useRoomChannelStore = defineStore("channels", {
       uidsInCurrentWebRTCChat: [],
     } as RoomChannelStore),
   actions: {
+    // this is called "get" but doesn't return anything. It modifies the store state. So it's not in getters.
     async getRoomChannels(id: string): Promise<string> {
       const channels = await getRoomChannels(id);
       this.$state.channels = channels || [];
