@@ -34,14 +34,16 @@ func main() {
 
 	db := db.Init()
 	rdb := rdb.Init()
-	csdc := make(chan string)    // call server disconnect channel
-	cRTCsdc := make(chan string) // room channel WebRTC chat disconnect channel
+	csdc := make(chan string)    // takes id of disconnected user
+	cRTCsdc := make(chan string) // takes id of disconnected user
 	ss := socketServer.Init(csdc, cRTCsdc)
 	as := attachmentServer.Init(ss, db)
 	cRTCs := channelRTCserver.Init(ss, db, cRTCsdc)
 	cs := callServer.Init(ss, csdc)
 	sl := socketLimiter.Init(rdb)
 
+	// wipe the db and redo the schema, because there may have been changes and I don't know really
+	// how to alter tables and definitely don't know how to do migrations. Also it saves space.
 	sqlBytes, err := ioutil.ReadFile("./schema.sql")
 	if err != nil {
 		log.Fatalf("Unable to read SQL file: %v\n", err)
@@ -53,7 +55,9 @@ func main() {
 
 	defer db.Close()
 
-	h := handlers.New(db, rdb, ss, cs, cRTCs, as, sl)
+	userDeleteList := make(map[string]struct{})
+
+	h := handlers.New(db, rdb, ss, cs, cRTCs, as, sl, userDeleteList)
 	app := fiber.New()
 
 	allowedOrigin := "http://localhost:5173,http://localhost:8080"

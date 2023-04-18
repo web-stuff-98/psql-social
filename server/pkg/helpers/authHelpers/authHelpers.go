@@ -126,9 +126,66 @@ func DeleteSession(redisClient *redis.Client, ctx context.Context, sid string) {
 	redisClient.Del(ctx, sid)
 }
 
-func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, sleep bool) error {
-	if sleep {
-		time.Sleep(time.Minute * 20)
+func DeleteAccountImmediately(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	if _, err := db.Exec(ctx, "DELETE FROM users WHERE id = $1;", uid); err != nil {
+		return err
+	}
+
+	roomSubs := []string{}
+
+	if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE id = $1;", uid); err != nil {
+		return err
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				return err
+			}
+			roomSubs = append(roomSubs, fmt.Sprintf("channel:%v", id))
+		}
+	}
+
+	changeData := make(map[string]interface{})
+	changeData["ID"] = uid
+	ss.SendDataToSub <- socketServer.SubscriptionMessageData{
+		SubName: fmt.Sprintf("user:%v", uid),
+		Data: socketMessages.ChangeEvent{
+			Type:   "DELETE",
+			Data:   changeData,
+			Entity: "USER",
+		},
+		MessageType: "CHANGE",
+	}
+
+	for _, subName := range roomSubs {
+		changeData := make(map[string]interface{})
+		changeData["ID"] = strings.Split(subName, ":")[1]
+		ss.SendDataToSub <- socketServer.SubscriptionMessageData{
+			SubName: subName,
+			Data: socketMessages.ChangeEvent{
+				Type:   "DELETE",
+				Data:   changeData,
+				Entity: "ROOM",
+			},
+			MessageType: "CHANGE",
+		}
+	}
+
+	return nil
+}
+
+// Deletes the users account, but only after 20 minutes and if they don't log back in
+func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, usersDeleteList map[string]struct{}) error {
+	usersDeleteList[uid] = struct{}{}
+
+	time.Sleep(time.Minute * 20)
+
+	if _, ok := usersDeleteList[uid]; !ok {
+		return nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -178,6 +235,8 @@ func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, 
 			MessageType: "CHANGE",
 		}
 	}
+
+	delete(usersDeleteList, uid)
 
 	return nil
 }

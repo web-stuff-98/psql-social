@@ -18,8 +18,10 @@ type handler struct {
 	ChannelRTCServer *channelRTCserver.ChannelRTCServer
 	AttachmentServer *attachmentServer.AttachmentServer
 	SocketLimiter    *socketLimiter.SocketLimiter
+	// users that are pending deletion. Needed to cancel user deletes if they log back in
+	UserDeleteList map[string]struct{}
 }
 
-func New(db *pgxpool.Pool, rdb *redis.Client, ss *socketServer.SocketServer, cs *callServer.CallServer, cRTCs *channelRTCserver.ChannelRTCServer, as *attachmentServer.AttachmentServer, sl *socketLimiter.SocketLimiter) handler {
-	return handler{db, rdb, ss, cs, cRTCs, as, sl}
+func New(db *pgxpool.Pool, rdb *redis.Client, ss *socketServer.SocketServer, cs *callServer.CallServer, cRTCs *channelRTCserver.ChannelRTCServer, as *attachmentServer.AttachmentServer, sl *socketLimiter.SocketLimiter, userDeleteList map[string]struct{}) handler {
+	return handler{db, rdb, ss, cs, cRTCs, as, sl, userDeleteList}
 }
