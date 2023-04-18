@@ -4,12 +4,12 @@ import { bioUid } from "../../store/ViewBioStore";
 import { getUserBio } from "../../services/user";
 import { IResMsg } from "../../interfaces/GeneralInterfaces";
 import { StartWatching, StopWatching } from "../../socketHandling/OutEvents";
+import { isChangeEvent } from "../../socketHandling/InterpretEvent";
 import useSocketStore from "../../store/SocketStore";
 import Modal from "./Modal.vue";
 import User from "../shared/User.vue";
 import ResMsg from "../shared/ResMsg.vue";
 import ModalCloseButton from "../shared/ModalCloseButton.vue";
-import { isChangeEvent } from "../../socketHandling/InterpretEvent";
 
 const socketStore = useSocketStore();
 

@@ -24,6 +24,10 @@ type SearchUser struct {
 	Username string `json:"username" validate:"required,gte=2,lte=16"`
 }
 
+type SearchRooms struct {
+	Name string `json:"name" validate:"required,lte=16"`
+}
+
 type Bio struct {
 	Content string `json:"content" validate:"lte=300"`
 }

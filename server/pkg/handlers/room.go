@@ -596,6 +596,78 @@ func (h handler) GetRoom(ctx *fiber.Ctx) error {
 	return nil
 }
 
+func (h handler) SearchRooms(ctx *fiber.Ctx) error {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	_, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	defer conn.Release()
+
+	result := []responses.Room{}
+
+	v := validator.New()
+	body := &validation.SearchRooms{}
+	if err = json.Unmarshal(ctx.Body(), &body); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	if err = v.Struct(body); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+
+	if selectStmt, err := conn.Conn().Prepare(rctx, "search_rooms_select_stmt", "SELECT id,name,private,author_id,created_at FROM rooms WHERE LOWER(name) LIKE $1;"); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		if rows, err := conn.Conn().Query(rctx, selectStmt.Name, body.Name); err != nil {
+			if err != pgx.ErrNoRows {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			} else {
+				if data, err := json.Marshal(result); err != nil {
+					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+				} else {
+					// return empty list for not found result
+					ctx.Response().Header.Add("Content-Type", "application/json")
+					ctx.Write(data)
+					return nil
+				}
+			}
+		} else {
+			defer rows.Close()
+			for rows.Next() {
+				var id, name, author_id string
+				var created_at pgtype.Timestamptz
+				var private bool
+				if err = rows.Scan(&id, &name, &private, &author_id, &created_at); err != nil {
+					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+				}
+				result = append(result, responses.Room{
+					ID:        id,
+					Name:      name,
+					AuthorID:  author_id,
+					Private:   private,
+					CreatedAt: created_at.Time.Format(time.RFC3339),
+				})
+			}
+		}
+	}
+
+	if data, err := json.Marshal(result); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		// return empty list for not found result
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Write(data)
+		return nil
+	}
+}
+
 func (h handler) GetRoomImage(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
