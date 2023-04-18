@@ -383,7 +383,7 @@ func (h handler) DownloadAttachment(ctx *fiber.Ctx) error {
 	ctx.Response().Header.SetContentLength(size)
 	ctx.Response().Header.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%v"`, url.PathEscape(name)))
 
-	// i used a goto here but whatever, it's useful
+	// i used a goto here because it's useful
 	var chunkBytes pgtype.Bytea
 	recursivelyWriteAttachmentChunksToResponse := func() error {
 	WRITE:
@@ -407,10 +407,12 @@ func (h handler) DownloadAttachment(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
+	rctx.Done()
 	return nil
 }
 
-// Doesn't work, cant be asked to fix, I wasted days on this last time
+// Doesn't work, cant be asked to fix, I wasted days on this last time.
+// It does work for videos smaller than the chunk size but that's completely useless
 func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	if id == "" {
