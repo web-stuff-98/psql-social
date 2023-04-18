@@ -24,11 +24,13 @@ const usethis = defineStore("attachments", {
       visibleAttachments: [],
       disappearedAttachments: [],
     } as thisState),
+    
   getters: {
     getAttachment(state) {
       return (id: string) => state.attachments.find((a) => a.ID === id);
     },
   },
+
   actions: {
     async cacheAttachment(id: string, force?: boolean) {
       if (
