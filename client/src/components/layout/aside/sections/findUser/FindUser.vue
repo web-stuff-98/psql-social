@@ -73,7 +73,6 @@ function handleInput(e: Event) {
   width: 100%;
   position: relative;
   border-radius: var(--border-radius-sm);
-  padding: var(--gap-sm);
   gap: var(--gap-sm);
   display: flex;
   flex-direction: column;
@@ -91,8 +90,8 @@ function handleInput(e: Event) {
       justify-content: flex-start;
       align-items: flex-start;
       flex-direction: column;
-      gap: var(--gap-sm);
-      padding: var(--gap-sm);
+      gap: var(--gap-md);
+      padding: var(--gap-md);
     }
   }
   .search-container {
@@ -101,6 +100,7 @@ function handleInput(e: Event) {
     display: flex;
     align-items: center;
     gap: 2px;
+    padding: var(--gap-sm);
     input {
       padding: 2px 4px;
       width: 100%;
