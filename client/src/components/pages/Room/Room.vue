@@ -1,13 +1,6 @@
 <script lang="ts" setup>
 import { IResMsg, IRoomChannel } from "../../../interfaces/GeneralInterfaces";
-import {
-  onBeforeUnmount,
-  onMounted,
-  toRef,
-  ref,
-  nextTick,
-  watch,
-} from "vue";
+import { onBeforeUnmount, onMounted, toRef, ref, nextTick, watch } from "vue";
 import { useRoute } from "vue-router";
 import {
   JoinRoom,
@@ -133,10 +126,17 @@ async function joinChannel(channelId: string) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
     const { messages: msgs, users_in_webrtc } = await getRoomChannel(channelId);
-    if (msgs) msgs.forEach((m) => userStore.cacheUser(m.author_id));
+    if (msgs) {
+      for await (const msg of msgs) {
+        await userStore.cacheUser(msg.author_id);
+      }
+    }
     messages.value = msgs || [];
-    if (users_in_webrtc)
-      users_in_webrtc.forEach((uid) => userStore.cacheUser(uid));
+    if (users_in_webrtc) {
+      for await (const uid of users_in_webrtc) {
+        await userStore.cacheUser(uid);
+      }
+    }
     roomChannelStore.uidsInCurrentWebRTCChat = users_in_webrtc || [];
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
