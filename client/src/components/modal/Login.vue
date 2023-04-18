@@ -51,7 +51,7 @@ async function handleSubmit(values: any) {
     <div class="input-label">
       <label for="password">Password</label>
       <Field
-        type="text"
+        type="password"
         name="password"
         id="password"
         :rules="validatePassword as any"
