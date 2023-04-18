@@ -324,6 +324,7 @@ func handleUserDeleteListUserDisconnected(udl *sync.Map, ss *socketServer.Socket
 
 		time.Sleep(time.Minute * 20)
 
+		// if the users id is not in the delete list anymore then don't delete the account
 		if _, ok := udl.Load(uid); !ok {
 			continue
 		}
