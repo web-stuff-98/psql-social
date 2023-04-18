@@ -159,7 +159,7 @@ func (h handler) SearchUsers(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	if selectStmt, err := conn.Conn().Prepare(rctx, "search_users_select_stmt", "SELECT id FROM users WHERE username LIKE $1;"); err != nil {
+	if selectStmt, err := conn.Conn().Prepare(rctx, "search_users_select_stmt", "SELECT id FROM users WHERE LOWER(username) LIKE LOWER($1);"); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if rows, err := conn.Conn().Query(rctx, selectStmt.Name, body.Username); err != nil {
