@@ -36,9 +36,8 @@ onBeforeUnmount(() => {
   userStore.userLeftView(frq.value.friender);
 });
 
-function uppercaseFirstLetter(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+const uppercaseFirstLetter = (str: string) =>
+  str.charAt(0).toUpperCase() + str.slice(1);
 </script>
 
 <template>
