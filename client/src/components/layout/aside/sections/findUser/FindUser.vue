@@ -2,7 +2,7 @@
 import { Field, Form } from "vee-validate";
 import { ref } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
-import { getUserByName } from "../../../../../services/user";
+import { searchUsers } from "../../../../../services/user";
 import useUserStore from "../../../../../store/UserStore";
 import ErrorMessage from "../../../../shared/ErrorMessage.vue";
 import ResMsg from "../../../../shared/ResMsg.vue";
@@ -13,19 +13,19 @@ const userStore = useUserStore();
 const formRef = ref<HTMLFormElement>();
 const searchTimeout = ref<NodeJS.Timeout>();
 const username = ref("");
-const result = ref("");
+const result = ref<string[]>([]);
 
 const resMsg = ref<IResMsg>({});
 
 async function handleSubmit() {
   const abortController = new AbortController();
   try {
-    result.value = "";
     resMsg.value = { msg: "", err: false, pen: true };
+    result.value = [];
     if (username.value.trim()) {
-      const uid = await getUserByName(username.value);
-      result.value = uid;
-      if (uid) await userStore.cacheUser(uid);
+      const uids = await searchUsers(username.value);
+      result.value = uids || [];
+      if (uids) uids.forEach((uid) => userStore.cacheUser(uid));
     }
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
@@ -47,7 +47,7 @@ function handleInput(e: Event) {
 
 <template>
   <div class="find-user">
-    <div class="result"><User v-if="result" :uid="result" /></div>
+    <div class="result"><User v-for="uid in result" :uid="uid" /></div>
     <ErrorMessage name="username" />
     <ResMsg
       v-if="resMsg.msg && resMsg.msg !== 'User not found'"
@@ -80,6 +80,8 @@ function handleInput(e: Event) {
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
+    flex-direction: column;
+    gap: var(--gap-sm);
   }
   .search-container {
     padding: 0;
