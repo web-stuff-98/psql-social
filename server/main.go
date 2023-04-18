@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	attachmentServer "github.com/web-stuff-98/psql-social/pkg/attachmentServer"
 	callServer "github.com/web-stuff-98/psql-social/pkg/callServer"
@@ -19,6 +22,7 @@ import (
 	mw "github.com/web-stuff-98/psql-social/pkg/handlers/middleware"
 	rdb "github.com/web-stuff-98/psql-social/pkg/redis"
 	socketLimiter "github.com/web-stuff-98/psql-social/pkg/socketLimiter"
+	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
 
@@ -30,9 +34,11 @@ func main() {
 
 	db := db.Init()
 	rdb := rdb.Init()
-	csdc := make(chan string)    // takes id of disconnected user
-	cRTCsdc := make(chan string) // takes id of disconnected user
-	ss := socketServer.Init(csdc, cRTCsdc)
+	csdc := make(chan string)    // takes id of disconnected user (call server disconnect chan)
+	cRTCsdc := make(chan string) // takes id of disconnected user (channel rtc disconnect chan)
+	udlcdc := make(chan string)  // takes id of user (user delete list cancel delete chan)
+	udludc := make(chan string)  // takes id of disconnected user (user delete list user disconnect chan)
+	ss := socketServer.Init(csdc, cRTCsdc, udlcdc, udludc)
 	as := attachmentServer.Init(ss, db)
 	cRTCs := channelRTCserver.Init(ss, db, cRTCsdc)
 	cs := callServer.Init(ss, csdc)
@@ -51,10 +57,12 @@ func main() {
 
 	defer db.Close()
 
-	// need to add a mutex lock for this - race condition
 	var userDeleteList sync.Map
 
-	h := handlers.New(db, rdb, ss, cs, cRTCs, as, sl, userDeleteList)
+	go handleUserDeleteCancelDelete(&userDeleteList, udlcdc)
+	go handleUserDeleteListUserDisconnected(&userDeleteList, ss, db, udludc)
+
+	h := handlers.New(db, rdb, ss, cs, cRTCs, as, sl)
 	app := fiber.New()
 
 	allowedOrigin := "http://localhost:5173,http://localhost:8080"
@@ -296,4 +304,76 @@ func main() {
 
 	log.Printf("API opening on port %v", os.Getenv("PORT"))
 	log.Fatalln(app.Listen(":" + os.Getenv("PORT")))
+}
+
+func handleUserDeleteCancelDelete(udl *sync.Map, udldc chan string) {
+	for {
+		uid := <-udldc
+
+		udl.Delete(uid)
+	}
+}
+
+func handleUserDeleteListUserDisconnected(udl *sync.Map, ss *socketServer.SocketServer, db *pgxpool.Pool, udludc chan string) {
+	for {
+		uid := <-udludc
+
+		udl.Store(uid, struct{}{})
+
+		time.Sleep(time.Minute * 20)
+
+		if _, ok := udl.Load(uid); !ok {
+			continue
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		if _, err := db.Exec(ctx, "DELETE FROM users WHERE id = $1;", uid); err != nil {
+			continue
+		}
+
+		roomSubs := []string{}
+
+		if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE id = $1;", uid); err != nil {
+			continue
+		} else {
+			defer rows.Close()
+			for rows.Next() {
+				var id string
+				if err := rows.Scan(&id); err != nil {
+					continue
+				}
+				roomSubs = append(roomSubs, fmt.Sprintf("channel:%v", id))
+			}
+		}
+
+		changeData := make(map[string]interface{})
+		changeData["ID"] = uid
+		ss.SendDataToSub <- socketServer.SubscriptionMessageData{
+			SubName: fmt.Sprintf("user:%v", uid),
+			Data: socketMessages.ChangeEvent{
+				Type:   "DELETE",
+				Data:   changeData,
+				Entity: "USER",
+			},
+			MessageType: "CHANGE",
+		}
+
+		for _, subName := range roomSubs {
+			changeData := make(map[string]interface{})
+			changeData["ID"] = strings.Split(subName, ":")[1]
+			ss.SendDataToSub <- socketServer.SubscriptionMessageData{
+				SubName: subName,
+				Data: socketMessages.ChangeEvent{
+					Type:   "DELETE",
+					Data:   changeData,
+					Entity: "ROOM",
+				},
+				MessageType: "CHANGE",
+			}
+		}
+
+		udl.Delete(uid)
+	}
 }

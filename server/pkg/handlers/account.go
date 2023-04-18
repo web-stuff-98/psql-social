@@ -83,8 +83,6 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 		ctx.Response().Header.Add("Content-Type", "application/json")
 		ctx.WriteString(id)
 
-		h.UserDeleteList.Delete(id)
-
 		return nil
 	}
 }
@@ -181,7 +179,6 @@ func (h handler) Logout(ctx *fiber.Ctx) error {
 		h.SocketServer.CloseConnChan <- uid
 		authHelpers.DeleteSession(h.RedisClient, rctx, sid)
 		ctx.Cookie(authHelpers.GetClearedCookie())
-		go authHelpers.DeleteAccount(uid, h.DB, h.SocketServer, h.UserDeleteList)
 	}
 
 	return nil

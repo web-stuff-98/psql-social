@@ -127,7 +127,7 @@ type SubscriptionsMessageData struct {
 	Data        interface{}
 }
 
-func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
+func Init(csdc chan string, cRTCsdc chan string, udlcdc chan string, udludc chan string) *SocketServer {
 	ss := &SocketServer{
 		Server: Server{
 			data: ServerData{
@@ -159,13 +159,13 @@ func Init(csdc chan string, cRTCsdc chan string) *SocketServer {
 
 		GetSubscriptionUids: make(chan GetSubscriptionUids),
 	}
-	go runServer(ss, csdc, cRTCsdc)
+	go runServer(ss, csdc, cRTCsdc, udlcdc, udludc)
 	return ss
 }
 
-func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
-	go connection(ss)
-	go disconnect(ss, csdc, cRTCsdc)
+func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string, udlcdc chan string, udludc chan string) {
+	go connection(ss, udlcdc)
+	go disconnect(ss, csdc, cRTCsdc, udludc)
 	go checkUserOnline(ss)
 	go closeConn(ss)
 	go messageLoop(ss)
@@ -207,7 +207,7 @@ func WriteMessage(t string, m interface{}, c *websocket.Conn, ss *SocketServer) 
 	}
 }
 
-func connection(ss *SocketServer) {
+func connection(ss *SocketServer, udlcdc chan string) {
 	for {
 		data := <-ss.RegisterConn
 
@@ -216,6 +216,8 @@ func connection(ss *SocketServer) {
 		ss.Server.data.ConnectionsByID[data.Uid] = data.Conn
 
 		ss.Server.mutex.Unlock()
+
+		udlcdc <- data.Uid
 
 		changeData := make(map[string]interface{})
 		changeData["ID"] = data.Uid
@@ -231,7 +233,7 @@ func connection(ss *SocketServer) {
 	}
 }
 
-func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
+func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string, udludc chan string) {
 	for {
 		conn := <-ss.UnregisterConn
 
@@ -251,6 +253,7 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string) {
 
 		csdc <- uid
 		cRTCsdc <- uid
+		udludc <- uid
 		ss.AttachmentServerRemoveUploaderChan <- uid
 
 		if conn != nil {
