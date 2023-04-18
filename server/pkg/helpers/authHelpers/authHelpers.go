@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -179,12 +180,12 @@ func DeleteAccountImmediately(uid string, db *pgxpool.Pool, ss *socketServer.Soc
 }
 
 // Deletes the users account, but only after 20 minutes and if they don't log back in
-func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, usersDeleteList map[string]struct{}) error {
-	usersDeleteList[uid] = struct{}{}
+func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, usersDeleteList sync.Map) error {
+	usersDeleteList.Store(uid, struct{}{})
 
 	time.Sleep(time.Minute * 20)
 
-	if _, ok := usersDeleteList[uid]; !ok {
+	if _, ok := usersDeleteList.Load(uid); !ok {
 		return nil
 	}
 
@@ -236,7 +237,7 @@ func DeleteAccount(uid string, db *pgxpool.Pool, ss *socketServer.SocketServer, 
 		}
 	}
 
-	delete(usersDeleteList, uid)
+	usersDeleteList.Delete(uid)
 
 	return nil
 }

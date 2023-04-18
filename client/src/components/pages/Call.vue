@@ -48,6 +48,7 @@ function negotiateConnection(isOnMounted?: boolean) {
     requestReInitialization();
   }
 }
+
 function requestReInitialization() {
   socketStore.send({
     event_type: "CALL_WEBRTC_RECIPIENT_REQUEST_REINITIALIZATION",

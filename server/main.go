@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -20,11 +21,6 @@ import (
 	socketLimiter "github.com/web-stuff-98/psql-social/pkg/socketLimiter"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
 )
-
-type spaHandler struct {
-	staticPath string
-	indexPath  string
-}
 
 func main() {
 	err := godotenv.Load()
@@ -55,7 +51,8 @@ func main() {
 
 	defer db.Close()
 
-	userDeleteList := make(map[string]struct{})
+	// need to add a mutex lock for this - race condition
+	var userDeleteList sync.Map
 
 	h := handlers.New(db, rdb, ss, cs, cRTCs, as, sl, userDeleteList)
 	app := fiber.New()

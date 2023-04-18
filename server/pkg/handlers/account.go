@@ -83,7 +83,7 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 		ctx.Response().Header.Add("Content-Type", "application/json")
 		ctx.WriteString(id)
 
-		delete(h.UserDeleteList, id)
+		h.UserDeleteList.Delete(id)
 
 		return nil
 	}
