@@ -50,7 +50,7 @@ func Init() *pgxpool.Pool {
 
 func monitorPool(pool *pgxpool.Pool) {
 	ticker := time.NewTicker(50 * time.Millisecond)
-	for _ = range ticker.C {
+	for range ticker.C {
 		stat := pool.Stat()
 		cmd := exec.Command("cmd", "/c", "cls")
 		cmd.Stdout = os.Stdout
