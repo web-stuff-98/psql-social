@@ -596,6 +596,7 @@ func (h handler) GetRoom(ctx *fiber.Ctx) error {
 	return nil
 }
 
+// this is an unused API route, but it needs pagination, need to add it to the frontend too
 func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()

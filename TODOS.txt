@@ -1,9 +1,6 @@
 
 not all todos, just ones I plan on doing next. probably already done them
 
-- fix socket server deadlock
-- add banned users section
-- add explore rooms section
-- improve UI, looks a bit "old fashioned" or something
-- add spinning wireframe sphere background with three js (will look cool)
+- add "explore rooms" aside section with pagination
+- add pagination to find users aside section
 - re-record demo video with new changes
