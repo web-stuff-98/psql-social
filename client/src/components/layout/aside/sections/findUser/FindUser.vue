@@ -92,6 +92,7 @@ function handleInput(e: Event) {
       align-items: flex-start;
       flex-direction: column;
       gap: var(--gap-sm);
+      padding: var(--gap-sm);
     }
   }
   .search-container {
