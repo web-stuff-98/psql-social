@@ -57,8 +57,10 @@ func main() {
 
 	defer db.Close()
 
+	// user delete stuff... if a user logs out then socket server will send the user id to the
+	// user disconnected channel. When a user connects back to the socket server the user id will
+	// be sent to the handleUserDeleteCancelDelete channel
 	var userDeleteList sync.Map
-
 	go handleUserDeleteCancelDelete(&userDeleteList, udlcdc)
 	go handleUserDeleteListUserDisconnected(&userDeleteList, ss, db, udludc)
 
@@ -330,18 +332,21 @@ func handleUserDeleteListUserDisconnected(udl *sync.Map, ss *socketServer.Socket
 		defer cancel()
 
 		if _, err := db.Exec(ctx, "DELETE FROM users WHERE id = $1;", uid); err != nil {
+			log.Printf("Error A in user delete list disconnect sleep channel:%v\n", err)
 			continue
 		}
 
 		roomSubs := []string{}
 
 		if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE id = $1;", uid); err != nil {
+			log.Printf("Error B in user delete list disconnect sleep channel:%v\n", err)
 			continue
 		} else {
 			defer rows.Close()
 			for rows.Next() {
 				var id string
 				if err := rows.Scan(&id); err != nil {
+					log.Printf("Error C in user delete list disconnect sleep channel:%v\n", err)
 					continue
 				}
 				roomSubs = append(roomSubs, fmt.Sprintf("channel:%v", id))
