@@ -184,7 +184,7 @@ func (h handler) SearchUsers(ctx *fiber.Ctx) error {
 					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 				}
 				var blocked bool
-				if err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked_id = $1);", uid).Scan(&blocked); err != nil {
+				if err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1);", uid).Scan(&blocked); err != nil {
 					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 				}
 				if !blocked {
@@ -194,12 +194,11 @@ func (h handler) SearchUsers(ctx *fiber.Ctx) error {
 		}
 	}
 
-	var out []byte
-	if err = json.Unmarshal(out, &result); err != nil {
+	if data, err := json.Marshal(result); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
-		ctx.Write(out)
+		ctx.Write(data)
 		return nil
 	}
 }

@@ -23,14 +23,14 @@ func Init() *pgxpool.Pool {
 		if err != nil {
 			log.Fatalln("Failed to parse DB URL config")
 		}
-		parsedConfig.MaxConnLifetime = time.Second * 3
+		parsedConfig.MaxConnLifetime = time.Second * 10
 		// 1000 because there is no connection limit for local development db
 		parsedConfig.MaxConns = 1000
 	} else {
 		if err != nil {
 			log.Fatalln("Failed to parse DB URL config")
 		}
-		parsedConfig.MaxConnLifetime = time.Second * 3
+		parsedConfig.MaxConnLifetime = time.Second * 10
 		// heroku addon says 20 maximum connections
 		parsedConfig.MaxConns = 20
 	}
