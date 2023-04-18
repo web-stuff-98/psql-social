@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
-import { getFriendsUids } from "../../../../../services/account"
+import { getFriendsUids } from "../../../../../services/account";
 import User from "../../../../shared/User.vue";
 import ResMsg from "../../../../shared/ResMsg.vue";
 import {
@@ -43,7 +43,11 @@ onMounted(async () => {
     // remove duplicates that somehow magically end up in the array
     friends.value =
       ids?.filter((item, index) => ids.indexOf(item) === index) || [];
-    if (ids) ids.forEach((id) => userStore.cacheUser(id));
+    if (ids) {
+      for await (const id of ids) {
+        await userStore.cacheUser(id);
+      }
+    }
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };

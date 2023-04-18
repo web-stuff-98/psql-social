@@ -50,7 +50,11 @@ onMounted(async () => {
     // remove duplicates that somehow magically end up in the array
     blocked.value =
       ids?.filter((item, index) => ids.indexOf(item) === index) || [];
-    if (ids) ids.forEach((id) => userStore.cacheUser(id));
+    if (ids) {
+      for await (const id of ids) {
+        await userStore.cacheUser(id);
+      }
+    }
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };

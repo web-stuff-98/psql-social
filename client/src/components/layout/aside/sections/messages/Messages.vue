@@ -88,6 +88,25 @@ async function getConversation(uid: string) {
   try {
     resMsg.value = { msg: "", pen: true, err: false };
     const data = await getConversationContent(uid);
+    if (data?.friend_requests) {
+      for await (const frq of data.friend_requests) {
+        const otherUser =
+          frq.friended === authStore.uid ? frq.friender : frq.friended;
+        await userStore.cacheUser(otherUser);
+      }
+    }
+    if (data?.invitations) {
+      for await (const inv of data.invitations) {
+        const otherUser =
+          inv.invited === authStore.uid ? inv.inviter : inv.invited;
+        await userStore.cacheUser(otherUser);
+      }
+    }
+    if (data?.direct_messages) {
+      for await (const { author_id } of data.direct_messages) {
+        await userStore.cacheUser(author_id);
+      }
+    }
     if (data) {
       inboxStore.convs[uid] = [
         ...(data.friend_requests || []),

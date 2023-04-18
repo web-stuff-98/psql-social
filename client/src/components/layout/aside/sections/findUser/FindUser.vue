@@ -23,9 +23,13 @@ async function handleSubmit() {
     resMsg.value = { msg: "", err: false, pen: true };
     result.value = [];
     if (username.value.trim()) {
-      const uids = await searchUsers(username.value);
-      result.value = uids || [];
-      if (uids) uids.forEach((uid) => userStore.cacheUser(uid));
+      const ids = await searchUsers(username.value);
+      result.value = ids || [];
+      if (ids) {
+        for await (const id of ids) {
+          await userStore.cacheUser(id);
+        }
+      }
     }
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
@@ -53,10 +57,7 @@ function handleInput(e: Event) {
       </div>
     </div>
     <ErrorMessage name="username" />
-    <ResMsg
-      v-if="resMsg.msg && resMsg.msg !== 'User not found'"
-      :resMsg="resMsg"
-    />
+    <ResMsg v-if="resMsg.msg" :resMsg="resMsg" />
     <Form ref="formRef" @submit="handleSubmit" class="search-container">
       <Field name="username" id="username" @change="handleInput" type="text" />
       <v-icon
