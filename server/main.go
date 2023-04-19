@@ -156,8 +156,8 @@ func main() {
 		RouteName:     "create-room",
 	}, rdb, db))
 	app.Post("/api/room/:id/img", mw.BasicRateLimiter(h.UploadRoomImage, mw.SimpleLimiterOpts{
-		Window:        time.Minute * 1,
-		MaxReqs:       30,
+		Window:        time.Second * 30,
+		MaxReqs:       300,
 		BlockDuration: time.Minute * 10,
 		Message:       "Too many requests",
 		RouteName:     "upload-room-image",

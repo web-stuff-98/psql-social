@@ -24,12 +24,12 @@ async function handleSubmit() {
     result.value = [];
     if (username.value.trim()) {
       const ids = await searchUsers(username.value);
-      result.value = ids || [];
       if (ids) {
         for await (const id of ids) {
           await userStore.cacheUser(id);
         }
       }
+      result.value = ids || [];
     }
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
