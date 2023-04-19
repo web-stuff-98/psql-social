@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onBeforeUnmount, onMounted, ref, toRefs } from "vue";
+import { onBeforeUnmount, onMounted, ref, toRefs, computed } from "vue";
 import { deleteRoom } from "../../../../../services/room";
 import useRoomStore from "../../../../../store/RoomStore";
 import useAuthStore from "../../../../../store/AuthStore";
@@ -14,7 +14,7 @@ const authStore = useAuthStore();
 const roomStore = useRoomStore();
 
 const container = ref<HTMLElement>();
-const room = roomStore.getRoom(rid.value);
+const room = computed(() => roomStore.getRoom(rid.value));
 
 const isEditing = ref(false);
 

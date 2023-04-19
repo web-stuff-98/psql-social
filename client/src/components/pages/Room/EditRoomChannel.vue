@@ -25,7 +25,7 @@ async function handleSubmit(values: any) {
     resMsg.value = { msg: "", err: false, pen: true };
     await updateRoomChannel({
       name: values.name,
-      main: values.name,
+      main: values.main,
       id: channelId.value,
     });
     resMsg.value = { msg: "", err: false, pen: false };

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onBeforeUnmount, onMounted, toRefs } from "vue";
+import { onBeforeUnmount, onMounted, toRefs, computed } from "vue";
 import { IInvitation } from "../../../../../interfaces/GeneralInterfaces";
 import { InvitationResponse } from "../../../../../socketHandling/OutEvents";
 import useAuthStore from "../../../../../store/AuthStore";
@@ -17,7 +17,7 @@ const roomStore = useRoomStore();
 
 const inviter = userStore.getUser(inv.value.inviter)?.username;
 const invited = userStore.getUser(inv.value.invited)?.username;
-const room = roomStore.getRoom(inv.value.room_id);
+const room = computed(() => roomStore.getRoom(inv.value.room_id));
 
 function respond(accepted: boolean) {
   socketStore.send({

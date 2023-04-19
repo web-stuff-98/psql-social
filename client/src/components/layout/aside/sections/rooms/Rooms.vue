@@ -17,9 +17,9 @@ import useSocketStore from "../../../../../store/SocketStore";
 // ALL mode is rooms that are public, rooms the user is a member of, the users own rooms (using pagination) (using getRoomsPage())
 // SEARCH mode is the same as explore mode but includes search by name (using pagination) (using searchRooms())
 enum EMode {
-  "OWN_AND_MEMBERS" = "Joined",
-  "ALL" = "Explore",
-  "SEARCH" = "Search",
+  "OWN_AND_MEMBERS" = "Joined or owned",
+  "ALL" = "Explore all",
+  "SEARCH" = "Search all",
 }
 
 const roomStore = useRoomStore();
