@@ -22,7 +22,7 @@ func GenerateSeed(userCount int, roomCount int, db *pgxpool.Pool) {
 	rooms := []string{}
 
 	// generate users
-	for i := 0; i < roomCount; i++ {
+	for i := 0; i < userCount; i++ {
 		uid := generateUser(i, db)
 		users = append(users, uid)
 
@@ -30,7 +30,7 @@ func GenerateSeed(userCount int, roomCount int, db *pgxpool.Pool) {
 	}
 
 	// generate rooms
-	for i := 0; i < userCount; i++ {
+	for i := 0; i < roomCount; i++ {
 		randInt, err := rand.Int(rand.Reader, big.NewInt(int64(len(users))))
 		if err != nil {
 			log.Fatalf("Error generating random index in seed function:%v", err)
@@ -53,7 +53,7 @@ func generateRoom(index int, uid string, db *pgxpool.Pool) string {
 		author_id,
 		seeded
 	) VALUES($1,$2,$3,TRUE) RETURNING id;
-	`, fmt.Sprintf("TestAcc%v", index+1), false, uid).Scan(&id); err != nil {
+	`, fmt.Sprintf("TestRoom%v", index+1), false, uid).Scan(&id); err != nil {
 		log.Fatalf("Error in generate room seed function:%v", err)
 	}
 

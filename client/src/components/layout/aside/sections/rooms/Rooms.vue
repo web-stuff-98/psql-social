@@ -214,6 +214,9 @@ onBeforeUnmount(() => {
       gap: var(--gap-sm);
       display: flex;
       flex-direction: column;
+      position: absolute;
+      left: 0;
+      top: 0;
     }
   }
   .pagination-controls-create-button {
