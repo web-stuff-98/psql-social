@@ -223,6 +223,14 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 
 	content := strings.TrimSpace(bio.Content)
 
+	var seeded bool
+	if err = h.DB.QueryRow(rctx, "SELECT seeded FROM users WHERE id = $1;", uid).Scan(&seeded); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	if seeded {
+		return fiber.NewError(fiber.StatusBadRequest, "You cannot modify the example accounts")
+	}
+
 	exists := false
 	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bios WHERE user_id = $1);", uid).Scan(&exists) // added error handling here
 	if err != nil {
@@ -301,6 +309,14 @@ func (h handler) UploadPfp(ctx *fiber.Ctx) error {
 	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	var seeded bool
+	if err = h.DB.QueryRow(rctx, "SELECT seeded FROM users WHERE id = $1;", uid).Scan(&seeded); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	if seeded {
+		return fiber.NewError(fiber.StatusBadRequest, "You cannot modify the example accounts")
 	}
 
 	fh, err := ctx.FormFile("file")

@@ -345,6 +345,17 @@ func handleUserDeleteListUserDisconnected(udl *sync.Map, ss *socketServer.Socket
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 
+		var seeded bool
+		if err := db.QueryRow(ctx, "SELECT seeded FROM users WHERE id = $1;", uid).Scan(&seeded); err != nil {
+			log.Printf("Error A in user delete list disconnect sleep channel:%v\n", err)
+			cancel()
+			continue
+		}
+		if seeded {
+			cancel()
+			continue
+		}
+
 		if _, err := db.Exec(ctx, "DELETE FROM users WHERE id = $1;", uid); err != nil {
 			log.Printf("Error A in user delete list disconnect sleep channel:%v\n", err)
 			cancel()
@@ -353,7 +364,7 @@ func handleUserDeleteListUserDisconnected(udl *sync.Map, ss *socketServer.Socket
 
 		roomSubs := []string{}
 
-		if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE id = $1;", uid); err != nil {
+		if rows, err := db.Query(ctx, "SELECT id FROM rooms WHERE author_id = $1;", uid); err != nil {
 			log.Printf("Error B in user delete list disconnect sleep channel:%v\n", err)
 			cancel()
 			continue

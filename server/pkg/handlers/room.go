@@ -129,6 +129,14 @@ func (h handler) UpdateRoom(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
+	var seeded bool
+	if err = h.DB.QueryRow(rctx, "SELECT seeded FROM rooms WHERE id = $1;", room_id).Scan(&seeded); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	if seeded {
+		return fiber.NewError(fiber.StatusBadRequest, "You cannot modify the example rooms")
+	}
+
 	conn, err := h.DB.Acquire(rctx)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
@@ -223,17 +231,22 @@ func (h handler) UpdateRoomChannel(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectRoomStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_room_stmt", "SELECT author_id FROM rooms WHERE id = $1;")
+	var seeded bool
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_room_stmt", "SELECT seeded,author_id FROM rooms WHERE id = $1;")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	var author_id string
-	if err = conn.QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&author_id); err != nil {
+	if err = conn.QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&seeded, &author_id); err != nil {
 		if err != pgx.ErrNoRows {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
 			return fiber.NewError(fiber.StatusNotFound, "Room not found")
 		}
+	}
+
+	if seeded {
+		return fiber.NewError(fiber.StatusBadRequest, "You cannot modify the example rooms")
 	}
 
 	if author_id != uid {
@@ -337,17 +350,22 @@ func (h handler) DeleteRoomChannel(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectRoomStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_room_stmt", "SELECT author_id FROM rooms WHERE id = $1;")
+	var seeded bool
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_room_stmt", "SELECT seeded,author_id FROM rooms WHERE id = $1;")
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	var author_id string
-	if err = conn.QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&author_id); err != nil {
+	if err = conn.QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&seeded, &author_id); err != nil {
 		if err != pgx.ErrNoRows {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
 			return fiber.NewError(fiber.StatusNotFound, "Room not found")
 		}
+	}
+
+	if seeded {
+		return fiber.NewError(fiber.StatusBadRequest, "You cannot modify the example rooms")
 	}
 
 	if author_id != uid {
@@ -937,6 +955,14 @@ func (h handler) DeleteRoom(ctx *fiber.Ctx) error {
 	room_id := ctx.Params("id")
 	if room_id == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
+	}
+
+	var seeded bool
+	if err = h.DB.QueryRow(rctx, "SELECT seeded FROM rooms WHERE id = $1;", room_id).Scan(&seeded); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	if seeded {
+		return fiber.NewError(fiber.StatusBadRequest, "You cannot modify the example rooms")
 	}
 
 	conn, err := h.DB.Acquire(rctx)

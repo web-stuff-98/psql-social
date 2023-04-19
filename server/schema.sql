@@ -11,7 +11,8 @@ CREATE TABLE users (
     /* "ADMIN" | "USER" , role exists but its not used for anything*/
     role VARCHAR(5) NOT NULL,
     friends UUID [] DEFAULT '{}' :: UUID [],
-    blocked UUID [] DEFAULT '{}' :: UUID []
+    blocked UUID [] DEFAULT '{}' :: UUID [],
+    seeded BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE friends (
@@ -44,7 +45,8 @@ CREATE TABLE rooms (
     name VARCHAR(16) NOT NULL,
     private BOOLEAN NOT NULL,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    seeded BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 /* Mime kept here incase I want to store images as pngs with transparency */
