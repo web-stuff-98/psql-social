@@ -647,7 +647,7 @@ func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 	if selectStmt, err := conn.Conn().Prepare(rctx, "search_rooms_select_stmt", `
 	SELECT id, name, private, author_id, created_at
 	FROM rooms
-	WHERE LOWER(name) LIKE $1
+	WHERE LOWER(name) LIKE LOWER($1 || '%')
 	AND (
 		NOT private OR
 		EXISTS (
@@ -704,7 +704,7 @@ func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 	if selectCountStmt, err := conn.Conn().Prepare(rctx, "search_rooms_select_count_stmt", `
 	SELECT count(*)
     FROM rooms
-    WHERE LOWER(name) LIKE $1
+	WHERE LOWER(name) LIKE LOWER($1 || '%')
 	AND (
 		NOT private OR
 		EXISTS (
@@ -720,7 +720,7 @@ func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 		FROM bans
 		WHERE user_id = $2
 		AND room_id = rooms.id
-	)
+	);
 	`); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
@@ -868,7 +868,7 @@ func (h handler) GetRoomsPage(ctx *fiber.Ctx) error {
 		FROM bans
 		WHERE user_id = $1
 		AND room_id = rooms.id
-	)`, uid).Scan(&count); err != nil {
+	);`, uid).Scan(&count); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 

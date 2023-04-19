@@ -146,6 +146,8 @@ CREATE TABLE profile_pictures (
 
 CREATE INDEX idx_username ON users (username);
 
+CREATE INDEX idx_rooms ON rooms (name);
+
 CREATE INDEX idx_role ON users (role);
 
 CREATE INDEX idx_friends ON users USING gin (friends);
