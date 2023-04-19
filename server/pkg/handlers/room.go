@@ -601,7 +601,7 @@ func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
 
-	_, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
 	if err != nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
@@ -613,20 +613,44 @@ func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 	defer conn.Release()
 
 	result := []responses.Room{}
+	count := 0
 
 	v := validator.New()
 	body := &validation.SearchRooms{}
 	if err = json.Unmarshal(ctx.Body(), &body); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 	if err = v.Struct(body); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
-	if selectStmt, err := conn.Conn().Prepare(rctx, "search_rooms_select_stmt", "SELECT id,name,private,author_id,created_at FROM rooms WHERE LOWER(name) LIKE $1;"); err != nil {
+	offset := ctx.QueryInt("page", 1)
+
+	if selectStmt, err := conn.Conn().Prepare(rctx, "search_rooms_select_stmt", `
+	SELECT id, name, private, author_id, created_at
+	FROM rooms
+	WHERE LOWER(name) LIKE $1
+	AND (
+		NOT private OR
+		EXISTS (
+			SELECT 1
+			FROM members
+			WHERE user_id = $2
+			AND room_id = rooms.id
+		)
+		OR (private AND author_id = $2)
+	)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM bans
+		WHERE user_id = $2
+		AND room_id = rooms.id
+	)
+	LIMIT $3
+	OFFSET $4;`); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
-		if rows, err := conn.Conn().Query(rctx, selectStmt.Name, body.Name); err != nil {
+		if rows, err := conn.Conn().Query(rctx, selectStmt.Name, body.Name, uid, 30, offset); err != nil {
 			if err != pgx.ErrNoRows {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			} else {
@@ -659,7 +683,38 @@ func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 		}
 	}
 
-	if data, err := json.Marshal(result); err != nil {
+	if selectCountStmt, err := conn.Conn().Prepare(rctx, "search_rooms_select_count_stmt", `
+	SELECT count(*)
+    FROM rooms
+    WHERE LOWER(name) LIKE $1
+	AND (
+		NOT private OR
+		EXISTS (
+			SELECT 1
+			FROM members
+			WHERE user_id = $2
+			AND room_id = rooms.id
+		)
+		OR (private AND author_id = $2)
+	)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM bans
+		WHERE user_id = $2
+		AND room_id = rooms.id
+	)
+	`); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		if err = conn.Conn().QueryRow(rctx, selectCountStmt.Name, body.Name, uid).Scan(&count); err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		}
+	}
+
+	if data, err := json.Marshal(responses.RoomsPage{
+		Rooms: result,
+		Count: count,
+	}); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		ctx.Response().Header.Add("Content-Type", "application/json")
@@ -710,7 +765,108 @@ func (h handler) GetRoomImage(ctx *fiber.Ctx) error {
 	return nil
 }
 
-// Retrieve the users own rooms, and rooms they are a member of
+// for rooms that are public, rooms the user is not banned from, and rooms that the user is a member of
+func (h handler) GetRoomsPage(ctx *fiber.Ctx) error {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	result := []responses.Room{}
+	count := 0
+
+	offset := ctx.QueryInt("page", 1)
+
+	if rows, err := h.DB.Query(rctx, `
+		SELECT id, name, private, author_id, created_at
+		FROM rooms
+		WHERE (
+			NOT private OR
+			EXISTS (
+				SELECT 1
+				FROM members
+				WHERE user_id = $1
+				AND room_id = rooms.id
+			)
+			OR (private AND author_id = $1)
+		)
+		AND NOT EXISTS (
+			SELECT 1
+			FROM bans
+			WHERE user_id = $1
+			AND room_id = rooms.id
+		)
+		LIMIT $2
+		OFFSET $3;`, uid, 30, offset); err != nil {
+		if err != pgx.ErrNoRows {
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		} else {
+			if data, err := json.Marshal(result); err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			} else {
+				// return empty list for not found result
+				ctx.Response().Header.Add("Content-Type", "application/json")
+				ctx.Write(data)
+				return nil
+			}
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var id, name, author_id string
+			var created_at pgtype.Timestamptz
+			var private bool
+			if err = rows.Scan(&id, &name, &private, &author_id, &created_at); err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			}
+			result = append(result, responses.Room{
+				ID:        id,
+				Name:      name,
+				AuthorID:  author_id,
+				Private:   private,
+				CreatedAt: created_at.Time.Format(time.RFC3339),
+			})
+		}
+	}
+
+	if err = h.DB.QueryRow(rctx, `
+	SELECT count(*)
+    FROM rooms
+    WHERE (
+		NOT private OR
+		EXISTS (
+			SELECT 1
+			FROM members
+			WHERE user_id = $1
+			AND room_id = rooms.id
+		)
+		OR (private AND author_id = $1)
+	)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM bans
+		WHERE user_id = $1
+		AND room_id = rooms.id
+	)`, uid).Scan(&count); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+
+	if data, err := json.Marshal(responses.RoomsPage{
+		Rooms: result,
+		Count: count,
+	}); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Write(data)
+		return nil
+	}
+}
+
+// Retrieve the users own rooms, and rooms they are a member of (no pagination for this, since it's not going to return a lot of rooms)
 func (h handler) GetRooms(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()
@@ -722,8 +878,16 @@ func (h handler) GetRooms(ctx *fiber.Ctx) error {
 
 	rooms := []responses.Room{}
 
-	// retrieve the users own rooms first
-	if rows, err := h.DB.Query(rctx, "SELECT id,name,private,author_id,created_at FROM rooms WHERE author_id = $1;", uid); err != nil {
+	if rows, err := h.DB.Query(rctx, `
+	SELECT id, name, private, author_id, created_at
+	FROM rooms
+	WHERE author_id = $1
+	OR EXISTS (
+		SELECT 1
+		FROM members
+		WHERE user_id = $1
+		AND room_id = rooms.id
+	);`, uid); err != nil {
 		if err != pgx.ErrNoRows {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -748,57 +912,6 @@ func (h handler) GetRooms(ctx *fiber.Ctx) error {
 				AuthorID:  author_id,
 				CreatedAt: created_at.Time.String(),
 			})
-		}
-	}
-
-	memberOf := []string{}
-	if rows, err := h.DB.Query(rctx, "SELECT room_id FROM members WHERE user_id = $1;", uid); err != nil {
-		if err != pgx.ErrNoRows {
-			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
-		} else {
-			return fiber.NewError(fiber.StatusNotFound, "No rooms found")
-		}
-	} else {
-		defer rows.Close()
-
-		for rows.Next() {
-			var room_id string
-			err = rows.Scan(&room_id)
-
-			if err != nil {
-				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
-			}
-
-			memberOf = append(memberOf, room_id)
-		}
-	}
-
-	if len(memberOf) > 0 {
-		query := "SELECT id, name, private, author_id, created_at FROM rooms WHERE id = ANY($1);"
-		if rows, err := h.DB.Query(rctx, query, memberOf); err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
-		} else {
-			defer rows.Close()
-
-			for rows.Next() {
-				var id, name, author_id string
-				var created_at pgtype.Timestamptz
-				var private bool
-
-				err = rows.Scan(&id, &name, &private, &author_id, &created_at)
-
-				if err != nil {
-					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
-				}
-
-				rooms = append(rooms, responses.Room{
-					ID:        id,
-					Name:      name,
-					Private:   private,
-					AuthorID:  author_id,
-					CreatedAt: created_at.Time.String(),
-				})
-			}
 		}
 	}
 

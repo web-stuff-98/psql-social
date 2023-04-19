@@ -233,12 +233,19 @@ func main() {
 		Message:       "Too many requests",
 		RouteName:     "get-room-channels",
 	}, rdb, db))
-	app.Get("/api/room/search", mw.BasicRateLimiter(h.SearchRooms, mw.SimpleLimiterOpts{
+	app.Post("/api/rooms/search", mw.BasicRateLimiter(h.SearchRooms, mw.SimpleLimiterOpts{
 		Window:        time.Minute * 1,
 		MaxReqs:       90,
 		BlockDuration: time.Minute * 10,
 		Message:       "Too many requests",
 		RouteName:     "search-rooms",
+	}, rdb, db))
+	app.Post("/api/rooms/all", mw.BasicRateLimiter(h.GetRoomsPage, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       90,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "rooms-page",
 	}, rdb, db))
 
 	app.Get("/api/user/bio/:id", mw.BasicRateLimiter(h.GetUserBio, mw.SimpleLimiterOpts{

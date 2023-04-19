@@ -18,6 +18,11 @@ type Room struct {
 	CreatedAt string `json:"created_at"`
 }
 
+type RoomsPage struct {
+	Rooms []Room `json:"rooms"`
+	Count int    `json:"count"`
+}
+
 type RoomChannelBase struct {
 	ID   string `json:"ID"`
 	Name string `json:"name"`

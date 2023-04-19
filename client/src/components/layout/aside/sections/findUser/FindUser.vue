@@ -95,24 +95,8 @@ function handleInput(e: Event) {
       padding: var(--gap-md);
     }
   }
-  .search-container {
-    padding: 0;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 2px;
+  form {
     padding: var(--gap-sm);
-    input {
-      padding: 2px 4px;
-      width: 100%;
-      border-radius: var(--border-radius-sm);
-    }
-    button {
-      border: none;
-      background: none;
-      text-shadow: none;
-      padding: 0;
-    }
   }
 }
 </style>

@@ -29,6 +29,8 @@ import {
   MdRadiobuttonchecked,
   MdRadiobuttonunchecked,
   GiExpand,
+  BiCaretLeftFill,
+  BiCaretRightFill,
 } from "oh-vue-icons/icons";
 
 addIcons(
@@ -55,7 +57,9 @@ addIcons(
   FaDownload,
   MdRadiobuttonchecked,
   MdRadiobuttonunchecked,
-  GiExpand
+  GiExpand,
+  BiCaretLeftFill,
+  BiCaretRightFill
 );
 
 const pinia = createPinia();

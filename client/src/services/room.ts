@@ -50,8 +50,24 @@ export const deleteRoomChannel = (id: string) =>
     method: "DELETE",
   });
 
+export const searchRooms = (
+  name: string,
+  page: number
+): Promise<{ rooms: IRoom[] | null; count: number }> =>
+  makeRequest(`/api/rooms/search?page=${page}`, {
+    data: { name },
+    method: "POST",
+  });
+
+// getRooms gets all the rooms the user owns or is a member of (without pagination, since the result is small)
 export const getRooms = (): Promise<IRoom[] | null> =>
   makeRequest("/api/rooms");
+
+// getRoomsPage gets all the rooms that are public, the user owns or is member of, and rooms the user isn't banned from
+export const getRoomsPage = (
+  page: number
+): Promise<{ rooms: IRoom[] | null; count: number }> =>
+  makeRequest(`/api/rooms/all?page=${page}`, { method: "POST" });
 
 export const getRoom = (id: string): Promise<IRoom> =>
   makeRequest(`/api/room/${id}`);

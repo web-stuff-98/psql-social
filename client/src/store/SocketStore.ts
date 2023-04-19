@@ -9,6 +9,8 @@ const useSocketStore = defineStore("socket", {
   state: () =>
     ({
       socket: undefined,
+      // currentlyWatching keeps IDs of things that the client is already "watching" so that the 
+      // client doesn't resend START_WATCHING events for things it's already watching
       currentlyWatching: [],
     } as SocketStoreState),
   actions: {

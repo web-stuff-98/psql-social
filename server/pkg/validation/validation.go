@@ -25,7 +25,7 @@ type SearchUser struct {
 }
 
 type SearchRooms struct {
-	Name string `json:"name" validate:"required,lte=16"`
+	Name string `json:"name" validate:"lte=16"`
 }
 
 type Bio struct {
