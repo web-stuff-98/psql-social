@@ -85,7 +85,7 @@ func generateRoom(index int, uid string, db *pgxpool.Pool) string {
 	INSERT INTO room_channels (
 		room_id,
 		name,
-		main,
+		main
 	) VALUES($1,$2,$3);
 	`, id, "Main channel", true); err != nil {
 		log.Fatalf("Error in seed add room main channel SQL function:%v", err)
