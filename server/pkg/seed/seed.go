@@ -81,6 +81,16 @@ func generateRoom(index int, uid string, db *pgxpool.Pool) string {
 		log.Fatalf("Decode error in seed add random room image SQL function:%v", err)
 	}
 
+	if _, err := db.Exec(context.Background(), `
+	INSERT INTO room_channels (
+		room_id,
+		name,
+		main,
+	) VALUES($1,$2,$3);
+	`, id, "Main channel", true); err != nil {
+		log.Fatalf("Error in seed add room main channel SQL function:%v", err)
+	}
+
 	return id
 }
 

@@ -280,7 +280,7 @@ func main() {
 		MaxReqs:       90,
 		BlockDuration: time.Minute * 10,
 		Message:       "Too many requests",
-		RouteName:     "search users",
+		RouteName:     "search-users",
 	}, rdb, db))
 
 	app.Post("/api/attachment/metadata", mw.BasicRateLimiter(h.CreateAttachmentMetadata, mw.SimpleLimiterOpts{
