@@ -36,6 +36,16 @@ async function getDeviceList() {
     selectedVideoInputDevice.value = "";
 }
 
+function handleAudioInputDeviceChange(e: Event) {
+  const target = e.target as HTMLSelectElement;
+  selectedAudioInputDevice.value = target.value;
+}
+
+function handleVideoInputDeviceChange(e:Event) {
+  const target = e.target as HTMLSelectElement;
+  selectedVideoInputDevice.value = target.value;
+}
+
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
@@ -68,7 +78,11 @@ const removeParenthesis = (str?: string) =>
     <div class="device-settings-container">
       <div class="select-container">
         <label for="audio">Audio input device</label>
-        <select v-model="selectedAudioInputDevice" id="audio">
+        <select
+          @change="handleAudioInputDeviceChange"
+          v-model="selectedAudioInputDevice"
+          id="audio"
+        >
           <option
             :value="selectedAudioInputDevice"
             v-if="selectedAudioInputDevice"
@@ -94,7 +108,7 @@ const removeParenthesis = (str?: string) =>
       </div>
       <div class="select-container">
         <label for="video">Video input device</label>
-        <select v-model="selectedVideoInputDevice" id="video">
+        <select @change="handleVideoInputDeviceChange" v-model="selectedVideoInputDevice" id="video">
           <option
             :value="selectedVideoInputDevice"
             v-if="selectedVideoInputDevice"
