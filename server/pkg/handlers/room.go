@@ -624,7 +624,7 @@ func (h handler) SearchRooms(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
-	offset := ctx.QueryInt("page", 1)
+	offset := (ctx.QueryInt("page", 1) - 1) * 30
 
 	if selectStmt, err := conn.Conn().Prepare(rctx, "search_rooms_select_stmt", `
 	SELECT id, name, private, author_id, created_at
@@ -778,7 +778,7 @@ func (h handler) GetRoomsPage(ctx *fiber.Ctx) error {
 	result := []responses.Room{}
 	count := 0
 
-	offset := ctx.QueryInt("page", 1)
+	offset := (ctx.QueryInt("page", 1) - 1) * 30
 
 	if rows, err := h.DB.Query(rctx, `
 		SELECT id, name, private, author_id, created_at
