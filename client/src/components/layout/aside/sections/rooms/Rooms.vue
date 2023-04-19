@@ -109,8 +109,14 @@ function changeMode(newMode: EMode) {
 }
 
 const maxPage = computed(() => Math.max(1, Math.ceil(count.value / 30)));
-const prevPage = () => Math.max(1, currentPage.value - 1);
-const nextPage = () => Math.min(currentPage.value + 1, maxPage.value);
+const prevPage = () => {
+  currentPage.value = Math.max(1, currentPage.value - 1);
+  retrieveResult();
+};
+const nextPage = () => {
+  currentPage.value = Math.min(currentPage.value + 1, maxPage.value);
+  retrieveResult();
+};
 
 onMounted(async () => {
   retrieveResult();
@@ -163,11 +169,11 @@ onBeforeUnmount(() => {
         v-if="mode === EMode.SEARCH || mode === EMode.ALL"
         class="pagination-controls"
       >
-        <button @click="prevPage" type="button">
+        <button @click="prevPage()" type="button">
           <v-icon name="bi-caret-left-fill" />
         </button>
         {{ currentPage }}/{{ maxPage }}
-        <button @click="nextPage" type="button">
+        <button @click="nextPage()" type="button">
           <v-icon name="bi-caret-right-fill" />
         </button>
       </div>
