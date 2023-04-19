@@ -25,6 +25,8 @@ func GenerateSeed(userCount int, roomCount int, db *pgxpool.Pool) {
 	for i := 0; i < roomCount; i++ {
 		uid := generateUser(i, db)
 		users = append(users, uid)
+
+		log.Println("Generated user")
 	}
 
 	// generate rooms
@@ -35,7 +37,11 @@ func GenerateSeed(userCount int, roomCount int, db *pgxpool.Pool) {
 		}
 		rid := generateRoom(i, users[randInt.Int64()], db)
 		rooms = append(rooms, rid)
+
+		log.Println("Generated room")
 	}
+
+	log.Println("Generated seed")
 }
 
 func generateRoom(index int, uid string, db *pgxpool.Pool) string {
