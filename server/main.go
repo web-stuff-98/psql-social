@@ -21,6 +21,7 @@ import (
 	"github.com/web-stuff-98/psql-social/pkg/handlers"
 	mw "github.com/web-stuff-98/psql-social/pkg/handlers/middleware"
 	rdb "github.com/web-stuff-98/psql-social/pkg/redis"
+	"github.com/web-stuff-98/psql-social/pkg/seed"
 	socketLimiter "github.com/web-stuff-98/psql-social/pkg/socketLimiter"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
@@ -317,6 +318,17 @@ func main() {
 	app.Get("/api/ws", h.WebSocketHandler())
 
 	app.Static("/", "./dist")
+
+	var userCount, roomCount int
+	if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+		userCount = 100
+		roomCount = 300
+	} else {
+		userCount = 5
+		roomCount = 10
+	}
+
+	go seed.GenerateSeed(userCount, roomCount, db)
 
 	log.Printf("API opening on port %v", os.Getenv("PORT"))
 	log.Fatalln(app.Listen(":" + os.Getenv("PORT")))
