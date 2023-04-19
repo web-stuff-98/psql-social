@@ -88,9 +88,11 @@ async function retrieveResult() {
 function handleSearchInput(e: Event) {
   const target = e.target as HTMLInputElement;
   if (!target) return;
-  searchTerm.value = target.value;
-  if (searchTimeout.value) clearTimeout(searchTimeout.value);
-  searchTimeout.value = setTimeout(retrieveResult, 300);
+  if (searchTerm.value.length < 16) {
+    searchTerm.value = target.value;
+    if (searchTimeout.value) clearTimeout(searchTimeout.value);
+    searchTimeout.value = setTimeout(retrieveResult, 300);
+  }
 }
 
 function handleModeChange(e: Event) {
