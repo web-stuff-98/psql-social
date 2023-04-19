@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -21,7 +20,6 @@ import (
 	"github.com/web-stuff-98/psql-social/pkg/handlers"
 	mw "github.com/web-stuff-98/psql-social/pkg/handlers/middleware"
 	rdb "github.com/web-stuff-98/psql-social/pkg/redis"
-	"github.com/web-stuff-98/psql-social/pkg/seed"
 	socketLimiter "github.com/web-stuff-98/psql-social/pkg/socketLimiter"
 	socketMessages "github.com/web-stuff-98/psql-social/pkg/socketMessages"
 	"github.com/web-stuff-98/psql-social/pkg/socketServer"
@@ -47,14 +45,14 @@ func main() {
 
 	// wipe the db and redo the schema, because there may have been changes and I don't know really
 	// how to alter tables and definitely don't know how to do migrations. Also it saves space.
-	sqlBytes, err := ioutil.ReadFile("./schema.sql")
+	/*sqlBytes, err := ioutil.ReadFile("./schema.sql")
 	if err != nil {
 		log.Fatalf("Unable to read SQL file: %v\n", err)
 	}
 	sql := string(sqlBytes)
 	if _, err := db.Exec(context.Background(), sql); err != nil {
 		log.Fatalf("Unable to execute SQL schema: %v\n", err)
-	}
+	}*/
 
 	defer db.Close()
 
@@ -319,15 +317,17 @@ func main() {
 
 	app.Static("/", "./dist")
 
-	var userCount, roomCount int
-	if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
-		userCount = 100
-		roomCount = 300
-	} else {
-		userCount = 5
-		roomCount = 10
-	}
-	go seed.GenerateSeed(userCount, roomCount, db)
+	/*
+		var userCount, roomCount int
+		if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
+			userCount = 100
+			roomCount = 300
+		} else {
+			userCount = 5
+			roomCount = 10
+		}
+		go seed.GenerateSeed(userCount, roomCount, db)
+	*/
 
 	log.Printf("API opening on port %v", os.Getenv("PORT"))
 	log.Fatalln(app.Listen(":" + os.Getenv("PORT")))
