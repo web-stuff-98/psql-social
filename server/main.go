@@ -163,8 +163,8 @@ func main() {
 		RouteName:     "upload-room-image",
 	}, rdb, db))
 	app.Get("/api/room/:id/img", mw.BasicRateLimiter(h.GetRoomImage, mw.SimpleLimiterOpts{
-		Window:        time.Second * 30,
-		MaxReqs:       30,
+		Window:        time.Second * 10,
+		MaxReqs:       800,
 		BlockDuration: time.Minute * 10,
 		Message:       "Too many requests",
 		RouteName:     "get-room-image",

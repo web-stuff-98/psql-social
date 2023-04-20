@@ -34,6 +34,8 @@ func Init() *redis.Client {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
+	rdb.FlushDB(context.Background())
+
 	log.Println("Redis client connected")
 
 	return rdb
