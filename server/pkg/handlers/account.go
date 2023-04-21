@@ -45,7 +45,9 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	stmt, err := conn.Conn().Prepare(rctx, "login_stmt", "SELECT id,password FROM users WHERE LOWER(username) = LOWER($1);")
+	stmt, err := conn.Conn().Prepare(rctx, "login_stmt", `
+	SELECT id,password FROM users WHERE LOWER(username) = LOWER($1);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -58,10 +60,6 @@ func (h handler) Login(ctx *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
-
-	// passwords aren't hashed in development mode, because it doesn't work with CGO and I need to use the -race flag to debug
-	// turns out there aren't any race conditions or deadlocks the db connection pool is being exhausted somehow. I will keep
-	// this here anyway because it's convenient being able to run with the race flag.
 	if os.Getenv("ENVIRONMENT") == "PRODUCTION" {
 		if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(body.Password)); err != nil {
 			if err == bcrypt.ErrMismatchedHashAndPassword {
@@ -114,7 +112,9 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	existsStmt, err := conn.Conn().Prepare(rctx, "register_exists_stmt", "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1));")
+	existsStmt, err := conn.Conn().Prepare(rctx, "register_exists_stmt", `
+	SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1));
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -136,7 +136,9 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 		if hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 14); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
-			insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id;")
+			insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_stmt", `
+			INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id;
+			`)
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
@@ -146,7 +148,9 @@ func (h handler) Register(ctx *fiber.Ctx) error {
 			}
 		}
 	} else {
-		insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_nohash_stmt", "INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id;")
+		insertStmt, err := conn.Conn().Prepare(rctx, "register_insert_nohash_stmt", `
+		INSERT INTO users (username, password, role) VALUES ($1, $2, 'USER') RETURNING id;
+		`)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -224,7 +228,9 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 	content := strings.TrimSpace(bio.Content)
 
 	var seeded bool
-	if err = h.DB.QueryRow(rctx, "SELECT seeded FROM users WHERE id = $1;", uid).Scan(&seeded); err != nil {
+	if err = h.DB.QueryRow(rctx, `
+	SELECT seeded FROM users WHERE id = $1;
+	`, uid).Scan(&seeded); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	if seeded {
@@ -232,14 +238,18 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 	}
 
 	exists := false
-	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM bios WHERE user_id = $1);", uid).Scan(&exists) // added error handling here
+	err = h.DB.QueryRow(rctx, `
+	SELECT EXISTS(SELECT 1 FROM bios WHERE user_id = $1);
+	`, uid).Scan(&exists) // added error handling here
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	var id string
 	if content == "" {
 		if exists {
-			if _, err := h.DB.Exec(rctx, "DELETE FROM bios WHERE user_id = $1;", uid); err != nil {
+			if _, err := h.DB.Exec(rctx, `
+			DELETE FROM bios WHERE user_id = $1;
+			`, uid); err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
 		}
@@ -272,7 +282,9 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 		}
 
 		if !exists {
-			insertStmt, err := conn.Conn().Prepare(rctx, "insert_bio_stmt", "INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id;")
+			insertStmt, err := conn.Conn().Prepare(rctx, "insert_bio_stmt", `
+			INSERT INTO bios (content,user_id) VALUES ($1, $2) RETURNING id;
+			`)
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
@@ -285,7 +297,9 @@ func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 			ctx.WriteString(id)
 			ctx.Status(fiber.StatusCreated)
 		} else {
-			updateStmt, err := conn.Conn().Prepare(rctx, "update_bio_stmt", "UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id;")
+			updateStmt, err := conn.Conn().Prepare(rctx, "update_bio_stmt", `
+			UPDATE bios SET content = $1 WHERE user_id = $2 RETURNING id;
+			`)
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 			}
@@ -312,7 +326,9 @@ func (h handler) UploadPfp(ctx *fiber.Ctx) error {
 	}
 
 	var seeded bool
-	if err = h.DB.QueryRow(rctx, "SELECT seeded FROM users WHERE id = $1;", uid).Scan(&seeded); err != nil {
+	if err = h.DB.QueryRow(rctx, `
+	SELECT seeded FROM users WHERE id = $1;
+	`, uid).Scan(&seeded); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	if seeded {
@@ -363,17 +379,23 @@ func (h handler) UploadPfp(ctx *fiber.Ctx) error {
 	pfpBytes := buf.Bytes()
 
 	exists := false
-	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM profile_pictures WHERE user_id = $1);", uid).Scan(&exists)
+	err = h.DB.QueryRow(rctx, `
+	SELECT EXISTS(SELECT 1 FROM profile_pictures WHERE user_id = $1);
+	`, uid).Scan(&exists)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	if exists {
-		if _, err := h.DB.Exec(rctx, "UPDATE profile_pictures SET picture_data = $1 WHERE user_id = $2;", pfpBytes, uid); err != nil {
+		if _, err := h.DB.Exec(rctx, `
+		UPDATE profile_pictures SET picture_data = $1 WHERE user_id = $2;
+		`, pfpBytes, uid); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
-		if _, err := h.DB.Exec(rctx, `INSERT INTO profile_pictures (user_id,picture_data,mime) VALUES ($1,$2,'image/jpeg');`, uid, pfpBytes); err != nil {
+		if _, err := h.DB.Exec(rctx, `
+		INSERT INTO profile_pictures (user_id,picture_data,mime) VALUES ($1,$2,'image/jpeg');
+		`, uid, pfpBytes); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
@@ -408,7 +430,9 @@ func (h handler) GetConversees(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectDmsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_messages_stmt", "SELECT author_id,recipient_id FROM direct_messages WHERE author_id = $1 OR recipient_id = $1;")
+	selectDmsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_messages_stmt", `
+	SELECT author_id,recipient_id FROM direct_messages WHERE author_id = $1 OR recipient_id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -432,7 +456,9 @@ func (h handler) GetConversees(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectFrqsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_friend_reqeusts_stmt", "SELECT friender,friended FROM friend_requests WHERE friender = $1 OR friended = $1;")
+	selectFrqsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_friend_reqeusts_stmt", `
+	SELECT friender,friended FROM friend_requests WHERE friender = $1 OR friended = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -455,7 +481,9 @@ func (h handler) GetConversees(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectInvsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_invitations_stmt", "SELECT inviter,invited FROM invitations WHERE inviter = $1 OR invited = $1;")
+	selectInvsStmt, err := conn.Conn().Prepare(rctx, "select_conversees_invitations_stmt", `
+	SELECT inviter,invited FROM invitations WHERE inviter = $1 OR invited = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -517,7 +545,9 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", "SELECT id,content,author_id,recipient_id,created_at,has_attachment FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at ASC LIMIT 50;")
+	selectMsgStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_msgs_stmt", `
+	SELECT id,content,author_id,recipient_id,created_at,has_attachment FROM direct_messages WHERE (author_id = $1) OR (recipient_id = $1) ORDER BY created_at ASC LIMIT 50;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -548,7 +578,9 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectFrqStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_friend_requests_stmt", "SELECT friender,friended,created_at FROM friend_requests WHERE (friender = $1) OR (friended = $1);")
+	selectFrqStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_friend_requests_stmt", `
+	SELECT friender,friended,created_at FROM friend_requests WHERE (friender = $1) OR (friended = $1);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -575,7 +607,9 @@ func (h handler) GetConversation(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", "SELECT inviter,invited,created_at,room_id FROM invitations WHERE (inviter = $1) OR (invited = $1);")
+	selectInvStmt, err := conn.Conn().Prepare(rctx, "get_conversation_select_invitations_stmt", `
+	SELECT inviter,invited,created_at,room_id FROM invitations WHERE (inviter = $1) OR (invited = $1);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -626,7 +660,9 @@ func (h handler) GetFriends(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	rows, err := h.DB.Query(rctx, "SELECT friender,friended FROM friends WHERE (friender = $1) OR (friended = $1);", uid)
+	rows, err := h.DB.Query(rctx, `
+	SELECT friender,friended FROM friends WHERE (friender = $1) OR (friended = $1);
+	`, uid)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -667,7 +703,9 @@ func (h handler) GetBlocked(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	rows, err := h.DB.Query(rctx, "SELECT blocked FROM blocks WHERE blocker = $1;", uid)
+	rows, err := h.DB.Query(rctx, `
+	SELECT blocked FROM blocks WHERE blocker = $1;
+	`, uid)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}

@@ -37,7 +37,9 @@ func (h handler) GetUser(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectUserStmt, err := conn.Conn().Prepare(rctx, "get_user_select_stmt", "SELECT id,username,role FROM users WHERE id = $1;")
+	selectUserStmt, err := conn.Conn().Prepare(rctx, "get_user_select_stmt", `
+	SELECT id,username,role FROM users WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -105,7 +107,9 @@ func (h handler) GetUserByName(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectUserStmt, err := conn.Conn().Prepare(rctx, "get_user_by_name_select_stmt", "SELECT id FROM users WHERE LOWER(username) = LOWER($1);")
+	selectUserStmt, err := conn.Conn().Prepare(rctx, "get_user_by_name_select_stmt", `
+	SELECT id FROM users WHERE LOWER(username) = LOWER($1);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -159,7 +163,9 @@ func (h handler) SearchUsers(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	if selectStmt, err := conn.Conn().Prepare(rctx, "search_users_select_stmt", "SELECT id FROM users WHERE LOWER(username) LIKE LOWER($1 || '%');"); err != nil {
+	if selectStmt, err := conn.Conn().Prepare(rctx, "search_users_select_stmt", `
+	SELECT id FROM users WHERE LOWER(username) LIKE LOWER($1 || '%');
+	`); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if rows, err := conn.Conn().Query(rctx, selectStmt.Name, body.Username); err != nil {
@@ -184,7 +190,9 @@ func (h handler) SearchUsers(ctx *fiber.Ctx) error {
 					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 				}
 				var blocked bool
-				if err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1);", uid).Scan(&blocked); err != nil {
+				if err = h.DB.QueryRow(rctx, `
+				SELECT EXISTS(SELECT 1 FROM blocks WHERE blocked = $1);
+				`, uid).Scan(&blocked); err != nil {
 					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 				}
 				if !blocked {
@@ -223,7 +231,9 @@ func (h handler) GetUserBio(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectStmt, err := conn.Conn().Prepare(rctx, "get_user_bio_select_stmt", "SELECT content FROM bios WHERE user_id = $1;")
+	selectStmt, err := conn.Conn().Prepare(rctx, "get_user_bio_select_stmt", `
+	SELECT content FROM bios WHERE user_id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -263,7 +273,9 @@ func (h handler) GetUserPfp(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectStmt, err := conn.Conn().Prepare(rctx, "get_user_pfp_select_stmt", "SELECT picture_data,mime FROM profile_pictures WHERE user_id = $1;")
+	selectStmt, err := conn.Conn().Prepare(rctx, "get_user_pfp_select_stmt", `
+	SELECT picture_data,mime FROM profile_pictures WHERE user_id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}

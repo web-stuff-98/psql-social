@@ -51,7 +51,9 @@ func (h handler) CreateRoom(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	existsStmt, err := conn.Conn().Prepare(rctx, "create_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(name) = LOWER($1));")
+	existsStmt, err := conn.Conn().Prepare(rctx, "create_room_exists_stmt", `
+	SELECT EXISTS(SELECT 1 FROM rooms WHERE LOWER(name) = LOWER($1));
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -64,7 +66,9 @@ func (h handler) CreateRoom(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "There is already an other room by that name")
 	}
 
-	insertRoomStmt, err := conn.Conn().Prepare(rctx, "insert_room_stmt", "INSERT INTO rooms (name, author_id, private) VALUES ($1, $2, $3) RETURNING id;")
+	insertRoomStmt, err := conn.Conn().Prepare(rctx, "insert_room_stmt", `
+	INSERT INTO rooms (name, author_id, private) VALUES ($1, $2, $3) RETURNING id;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -74,7 +78,9 @@ func (h handler) CreateRoom(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
-	insertChannelStmt, err := conn.Conn().Prepare(rctx, "insert_main_channel_stmt", "INSERT INTO room_channels (name, main, room_id) VALUES ($1, $2, $3);")
+	insertChannelStmt, err := conn.Conn().Prepare(rctx, "insert_main_channel_stmt", `
+	INSERT INTO room_channels (name, main, room_id) VALUES ($1, $2, $3);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -130,7 +136,9 @@ func (h handler) UpdateRoom(ctx *fiber.Ctx) error {
 	}
 
 	var seeded bool
-	if err = h.DB.QueryRow(rctx, "SELECT seeded FROM rooms WHERE id = $1;", room_id).Scan(&seeded); err != nil {
+	if err = h.DB.QueryRow(rctx, `
+	SELECT seeded FROM rooms WHERE id = $1;
+	`, room_id).Scan(&seeded); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	if seeded {
@@ -143,7 +151,9 @@ func (h handler) UpdateRoom(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectStmt, err := conn.Conn().Prepare(rctx, "update_room_select_stmt", "SELECT author_id FROM rooms WHERE id = $1;")
+	selectStmt, err := conn.Conn().Prepare(rctx, "update_room_select_stmt", `
+	SELECT author_id FROM rooms WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -161,7 +171,9 @@ func (h handler) UpdateRoom(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	updateStmt, err := conn.Conn().Prepare(rctx, "update_room_stmt", "UPDATE rooms SET name = $1, private = $2 WHERE id = $3;")
+	updateStmt, err := conn.Conn().Prepare(rctx, "update_room_stmt", `
+	UPDATE rooms SET name = $1, private = $2 WHERE id = $3;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -218,7 +230,9 @@ func (h handler) UpdateRoomChannel(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_channel_stmt", "SELECT room_id FROM room_channels WHERE id = $1;")
+	selectChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_channel_stmt", `
+	SELECT room_id FROM room_channels WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -232,7 +246,9 @@ func (h handler) UpdateRoomChannel(ctx *fiber.Ctx) error {
 	}
 
 	var seeded bool
-	selectRoomStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_room_stmt", "SELECT seeded,author_id FROM rooms WHERE id = $1;")
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_room_stmt", `
+	SELECT seeded,author_id FROM rooms WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -259,7 +275,9 @@ func (h handler) UpdateRoomChannel(ctx *fiber.Ctx) error {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 
-		updateChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_update_with_main_stmt", "UPDATE room_channels SET name = $1, main = $2 WHERE id = $3;")
+		updateChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_update_with_main_stmt", `
+		UPDATE room_channels SET name = $1, main = $2 WHERE id = $3;
+		`)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -268,7 +286,9 @@ func (h handler) UpdateRoomChannel(ctx *fiber.Ctx) error {
 		}
 	} else {
 		// otherwise don't update main
-		updateChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_update_without_main_stmt", "UPDATE room_channels SET name = $1 WHERE id = $2;")
+		updateChannelStmt, err := conn.Conn().Prepare(rctx, "update_channel_update_without_main_stmt", `
+		UPDATE room_channels SET name = $1 WHERE id = $2;
+		`)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -277,7 +297,9 @@ func (h handler) UpdateRoomChannel(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_channels_stmt", "SELECT id FROM room_channels WHERE room_id = $1;")
+	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "update_channel_select_channels_stmt", `
+	SELECT id FROM room_channels WHERE room_id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -336,7 +358,9 @@ func (h handler) DeleteRoomChannel(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectChannelStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_channel_stmt", "SELECT room_id,main FROM room_channels WHERE id = $1;")
+	selectChannelStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_channel_stmt", `
+	SELECT room_id,main FROM room_channels WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -351,7 +375,9 @@ func (h handler) DeleteRoomChannel(ctx *fiber.Ctx) error {
 	}
 
 	var seeded bool
-	selectRoomStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_room_stmt", "SELECT seeded,author_id FROM rooms WHERE id = $1;")
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_room_stmt", `
+	SELECT seeded,author_id FROM rooms WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -376,7 +402,9 @@ func (h handler) DeleteRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "You cannot delete the main channel, create a new main channel first, or promote another channel")
 	}
 
-	deleteChannelStmt, err := conn.Conn().Prepare(rctx, "delete_channel_delete_stmt", "DELETE FROM room_channels WHERE id = $1;")
+	deleteChannelStmt, err := conn.Conn().Prepare(rctx, "delete_channel_delete_stmt", `
+	DELETE FROM room_channels WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -384,7 +412,9 @@ func (h handler) DeleteRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
-	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_channels_stmt", "SELECT id FROM room_channels WHERE room_id = $1;")
+	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "delete_channel_select_channels_stmt", `
+	SELECT id FROM room_channels WHERE room_id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -448,7 +478,9 @@ func (h handler) CreateRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
 
-	selectRoomStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_room_stmt", "SELECT author_id FROM rooms WHERE id = $1;")
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_room_stmt", `
+	SELECT author_id FROM rooms WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -464,7 +496,9 @@ func (h handler) CreateRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
 	}
 
-	channelExistsStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_channel_exists_stmt", "SELECT EXISTS(SELECT 1 FROM room_channels WHERE LOWER(name) = LOWER($1) AND room_id = $2);")
+	channelExistsStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_channel_exists_stmt", `
+	SELECT EXISTS(SELECT 1 FROM room_channels WHERE LOWER(name) = LOWER($1) AND room_id = $2);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -478,7 +512,9 @@ func (h handler) CreateRoomChannel(ctx *fiber.Ctx) error {
 
 	// if the new channel being created is the main channel, set "main" on other channels to false
 	if body.Main {
-		updateMainStmt, err := conn.Conn().Prepare(rctx, "create_channel_update_main_stmt", "UPDATE room_channels SET main = FALSE WHERE room_id = $1;")
+		updateMainStmt, err := conn.Conn().Prepare(rctx, "create_channel_update_main_stmt", `
+		UPDATE room_channels SET main = FALSE WHERE room_id = $1;
+		`)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -487,7 +523,9 @@ func (h handler) CreateRoomChannel(ctx *fiber.Ctx) error {
 		}
 	}
 
-	insertStmt, err := conn.Conn().Prepare(rctx, "create_channel_insert_stmt", "INSERT INTO room_channels (name,main,room_id) VALUES($1,$2,$3) RETURNING id;")
+	insertStmt, err := conn.Conn().Prepare(rctx, "create_channel_insert_stmt", `
+	INSERT INTO room_channels (name,main,room_id) VALUES($1,$2,$3) RETURNING id;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -496,7 +534,9 @@ func (h handler) CreateRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
-	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_channels_stmt", "SELECT id FROM room_channels WHERE room_id = $1;")
+	selectChannelsStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_channels_stmt", `
+	SELECT id FROM room_channels WHERE room_id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -552,7 +592,9 @@ func (h handler) GetRoom(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	existsStmt, err := conn.Conn().Prepare(rctx, "get_room_exists_stmt", "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);")
+	existsStmt, err := conn.Conn().Prepare(rctx, "get_room_exists_stmt", `
+	SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -567,7 +609,9 @@ func (h handler) GetRoom(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusForbidden, "You are banned from this room")
 	}
 
-	selectStmt, err := conn.Conn().Prepare(rctx, "get_room_select_stmt", "SELECT id,name,author_id,private FROM rooms WHERE id = $1;")
+	selectStmt, err := conn.Conn().Prepare(rctx, "get_room_select_stmt", `
+	SELECT id,name,author_id,private FROM rooms WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -584,7 +628,9 @@ func (h handler) GetRoom(ctx *fiber.Ctx) error {
 
 	if private && uid != author_id {
 		isMember := false
-		memberStmt, err := conn.Conn().Prepare(rctx, "get_room_get_membership_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);")
+		memberStmt, err := conn.Conn().Prepare(rctx, "get_room_get_membership_stmt", `
+		SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);
+		`)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -761,7 +807,9 @@ func (h handler) GetRoomImage(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectStmt, err := conn.Conn().Prepare(rctx, "get_room_image_select_stmt", "SELECT picture_data,mime FROM room_pictures WHERE room_id = $1;")
+	selectStmt, err := conn.Conn().Prepare(rctx, "get_room_image_select_stmt", `
+	SELECT picture_data,mime FROM room_pictures WHERE room_id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -958,7 +1006,9 @@ func (h handler) DeleteRoom(ctx *fiber.Ctx) error {
 	}
 
 	var seeded bool
-	if err = h.DB.QueryRow(rctx, "SELECT seeded FROM rooms WHERE id = $1;", room_id).Scan(&seeded); err != nil {
+	if err = h.DB.QueryRow(rctx, `
+	SELECT seeded FROM rooms WHERE id = $1;
+	`, room_id).Scan(&seeded); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	if seeded {
@@ -971,7 +1021,9 @@ func (h handler) DeleteRoom(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	deleteStmt, err := conn.Conn().Prepare(rctx, "delete_room_stmt", "DELETE FROM rooms WHERE id = $1 AND author_id = $2;")
+	deleteStmt, err := conn.Conn().Prepare(rctx, "delete_room_stmt", `
+	DELETE FROM rooms WHERE id = $1 AND author_id = $2;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -1017,7 +1069,9 @@ func (h handler) UploadRoomImage(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		defer conn.Release()
-		if selectAuthorStmt, err := conn.Conn().Prepare(rctx, "upload_room_img_select_author_stmt", "SELECT author_id FROM rooms WHERE id = $1;"); err != nil {
+		if selectAuthorStmt, err := conn.Conn().Prepare(rctx, "upload_room_img_select_author_stmt", `
+		SELECT author_id FROM rooms WHERE id = $1;
+		`); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
 			var author_id string
@@ -1078,17 +1132,23 @@ func (h handler) UploadRoomImage(ctx *fiber.Ctx) error {
 	imgBytes := buf.Bytes()
 
 	exists := false
-	err = h.DB.QueryRow(rctx, "SELECT EXISTS(SELECT 1 FROM room_pictures WHERE room_id = $1);", id).Scan(&exists)
+	err = h.DB.QueryRow(rctx, `
+	SELECT EXISTS(SELECT 1 FROM room_pictures WHERE room_id = $1);
+	`, id).Scan(&exists)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 
 	if exists {
-		if _, err := h.DB.Exec(rctx, "UPDATE room_pictures SET picture_data = $1 WHERE room_id = $2;", imgBytes, id); err != nil {
+		if _, err := h.DB.Exec(rctx, `
+		UPDATE room_pictures SET picture_data = $1 WHERE room_id = $2;
+		`, imgBytes, id); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	} else {
-		if _, err := h.DB.Exec(rctx, `INSERT INTO room_pictures (room_id,picture_data,mime) VALUES ($1,$2,'image/jpeg');`, id, imgBytes); err != nil {
+		if _, err := h.DB.Exec(rctx, `
+		INSERT INTO room_pictures (room_id,picture_data,mime) VALUES ($1,$2,'image/jpeg');
+		`, id, imgBytes); err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
 	}
@@ -1128,7 +1188,9 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	selectStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_stmt", "SELECT room_id FROM room_channels WHERE id = $1;")
+	selectStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_stmt", `
+	SELECT room_id FROM room_channels WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -1142,7 +1204,9 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 		}
 	}
 
-	banExistsStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_ban_exists_stmt", "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);")
+	banExistsStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_ban_exists_stmt", `
+	SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -1157,7 +1221,10 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusForbidden, "You are banned from this room")
 	}
 
-	selectRoomStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_room_stmt", "SELECT private, author_id FROM rooms WHERE id = $1;")
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_room_stmt", `
+	SELECT private, author_id
+	FROM rooms WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -1173,7 +1240,9 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 	}
 
 	if private && uid != author_id {
-		membershipExists, err := conn.Conn().Prepare(rctx, "get_room_channel_member_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);")
+		membershipExists, err := conn.Conn().Prepare(rctx, "get_room_channel_member_stmt", `
+		SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);
+		`)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -1189,7 +1258,11 @@ func (h handler) GetRoomChannel(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectChannelStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_channel_stmt", "SELECT id,content,author_id,created_at,has_attachment FROM room_messages WHERE room_channel_id = $1 ORDER BY created_at ASC LIMIT 50;")
+	selectChannelStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_channel_stmt", `
+	SELECT id,content,author_id,created_at,has_attachment
+	FROM room_messages WHERE room_channel_id = $1
+	ORDER BY created_at ASC LIMIT 50;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -1268,7 +1341,9 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	banExistsStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_ban_exists_stmt", "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);")
+	banExistsStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_ban_exists_stmt", `
+	SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -1283,7 +1358,9 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusForbidden, "You are banned from this room")
 	}
 
-	selectRoomStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_room_stmt", "SELECT private, author_id FROM rooms WHERE id = $1;")
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_room_stmt", `
+	SELECT private, author_id FROM rooms WHERE id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
@@ -1299,7 +1376,9 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 	}
 
 	if private && uid != author_id {
-		membershipExists, err := conn.Conn().Prepare(rctx, "get_room_channel_member_stmt", "SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);")
+		membershipExists, err := conn.Conn().Prepare(rctx, "get_room_channel_member_stmt", `
+		SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);
+		`)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -1315,7 +1394,9 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 		}
 	}
 
-	selectChannelsStatement, err := conn.Conn().Prepare(rctx, "get_room_channels_select_stmt", "SELECT id,name,main FROM room_channels WHERE room_id = $1;")
+	selectChannelsStatement, err := conn.Conn().Prepare(rctx, "get_room_channels_select_stmt", `
+	SELECT id,name,main FROM room_channels WHERE room_id = $1;
+	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
