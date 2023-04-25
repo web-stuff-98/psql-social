@@ -126,6 +126,7 @@ func runLimiter(redisClient *redis.Client, sl *SocketLimiter) {
 	go socketEventRegistration(redisClient, sl)
 }
 
+// shorthand function for setting redis key, could be moved into redis helper package if needed somewhere else, using interface instead of map
 func set(redisClient *redis.Client, address string, value map[string]SocketConnectionLimiterData) error {
 	if bytes, err := json.Marshal(value); err != nil {
 		return err
@@ -140,13 +141,6 @@ func set(redisClient *redis.Client, address string, value map[string]SocketConne
 
 func socketEventRegistration(redisClient *redis.Client, sl *SocketLimiter) {
 	for {
-		defer func() {
-			r := recover()
-			if r != nil {
-				log.Println("Recovered from panic in socket limiter register socket event loop :", r)
-			}
-			go socketEventRegistration(redisClient, sl)
-		}()
 		eventData := <-sl.SocketEvent
 
 		// bypass limiter for development mode

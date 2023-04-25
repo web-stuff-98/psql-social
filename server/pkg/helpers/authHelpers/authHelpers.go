@@ -119,6 +119,7 @@ func RefreshToken(redisClient *redis.Client, ctx *fiber.Ctx, rctx context.Contex
 	}
 }
 
+// kind of useless verbose function
 func DeleteSession(redisClient *redis.Client, ctx context.Context, sid string) {
 	redisClient.Del(ctx, sid)
 }

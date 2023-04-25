@@ -110,6 +110,7 @@ onBeforeUnmount(() => {
 });
 
 async function joinChannel(channelId: string) {
+  // got to leave old channel first, if null channel server handle it
   socketStore.send({
     event_type: "LEAVE_CHANNEL",
     data: { channel_id: roomChannelStore.current },

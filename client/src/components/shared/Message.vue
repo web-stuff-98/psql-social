@@ -101,8 +101,8 @@ function handleSubmitEdit(values: any) {
       </div>
       <div
         :style="{
-          justifyContent: isAuthor ? 'start' : 'end',
-          flexDirection: isAuthor ? 'row' : 'row-reverse',
+          alignItems: isAuthor ? 'start' : 'end',
+          flexDirection: isAuthor ? 'column' : 'column-reverse',
         }"
         v-show="!isEditing"
         class="content"

@@ -42,6 +42,7 @@ const socketStore = useSocketStore();
 const authStore = useAuthStore();
 const roomStore = useRoomStore();
 
+// this could be nicer but i cant be asked
 function adjust() {
   if (
     containerRef.value?.clientWidth! + mousePos.value.left >

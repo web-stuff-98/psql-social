@@ -1341,7 +1341,7 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 	}
 	defer conn.Release()
 
-	banExistsStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_ban_exists_stmt", `
+	banExistsStmt, err := conn.Conn().Prepare(rctx, "get_room_channels_ban_exists_stmt", `
 	SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND room_id = $2);
 	`)
 	if err != nil {
@@ -1358,7 +1358,7 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusForbidden, "You are banned from this room")
 	}
 
-	selectRoomStmt, err := conn.Conn().Prepare(rctx, "get_room_channel_select_room_stmt", `
+	selectRoomStmt, err := conn.Conn().Prepare(rctx, "get_room_channels_select_room_stmt", `
 	SELECT private, author_id FROM rooms WHERE id = $1;
 	`)
 	if err != nil {
@@ -1376,7 +1376,7 @@ func (h handler) GetRoomChannels(ctx *fiber.Ctx) error {
 	}
 
 	if private && uid != author_id {
-		membershipExists, err := conn.Conn().Prepare(rctx, "get_room_channel_member_stmt", `
+		membershipExists, err := conn.Conn().Prepare(rctx, "get_room_channels_member_stmt", `
 		SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND room_id = $2);
 		`)
 		if err != nil {

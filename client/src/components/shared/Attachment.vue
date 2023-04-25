@@ -59,9 +59,13 @@ async function download() {
         v-if="
           meta.mime === 'image/jpeg' ||
           meta.mime === 'image/png' ||
-          meta.mime === 'image/avif'
+          meta.mime === 'image/avif' ||
+          meta.mime === 'image/webp'
         "
       />
+      <video controls v-if="meta.mime === 'video/mp4'">
+        <source type="video/mp4" :src="`${baseURL}/api/attachment/video/${msgId}`" />
+      </video>
       <a
         :href="`${baseURL}/api/attachment/${meta.ID}`"
         @click.prevent="download"
@@ -87,7 +91,7 @@ async function download() {
   width: 100%;
   justify-content: flex-start;
   text-align: left;
-  padding: 4px;
+  margin-top: 4px;
   img {
     border-radius: var(--border-radius-md);
     filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.166));
@@ -104,6 +108,11 @@ async function download() {
     padding: var(--gap-md);
     box-shadow: none;
     border: none;
+  }
+  video {
+    max-width: 70%;
+    max-height: 10rem;
+    border-radius: var(--border-radius-md);
   }
   button:hover {
     outline: 1px solid var(--border-medium);

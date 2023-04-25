@@ -4,10 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/url"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -443,8 +440,10 @@ func (h handler) DownloadAttachment(ctx *fiber.Ctx) error {
 	return nil
 }
 
-// Doesn't work, cant be asked to fix, I wasted days on this last time.
-// It does work for videos smaller than the chunk size but that's completely useless
+// I wasted weeks trying to get chunked video streaming to work.
+// This works now because it just sends the client the entire video file instead.
+// At least videos can be played in the browser now. I backed up the old function
+// by commenting it out below.
 func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	if id == "" {
@@ -486,15 +485,94 @@ func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 	if failed || ratio != 1 {
 		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
 	}
+
+	// Retrieve the bytes
+	var chunkBytes []byte
+	if selectChunksStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_chunks_stmt", fmt.Sprintf(`
+	SELECT bytes FROM %v WHERE message_id = $1;
+	`, chunkTable)); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		if rows, err := conn.Query(rctx, selectChunksStmt.Name, id); err != nil {
+			if err == pgx.ErrNoRows {
+				return fiber.NewError(fiber.StatusNotFound, "Attachment chunk data not found")
+			}
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		} else {
+			i := 0
+			defer rows.Close()
+			for rows.Next() {
+				var bytes pgtype.Bytea
+				if err = rows.Scan(&bytes); err != nil {
+					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+				}
+				chunkBytes = append(chunkBytes, bytes.Bytes...)
+				i++
+			}
+		}
+	}
+
+	ctx.Response().Header.Add("Accept-Ranges", "bytes")
+	ctx.Response().Header.Add("Content-Length", fmt.Sprintf("%v", size))
+	ctx.Response().Header.Add("Content-Range", fmt.Sprintf("%v-%v/%v", 0, size, size))
+	ctx.Response().Header.Add("Content-Type", "video/mp4")
+
+	ctx.Status(fiber.StatusPartialContent)
+	ctx.Write(chunkBytes)
+
+	return nil
+}
+
+/*func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	if id == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
+	}
+
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(rctx)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+	defer conn.Release()
+
+	metaTable, chunkTable, err := attachmentHelpers.GetTableNames(conn, rctx, id)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	}
+
+	var size int
+	var meta string
+	var failed bool
+	var ratio float32
+
+	if selectMetaStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_metadata_stmt", fmt.Sprintf(`
+	SELECT size,meta,failed,ratio FROM %v WHERE message_id = $1;
+	`, metaTable)); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		if err = conn.QueryRow(rctx, selectMetaStmt.Name, id).Scan(&size, &meta, &failed, &ratio); err != nil {
+			if err == pgx.ErrNoRows {
+				return fiber.NewError(fiber.StatusNotFound, "Attachment metadata not found")
+			}
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		}
+	}
+
+	if failed || ratio != 1 {
+		return fiber.NewError(fiber.StatusBadRequest, "Bad request")
+	}
+
 	// Process the range header
-	var maxLength int64
+	var maxLength int64 = 4 * 1024 * 1024
 	var start, end int64
 	if rangeHeader := ctx.Get("Range"); rangeHeader != "" {
 		_, err := fmt.Sscanf(rangeHeader, "bytes=%d-", &start)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid range header")
 		}
-		maxLength = 4 * 1024 * 1024
 		if start+maxLength > int64(size) {
 			maxLength = int64(size) - start
 		}
@@ -510,18 +588,29 @@ func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 		}
 	}
 
+	log.Printf("Start byte: %v", start)
+	log.Printf("End byte: %v", end)
+	log.Printf("Max length: %v", maxLength)
+
 	// Calculate the start and end chunk indexes
-	startChunkIndex := int(start / 4 * 1024 * 1024)
+	startChunkIndex := int(math.Floor(float64(start) / 4 * 1024 * 1024))
 	endChunkIndex := int(math.Ceil(float64(end+1)/float64(4*1024*1024))) - 1
-	var nums []string
+
+	// Get an array containing all the required chunk indices in order
+	var chunkIndices []string
 	for i := startChunkIndex; i <= endChunkIndex; i++ {
-		nums = append(nums, strconv.Itoa(i))
+		chunkIndices = append(chunkIndices, strconv.Itoa(i))
 	}
-	// Retrieve the data from relevant chunks
+
+	log.Printf("Start chunk index: %v", startChunkIndex)
+	log.Printf("End chunk index: %v", endChunkIndex)
+	log.Printf("Chunk indices: %v", chunkIndices)
+
+	// Retrieve the bytes from relevant chunks
 	var chunkBytes []byte
 	if selectChunksStmt, err := conn.Conn().Prepare(rctx, "attachment_get_video_stream_select_chunks_stmt", fmt.Sprintf(`
 	SELECT bytes FROM %v WHERE message_id = $1 AND chunk_index IN (%v);
-	`, chunkTable, strings.Join(nums, ","))); err != nil {
+	`, chunkTable, strings.Join(chunkIndices, ","))); err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	} else {
 		if rows, err := conn.Query(rctx, selectChunksStmt.Name, id); err != nil {
@@ -538,10 +627,12 @@ func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 					return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 				}
 				if i == 0 {
-					chunkStart := start - int64(startChunkIndex)*4*1024*1024
-					chunkEnd := chunkStart + int64(len(bytes.Bytes))
+					var chunkEnd, chunkStart int64
+					chunkStart = start - int64(startChunkIndex)*4*1024*1024
 					if chunkEnd > end {
 						chunkEnd = end
+					} else {
+						chunkEnd = chunkStart + int64(len(bytes.Bytes))
 					}
 					chunkBytes = append(chunkBytes, bytes.Bytes[chunkStart:chunkEnd]...)
 				} else if i == endChunkIndex-startChunkIndex {
@@ -556,11 +647,12 @@ func (h handler) GetAttachmentVideoPartialContent(ctx *fiber.Ctx) error {
 	}
 
 	ctx.Response().Header.Add("Accept-Ranges", "bytes")
-	ctx.Response().Header.Add("Content-Length", fmt.Sprint(maxLength))
-	ctx.Response().Header.Add("Content-Range", fmt.Sprint(start)+"-"+fmt.Sprint(end)+"/"+fmt.Sprint(size))
+	ctx.Response().Header.Add("Content-Length", strconv.Itoa(len(chunkBytes)))
+	ctx.Response().Header.Add("Content-Range", fmt.Sprintf("%v-%v/%v", start, end, size))
 	ctx.Response().Header.Add("Content-Type", "video/mp4")
 
-	ctx.Write(chunkBytes[:maxLength])
+	ctx.Status(fiber.StatusPartialContent)
+	ctx.Write(chunkBytes)
 
 	return nil
-}
+}*/
