@@ -36,6 +36,7 @@ async function handleSubmitEdit(values: any) {
     await updateRoom(roomId.value, values.name, values.isPrivate);
     if (imgFile.value) await uploadRoomImage(r.value?.ID!, imgFile.value!);
     resMsg.value = { msg: "", err: false, pen: false };
+    props.closeClicked();
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
   }
