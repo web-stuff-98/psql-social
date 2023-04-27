@@ -38,7 +38,7 @@ onBeforeUnmount(() => {
 <template>
   <Teleport to="#fullscreen-vid" :disabled="showFullscreenVid !== uid">
     <div v-show="userMediaStreamID" class="container">
-      <!-- Pfp container - For when there are no video streams present -->
+      <!-- Pfp container - For when there are no video streams present, or when the stream failed -->
       <div
         :style="{
           ...(user?.pfp ? { backgroundImage: `url(${user?.pfp})` } : {}),
@@ -47,6 +47,11 @@ onBeforeUnmount(() => {
         v-if="!hasDisplayMediaVideo && !hasUserMediaVideo"
       >
         <v-icon v-if="!user?.pfp" name="fa-user-alt" />
+        <v-icon
+          v-if="userMediaStreamID === 'FAILED'"
+          name="md-error-round"
+          class="error-icon"
+        />
       </div>
       <!-- Video container - For when there is either or both video streams present -->
       <div
@@ -171,9 +176,19 @@ onBeforeUnmount(() => {
     gap: var(--gap-sm);
     background-size: cover;
     background-position: center;
+    position: relative;
     svg {
       width: 60%;
       height: 60%;
+    }
+    .error-icon {
+      position: absolute;
+      top: -15%;
+      right: -15%;
+      width: 45%;
+      height: 45%;
+      fill: red;
+      color: red;
     }
   }
   .vid-container {

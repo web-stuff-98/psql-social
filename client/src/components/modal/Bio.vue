@@ -24,12 +24,9 @@ function watchBio(e: MessageEvent) {
       if (
         msg.data.change_type === "UPDATE" ||
         msg.data.change_type === "INSERT"
-      ) {
+      )
         bio.value = (msg.data.data as any)["content"];
-      }
-      if (msg.data.change_type === "DELETE") {
-        bio.value = "";
-      }
+      if (msg.data.change_type === "DELETE") bio.value = "";
     }
   }
 }
@@ -92,7 +89,7 @@ onBeforeUnmount(() => {
   gap: var(--gap-lg);
   max-width: 15rem;
   p {
-  padding: var(--gap-md);
+    padding: var(--gap-md);
     margin: 0;
   }
 }

@@ -109,7 +109,7 @@ export const useChatMedia = (
         sndTrack.contentHint = "speech";
       }
     } catch (e) {
-      console.warn(e);
+      userMediaStreamID.value = "FAILED";
     }
     if (mediaOptions.value.displayMedia.video) {
       try {
