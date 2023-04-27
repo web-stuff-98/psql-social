@@ -52,12 +52,12 @@ const toggleEmojiMenu = async () => {
     if (emojiMenu.value)
       emojiMenu.value.style.top = `-${emojiMenu.value?.clientHeight}px`;
   });
-};
+}
 
 const addEmoji = (emoji: string) => {
   message.value = `${message.value}${emoji}`;
   emojiMenuOpen.value = false;
-};
+}
 </script>
 
 <template>
@@ -76,7 +76,7 @@ const addEmoji = (emoji: string) => {
       🙂
       <div ref="emojiMenu" v-show="emojiMenuOpen" class="emoji-menu">
         <button
-          @click="addEmoji(emoji)"
+          @click="() => addEmoji(emoji)"
           type="button"
           v-for="emoji in emojis.split(` `)"
         >

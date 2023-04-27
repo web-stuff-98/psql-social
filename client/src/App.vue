@@ -30,6 +30,7 @@ watch(authStore, (_, newVal) => {
   if (!newVal.uid) noUserModalSection.value = "WELCOME";
 });
 
+/*
 let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
 let renderer: THREE.WebGLRenderer;
@@ -98,7 +99,7 @@ function animate() {
   mesh.rotation.y += 0.00015;
 
   renderer.render(scene, camera);
-}
+}*/
 </script>
 
 <template>

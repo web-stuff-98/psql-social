@@ -78,3 +78,17 @@ type AttachmentMetadata struct {
 	Ratio  float32 `json:"ratio"`
 	Failed bool    `json:"failed"`
 }
+
+type Notifications struct {
+	DirectMessageNotifications []DirectMessageNotification `json:"dm_ns"`
+	RoomMessageNotifications   []RoomMessageNotification   `json:"rm_ns"`
+}
+
+type DirectMessageNotification struct {
+	SenderID string `json:"sender_id"`
+}
+
+type RoomMessageNotification struct {
+	RoomID    string `json:"room_id"`
+	ChannelID string `json:"channel_id"`
+}

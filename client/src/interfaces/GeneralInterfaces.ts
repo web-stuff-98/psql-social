@@ -64,3 +64,10 @@ export interface IMediaOptions {
     video: boolean;
   };
 }
+export interface IRoomMessageNotification {
+  room_id: string;
+  channel_id: string;
+}
+export interface IDirectMessageNotification {
+  sender_id: string;
+}

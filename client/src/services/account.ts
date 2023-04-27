@@ -2,6 +2,8 @@ import {
   IDirectMessage,
   IFriendRequest,
   IInvitation,
+  IDirectMessageNotification,
+  IRoomMessageNotification,
 } from "../interfaces/GeneralInterfaces";
 import { makeRequest } from "./makeRequest";
 
@@ -39,3 +41,8 @@ export const uploadPfp = (file: File): Promise<void> => {
 
 export const refreshToken = () =>
   makeRequest("/api/acc/refresh", { method: "POST" });
+
+export const getNotifications = (): Promise<{
+  dm_ns: IDirectMessageNotification[] | undefined;
+  rm_ns: IRoomMessageNotification[] | undefined;
+}> => makeRequest("/api/acc/notifications");

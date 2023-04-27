@@ -56,5 +56,6 @@ const acceptClicked = (index: number) =>
   display: flex;
   gap: 0.5rem;
   padding: 0.5rem;
+  z-index: 100;
 }
 </style>

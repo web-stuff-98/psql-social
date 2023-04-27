@@ -90,6 +90,21 @@ CREATE TABLE direct_messages (
     has_attachment BOOLEAN NOT NULL
 );
 
+CREATE TABLE room_message_notifications (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    channel_id UUID REFERENCES room_channels(id) ON DELETE CASCADE,
+    message_id UUID REFERENCES room_messages(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, message_id)
+);
+
+CREATE TABLE direct_message_notifications (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    message_id UUID REFERENCES direct_messages(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, message_id)
+);
+
 CREATE TABLE bans (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,

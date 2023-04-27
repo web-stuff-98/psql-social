@@ -147,6 +147,13 @@ func main() {
 		Message:       "Too many requests",
 		RouteName:     "get-conversation",
 	}, rdb, db))
+	app.Get("/api/acc/notifications", mw.BasicRateLimiter(h.GetNotifications, mw.SimpleLimiterOpts{
+		Window:        time.Minute * 1,
+		MaxReqs:       90,
+		BlockDuration: time.Minute * 10,
+		Message:       "Too many requests",
+		RouteName:     "get-notifications",
+	}, rdb, db))
 
 	app.Post("/api/room", mw.BasicRateLimiter(h.CreateRoom, mw.SimpleLimiterOpts{
 		Window:        time.Minute * 1,

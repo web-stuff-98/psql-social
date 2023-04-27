@@ -201,6 +201,65 @@ func (h handler) Refresh(ctx *fiber.Ctx) error {
 	return nil
 }
 
+func (h handler) GetNotifications(ctx *fiber.Ctx) error {
+	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	uid, _, err := authHelpers.GetUidAndSid(h.RedisClient, ctx, rctx, h.DB)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	directMessageNotifications := []responses.DirectMessageNotification{}
+	if rows, err := h.DB.Query(rctx, "SELECT sender_id FROM direct_message_notifications WHERE user_id = $1;", uid); err != nil {
+		if err != pgx.ErrNoRows {
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var sender_id string
+			if err = rows.Scan(&sender_id); err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			}
+			directMessageNotifications = append(directMessageNotifications, responses.DirectMessageNotification{
+				SenderID: sender_id,
+			})
+		}
+	}
+
+	roomMessageNotifications := []responses.RoomMessageNotification{}
+	if rows, err := h.DB.Query(rctx, "SELECT channel_id,room_id FROM room_message_notifications WHERE user_id = $1;", uid); err != nil {
+		if err != pgx.ErrNoRows {
+			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var channel_id, room_id string
+			if err = rows.Scan(&channel_id, &room_id); err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+			}
+			roomMessageNotifications = append(roomMessageNotifications, responses.RoomMessageNotification{
+				ChannelID: channel_id,
+				RoomID:    room_id,
+			})
+		}
+	}
+
+	if data, err := json.Marshal(responses.Notifications{
+		DirectMessageNotifications: directMessageNotifications,
+		RoomMessageNotifications:   roomMessageNotifications,
+	}); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
+	} else {
+		ctx.Response().Header.Add("Content-Type", "application/json")
+		ctx.Write(data)
+	}
+
+	return nil
+}
+
 func (h handler) UpdateBio(ctx *fiber.Ctx) error {
 	rctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
 	defer cancel()

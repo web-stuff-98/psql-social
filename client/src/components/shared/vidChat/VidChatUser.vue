@@ -26,13 +26,8 @@ const user = computed(() => userStore.getUser(uid?.value!));
 const forceMute = ref(false);
 const hideSmallWindow = ref(false);
 
-onMounted(() => {
-  userStore.userEnteredView(uid?.value as string);
-});
-
-onBeforeUnmount(() => {
-  userStore.userLeftView(uid?.value as string);
-});
+onMounted(() => userStore.userEnteredView(uid?.value as string));
+onBeforeUnmount(() => userStore.userLeftView(uid?.value as string));
 </script>
 
 <template>
