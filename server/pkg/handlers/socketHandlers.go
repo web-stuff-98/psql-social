@@ -669,12 +669,6 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 		return fmt.Errorf("Internal error")
 	}
 
-	if _, err = h.DB.Exec(ctx, `
-	INSERT INTO direct_message_notifications (user_id, sender_id, message_id) VALUES($1,$2,$3);
-	`, data.Uid, uid, id); err != nil {
-		return fmt.Errorf("Internal error")
-	}
-
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
 		Data: socketMessages.DirectMessage{
@@ -713,6 +707,11 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 				Data: socketMessages.DirectMessageNotify{
 					Uid: uid,
 				},
+			}
+			if _, err = h.DB.Exec(ctx, `
+			INSERT INTO direct_message_notifications (user_id, sender_id, message_id) VALUES($1,$2,$3);
+			`, data.Uid, uid, id); err != nil {
+				return fmt.Errorf("Internal error")
 			}
 		}
 	}
