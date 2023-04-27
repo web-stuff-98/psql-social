@@ -42,6 +42,10 @@ const useNotificationStore = defineStore("notifications", {
       return (uid: string) =>
         state.directMessages[uid] ? state.directMessages[uid] : 0;
     },
+    getAllUserNotifications(state) {
+      return () =>
+        Object.values(state.directMessages).reduce((acc, val) => acc + val, 0);
+    },
   },
 
   actions: {

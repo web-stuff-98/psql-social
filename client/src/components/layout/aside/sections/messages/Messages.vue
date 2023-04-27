@@ -7,13 +7,19 @@ import useSocketStore from "../../../../../store/SocketStore";
 import User from "../../../../shared/User.vue";
 import MessagesItem from "./MessagesItem.vue";
 import MessageForm from "../../../../shared/MessageForm.vue";
-import { DirectMessage } from "../../../../../socketHandling/OutEvents";
+import NotificationsIndicator from "../../../../shared/NotificationsIndicator.vue";
+import {
+  DirectMessage,
+  ConvOpened,
+  ConvClosed,
+} from "../../../../../socketHandling/OutEvents";
 import {
   isBlock,
   isRequestAttachment,
 } from "../../../../../socketHandling/InterpretEvent";
 import useAuthStore from "../../../../../store/AuthStore";
 import useAttachmentStore from "../../../../../store/AttachmentStore";
+import useNotificationStore from "../../../../../store/NotificationStore";
 import {
   getConversationUids,
   getConversationContent,
@@ -24,6 +30,7 @@ const userStore = useUserStore();
 const socketStore = useSocketStore();
 const authStore = useAuthStore();
 const attachmentStore = useAttachmentStore();
+const notificationStore = useNotificationStore();
 
 const section = ref<"USERS" | "MESSAGES">("USERS");
 const resMsg = ref<IResMsg>({});
@@ -60,9 +67,6 @@ onMounted(async () => {
   try {
     resMsg.value = { msg: "", pen: true, err: false };
     let uids: string[] | null = await getConversationUids();
-    // remove duplicates that somehow magically end up in the array
-    if (uids)
-      uids = uids.filter((item, index) => uids?.indexOf(item) === index);
     uids?.forEach((uid) => {
       inboxStore.convs[uid] = [];
       userStore.cacheUser(uid);
@@ -78,6 +82,12 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  socketStore.send({
+    event_type: "CONV_CLOSED",
+    data: {
+      uid: currentUid.value,
+    },
+  } as ConvClosed);
   socketStore.socket?.removeEventListener(
     "message",
     watchForBlocksAndAttachmentRequest
@@ -88,18 +98,31 @@ async function getConversation(uid: string) {
   try {
     resMsg.value = { msg: "", pen: true, err: false };
     const data = await getConversationContent(uid);
+    socketStore.send({
+      event_type: "CONV_CLOSED",
+      data: {
+        uid,
+      },
+    } as ConvClosed);
+    socketStore.send({
+      event_type: "CONV_OPENED",
+      data: {
+        uid,
+      },
+    } as ConvOpened);
+    notificationStore.clearUserNotifications(uid);
     if (data?.friend_requests) {
       for await (const frq of data.friend_requests) {
-        const otherUser =
-          frq.friended === authStore.uid ? frq.friender : frq.friended;
-        await userStore.cacheUser(otherUser);
+        await userStore.cacheUser(
+          frq.friended === authStore.uid ? frq.friender : frq.friended
+        );
       }
     }
     if (data?.invitations) {
       for await (const inv of data.invitations) {
-        const otherUser =
-          inv.invited === authStore.uid ? inv.inviter : inv.invited;
-        await userStore.cacheUser(otherUser);
+        await userStore.cacheUser(
+          inv.invited === authStore.uid ? inv.inviter : inv.invited
+        );
       }
     }
     if (data?.direct_messages) {
@@ -177,6 +200,10 @@ watch(inboxStore.convs, async (oldVal, newVal) => {
         class="user-container"
       >
         <User :noClick="true" :uid="uid" />
+        <NotificationsIndicator
+          v-if="notificationStore.getUserNotifications(uid)"
+          :count="notificationStore.getUserNotifications(uid)"
+        />
       </button>
     </div>
   </div>
@@ -218,7 +245,7 @@ watch(inboxStore.convs, async (oldVal, newVal) => {
       background: var(--border-pale);
       width: 100%;
       display: flex;
-      justify-content: flex-start;
+      justify-content: space-between;
     }
   }
 

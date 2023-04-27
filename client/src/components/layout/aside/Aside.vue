@@ -8,14 +8,18 @@ import Messages from "./sections/messages/Messages.vue";
 import DeviceSettings from "./sections/deviceSettings/DeviceSettings.vue";
 import Friends from "./sections/friends/Friends.vue";
 import Blocked from "./sections/blocked/Blocked.vue";
+import NotificationsIndicator from "../../shared/NotificationsIndicator.vue";
+import useNotificationStore from "../../../store/NotificationStore";
+
+const notificationStore = useNotificationStore();
 
 const currentSection = ref<EAsideSection>(EAsideSection.FRIENDS);
 const show = ref(false);
 const showOpacityTransition = ref(false);
 
-watch(show, (_, newShow) => {
-  setTimeout(() => (showOpacityTransition.value = !newShow), 100);
-});
+watch(show, (_, newShow) =>
+  setTimeout(() => (showOpacityTransition.value = !newShow), 100)
+);
 </script>
 
 <template>
@@ -48,6 +52,14 @@ watch(show, (_, newShow) => {
         v-for="section in EAsideSection"
       >
         {{ section }}
+        <NotificationsIndicator
+          :style="{ position: 'absolute', zIndex: '99', right: '-0.5rem', top: '-0.5rem' }"
+          v-if="
+            notificationStore.getAllUserNotifications() &&
+            section === EAsideSection.MESSAGES
+          "
+          :count="notificationStore.getAllUserNotifications()"
+        />
       </button>
     </div>
     <div
@@ -63,7 +75,7 @@ watch(show, (_, newShow) => {
         :closeClicked="() => (currentSection = EAsideSection.FRIENDS)"
         v-if="currentSection === EAsideSection.PROFILE"
       />
-      <Blocked v-if="currentSection === EAsideSection.BLOCKED"/>
+      <Blocked v-if="currentSection === EAsideSection.BLOCKED" />
       <FindUser v-if="currentSection === EAsideSection.FIND_USER" />
       <Rooms v-if="currentSection === EAsideSection.ROOMS" />
       <Messages v-if="currentSection === EAsideSection.MESSAGES" />
@@ -106,6 +118,9 @@ aside {
       padding: 4px 5px;
       font-weight: 600;
       text-shadow: none;
+      display: flex;
+      justify-content: space-between;
+      position: relative;
     }
   }
   .show-button {

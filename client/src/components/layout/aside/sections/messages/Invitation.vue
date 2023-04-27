@@ -15,8 +15,8 @@ const authStore = useAuthStore();
 const socketStore = useSocketStore();
 const roomStore = useRoomStore();
 
-const inviter = userStore.getUser(inv.value.inviter)?.username;
-const invited = userStore.getUser(inv.value.invited)?.username;
+const inviter = computed(() => userStore.getUser(inv.value.inviter)?.username);
+const invited = computed(() => userStore.getUser(inv.value.invited)?.username);
 const room = computed(() => roomStore.getRoom(inv.value.room_id));
 
 function respond(accepted: boolean) {

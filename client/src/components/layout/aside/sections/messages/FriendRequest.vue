@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onBeforeUnmount, onMounted, toRefs } from "vue";
+import { onBeforeUnmount, onMounted, toRefs, computed } from "vue";
 import { IFriendRequest } from "../../../../../interfaces/GeneralInterfaces";
 import { FriendRequestResponse } from "../../../../../socketHandling/OutEvents";
 import useAuthStore from "../../../../../store/AuthStore";
@@ -13,8 +13,12 @@ const userStore = useUserStore();
 const authStore = useAuthStore();
 const socketStore = useSocketStore();
 
-const friender = userStore.getUser(frq.value.friender)?.username;
-const friended = userStore.getUser(frq.value.friended)?.username;
+const friender = computed(
+  () => userStore.getUser(frq.value.friender)?.username
+);
+const friended = computed(
+  () => userStore.getUser(frq.value.friended)?.username
+);
 
 function respond(accepted: boolean) {
   socketStore.send({
