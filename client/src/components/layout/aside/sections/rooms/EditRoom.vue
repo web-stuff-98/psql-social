@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import ModalCloseButton from "../../../../shared/ModalCloseButton.vue";
-import { onMounted, ref, toRefs } from "vue";
+import { onMounted, ref, toRefs, computed } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
 import { updateRoom } from "../../../../../services/room";
 import { validateRoomName } from "../../../../../validators/validators";
 import { Field, Form } from "vee-validate";
 import { uploadRoomImage } from "../../../../../services/room";
 import useRoomStore from "../../../../../store/RoomStore";
+import ModalCloseButton from "../../../../shared/ModalCloseButton.vue";
 import Modal from "../../../../modal/Modal.vue";
 import ErrorMessage from "../../../../shared/ErrorMessage.vue";
 import CustomCheckbox from "../../../../shared/CustomCheckbox.vue";
@@ -24,18 +24,17 @@ const imgFile = ref<File>();
 const imgUrl = ref<string>();
 const imgInput = ref<HTMLInputElement>();
 
-// used for initial image url value
-const r = roomStore.getRoom(roomId.value);
+const r = computed(() => roomStore.getRoom(roomId.value));
 
 onMounted(() => {
-  if (r?.img) imgUrl.value = r.img;
+  if (r.value?.img) imgUrl.value = r.value.img;
 });
 
 async function handleSubmitEdit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
     await updateRoom(roomId.value, values.name, values.isPrivate);
-    if (imgFile.value) await uploadRoomImage(r?.ID!, imgFile.value!);
+    if (imgFile.value) await uploadRoomImage(r.value?.ID!, imgFile.value!);
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
