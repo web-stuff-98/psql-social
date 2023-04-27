@@ -62,6 +62,7 @@ func (h handler) WebSocketAuth(ctx *fiber.Ctx) error {
 	} else {
 		if websocket.IsWebSocketUpgrade(ctx) {
 			ctx.Locals("uid", uid)
+			ctx.Locals("open_convs", make(map[string]struct{}))
 			return ctx.Next()
 		}
 		return fiber.ErrUpgradeRequired

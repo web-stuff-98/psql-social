@@ -159,7 +159,7 @@ CREATE TABLE profile_pictures (
     picture_data BYTEA NOT NULL
 );
 
-CREATE INDEX idx_username ON users (username);
+CREATE INDEX idx_users ON users (username);
 
 CREATE INDEX idx_rooms ON rooms (name);
 
