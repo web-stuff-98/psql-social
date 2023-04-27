@@ -9,27 +9,25 @@ const authStore = useAuthStore();
 const socketStore = useSocketStore();
 const callStore = useCallStore();
 
-function cancelHangupClicked(index: number) {
+const cancelHangupClicked = (index: number) =>
   socketStore.send({
     event_type: "CALL_USER_RESPONSE",
     data: {
-      caller: callStore.$state[index].caller,
-      called: callStore.$state[index].called,
+      caller: callStore.calls[index].caller,
+      called: callStore.calls[index].called,
       accept: false,
     },
   } as CallResponse);
-}
 
-function acceptClicked(index: number) {
+const acceptClicked = (index: number) =>
   socketStore.send({
     event_type: "CALL_USER_RESPONSE",
     data: {
-      caller: callStore.$state[index].caller,
-      called: callStore.$state[index].called,
+      caller: callStore.calls[index].caller,
+      called: callStore.calls[index].called,
       accept: true,
     },
   } as CallResponse);
-}
 </script>
 
 <template>
@@ -45,7 +43,7 @@ function acceptClicked(index: number) {
           : pendingCall.caller
       "
       :index="index"
-      v-for="(pendingCall, index) in callStore.$state"
+      v-for="(pendingCall, index) in callStore.calls"
     />
   </div>
 </template>

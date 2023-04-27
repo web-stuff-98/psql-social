@@ -133,23 +133,21 @@ export const useChatMedia = (
     userStream.value = userMediaStream;
     displayStream.value = displayMediaStream;
     userMediaStreamID.value = userMediaStream?.id as string;
-    await nextTick(() => {
-      negotiateConnection();
-    });
+    await nextTick(() => negotiateConnection());
   }
 
   onMounted(retrieveMedia);
 
   onBeforeUnmount(() => {
     if (userStream.value) {
-      userStream.value.getTracks().forEach((track) => {
-        userStream.value?.removeTrack(track);
-      });
+      userStream.value
+        .getTracks()
+        .forEach((track) => userStream.value?.removeTrack(track));
     }
     if (displayStream.value) {
-      displayStream.value.getTracks().forEach((track) => {
-        displayStream.value?.removeTrack(track);
-      });
+      displayStream.value
+        .getTracks()
+        .forEach((track) => displayStream.value?.removeTrack(track));
     }
     mediaOptions.value = {
       userMedia: { video: false, audio: true },

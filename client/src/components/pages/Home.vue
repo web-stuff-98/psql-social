@@ -1,8 +1,3 @@
-<script lang="ts" setup>
-import useAuthStore from "../../store/AuthStore";
-const authStore = useAuthStore();
-</script>
-
 <template>
   <div class="home">
     <h1>pSQL-Social</h1>
@@ -29,7 +24,7 @@ const authStore = useAuthStore();
   width: 100%;
   text-align: center;
   padding: var(--gap-lg);
-  
+
   hr {
     border: none;
     border-bottom: 2px solid var(--text-colour);

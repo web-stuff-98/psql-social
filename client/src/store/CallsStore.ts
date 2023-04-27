@@ -6,10 +6,10 @@ import {
 import { useRouter } from "vue-router";
 import useAuthStore from "./AuthStore";
 
-type CallStoreState = { caller: string; called: string }[];
+type CallStoreState = { calls: { caller: string; called: string }[] };
 
 const useCallStore = defineStore("calls", {
-  state: () => [] as CallStoreState,
+  state: () => ({ calls: [] } as CallStoreState),
 
   actions: {
     watchCalls(e: MessageEvent) {
@@ -19,13 +19,13 @@ const useCallStore = defineStore("calls", {
       const msg = JSON.parse(e.data);
       if (!msg) return;
       if (isCallAcknowledge(msg)) {
-        this.push(msg.data);
+        this.calls.push(msg.data);
       }
       if (isCallResponse(msg)) {
-        const i = this.findIndex(
+        const i = this.calls.findIndex(
           (c) => c.called === msg.data.called && c.caller === msg.data.caller
         );
-        if (i !== -1) this.splice(i, 1);
+        if (i !== -1) this.calls.splice(i, 1);
         if (msg.data.accept)
           router.push(
             `/call/${

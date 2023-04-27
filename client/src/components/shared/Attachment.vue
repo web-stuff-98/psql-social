@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { toRefs, ref, onMounted, onBeforeUnmount } from "vue";
+import { computed, toRefs, ref, onMounted, onBeforeUnmount } from "vue";
 import { IResMsg } from "../../interfaces/GeneralInterfaces";
 import { baseURL, makeRequest } from "../../services/makeRequest";
 import useAttachmentStore from "../../store/AttachmentStore";
@@ -16,8 +16,7 @@ const { msgId } = toRefs(props);
 
 const resMsg = ref<IResMsg>({ msg: "", err: false, pen: false });
 const containerRef = ref<HTMLElement | null>(null);
-
-const meta = attachmentStore.getAttachment(msgId.value);
+const meta = computed(() => attachmentStore.getAttachment(msgId.value));
 
 const observer = new IntersectionObserver(([entry]) => {
   if (entry.isIntersecting) {
@@ -35,13 +34,13 @@ onBeforeUnmount(() => {
 });
 
 async function download() {
-  const data = await makeRequest(`/api/attachment/${meta?.ID}`, {
+  const data = await makeRequest(`/api/attachment/${meta.value?.ID}`, {
     responseType: "arraybuffer",
   });
-  const blob = new Blob([data], { type: meta?.mime });
+  const blob = new Blob([data], { type: meta.value?.mime });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `${baseURL}/api/attachment/${meta?.ID}`;
+  link.download = `${baseURL}/api/attachment/${meta.value?.ID}`;
   link.click();
   URL.revokeObjectURL(link.href);
 }
@@ -64,7 +63,10 @@ async function download() {
         "
       />
       <video controls v-if="meta.mime === 'video/mp4'">
-        <source type="video/mp4" :src="`${baseURL}/api/attachment/video/${msgId}`" />
+        <source
+          type="video/mp4"
+          :src="`${baseURL}/api/attachment/video/${msgId}`"
+        />
       </video>
       <a
         :href="`${baseURL}/api/attachment/${meta.ID}`"

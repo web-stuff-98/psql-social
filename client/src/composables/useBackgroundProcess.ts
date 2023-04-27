@@ -1,28 +1,15 @@
 import { onBeforeUnmount, onMounted, Ref, ref, watch, watchEffect } from "vue";
-import {
-  IDirectMessage,
-  IFriendRequest,
-  IInvitation,
-  IResMsg,
-  IRoom,
-  IUser,
-} from "../interfaces/GeneralInterfaces";
-import { makeRequest } from "../services/makeRequest";
-import { StartWatching, StopWatching } from "../socketHandling/OutEvents";
+import { IResMsg } from "../interfaces/GeneralInterfaces";
+import { StartWatching } from "../socketHandling/OutEvents";
+import { isChangeEvent } from "../socketHandling/InterpretEvent";
+import { refreshToken } from "../services/account";
 import useAuthStore from "../store/AuthStore";
 import useSocketStore from "../store/SocketStore";
 import useUserStore from "../store/UserStore";
 import useRoomStore from "../store/RoomStore";
 import useInboxStore from "../store/InboxStore";
 import useAttachmentStore from "../store/AttachmentStore";
-import {
-  isAttachmentMetadataCreated,
-  isAttachmentProgress,
-  isChangeEvent,
-} from "../socketHandling/InterpretEvent";
-import { useRouter } from "vue-router";
 import useInterface from "../store/InterfaceStore";
-import { refreshToken } from "../services/account";
 import useCallStore from "../store/CallsStore";
 
 /**
@@ -51,8 +38,6 @@ export default function useBackgroundProcess({
   const interfaceStore = useInterface();
   const callStore = useCallStore();
 
-  const router = useRouter();
-
   const currentlyWatching = ref<string[]>([]);
 
   watch(interfaceStore, (_, newVal) => {
@@ -70,9 +55,7 @@ export default function useBackgroundProcess({
   }
 
   const watchInbox = (e: MessageEvent) => inboxStore.watchInbox(e);
-
   const watchForCalls = (e: MessageEvent) => callStore.watchCalls(e);
-
   const watchAttachments = (e: MessageEvent) =>
     attachmentStore.watchAttachments(e);
 
@@ -96,7 +79,6 @@ export default function useBackgroundProcess({
       () => socketStore.send("PING"),
       20000
     );
-
     clearUserCacheInterval.value = setInterval(
       userStore.cleanupInterval,
       30000
