@@ -31,8 +31,7 @@ const usethis = defineStore("users", {
   },
   actions: {
     async cacheUser(id: string, force?: boolean) {
-      if (this.$state.users.findIndex((u) => u.ID === id) !== -1 && !force)
-        return;
+      if (this.users.findIndex((u) => u.ID === id) !== -1 && !force) return;
       try {
         const u = await getUser(id);
         const pfp: BlobPart | undefined = await new Promise((resolve) =>
@@ -42,10 +41,7 @@ const usethis = defineStore("users", {
         );
         if (pfp)
           u.pfp = URL.createObjectURL(new Blob([pfp], { type: "image/jpeg" }));
-        this.$state.users = [
-          ...this.$state.users.filter((u) => u.ID !== id),
-          u,
-        ];
+        this.users = [...this.users.filter((u) => u.ID !== id), u];
       } catch (e) {
         console.warn("Failed to cache user data for", id);
       }
@@ -127,16 +123,16 @@ const usethis = defineStore("users", {
     },
 
     userEnteredView(id: string) {
-      this.$state.visibleUsers = [...this.$state.visibleUsers, id];
-      const i = this.$state.disappearedUsers.findIndex((u) => u.id === id);
-      if (i !== -1) this.$state.disappearedUsers.splice(i, 1);
+      this.visibleUsers = [...this.visibleUsers, id];
+      const i = this.disappearedUsers.findIndex((u) => u.id === id);
+      if (i !== -1) this.disappearedUsers.splice(i, 1);
     },
     userLeftView(id: string) {
-      const i = this.$state.visibleUsers.findIndex((u) => u === id);
-      if (i !== -1) this.$state.visibleUsers.splice(i, 1);
-      if (this.$state.disappearedUsers.findIndex((u) => u.id === id) === -1)
-        this.$state.disappearedUsers = [
-          ...this.$state.disappearedUsers,
+      const i = this.visibleUsers.findIndex((u) => u === id);
+      if (i !== -1) this.visibleUsers.splice(i, 1);
+      if (this.disappearedUsers.findIndex((u) => u.id === id) === -1)
+        this.disappearedUsers = [
+          ...this.disappearedUsers,
           {
             id,
             disappearedAt: Date.now(),

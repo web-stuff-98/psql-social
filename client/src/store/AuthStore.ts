@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { makeRequest } from "../services/makeRequest";
+import useNotificationStore from "./NotificationStore";
 
 type AuthStoreState = {
   uid?: string;
@@ -12,26 +13,34 @@ const useAuthStore = defineStore("auth", {
     } as AuthStoreState),
   actions: {
     async login(username: string, password: string) {
+      const notificationsStore = useNotificationStore();
+
       const uid: string = await makeRequest("/api/acc/login", {
         method: "POST",
         data: { username, password },
         responseType: "text",
       });
-      this.$state.uid = uid;
+      this.uid = uid;
+
+      await notificationsStore.retrieveNotifications();
     },
     async register(username: string, password: string, policy: boolean) {
+      const notificationsStore = useNotificationStore();
+
       const uid: string = await makeRequest("/api/acc/register", {
         method: "POST",
         data: { username, password, policy },
         responseType: "text",
       });
-      this.$state.uid = uid;
+      this.uid = uid;
+
+      notificationsStore.clearAllNotifications();
     },
     async logout() {
       await makeRequest("/api/acc/logout", {
         method: "POST",
       });
-      this.$state.uid = undefined;
+      this.uid = undefined;
     },
   },
 });

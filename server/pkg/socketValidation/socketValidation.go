@@ -52,6 +52,11 @@ type DirectMessageDelete struct {
 	MsgID string `json:"msg_id" validate:"required,lte=36"`
 }
 
+// CONV_OPENED/CONV_CLOSED
+type ConvOpenedClosed struct {
+	Uid string `json:"uid" validate:"required,lte=36"`
+}
+
 // FRIEND_REQUEST
 type FriendRequest struct {
 	Uid string `json:"uid" validate:"required,lte=36"`

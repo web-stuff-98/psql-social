@@ -11,6 +11,7 @@ import useInboxStore from "../store/InboxStore";
 import useAttachmentStore from "../store/AttachmentStore";
 import useInterface from "../store/InterfaceStore";
 import useCallStore from "../store/CallsStore";
+import useNotificationStore from "../store/NotificationStore";
 
 /**
  * This composable is for intervals that run in the background
@@ -37,6 +38,7 @@ export default function useBackgroundProcess({
   const attachmentStore = useAttachmentStore();
   const interfaceStore = useInterface();
   const callStore = useCallStore();
+  const notificationsStore = useNotificationStore();
 
   const currentlyWatching = ref<string[]>([]);
 
@@ -58,6 +60,8 @@ export default function useBackgroundProcess({
   const watchForCalls = (e: MessageEvent) => callStore.watchCalls(e);
   const watchAttachments = (e: MessageEvent) =>
     attachmentStore.watchAttachments(e);
+  const watchDirectMessageNotifications = (e: MessageEvent) =>
+    notificationsStore.watchDirectMessageNotifications(e);
 
   onMounted(() => {
     /* Refresh the token */
@@ -128,6 +132,10 @@ export default function useBackgroundProcess({
     socketStore.socket?.addEventListener("message", watchInbox);
     socketStore.socket?.addEventListener("message", watchForCalls);
     socketStore.socket?.addEventListener("message", watchAttachments);
+    socketStore.socket?.addEventListener(
+      "message",
+      watchDirectMessageNotifications
+    );
   });
 
   onBeforeUnmount(() => {
@@ -141,6 +149,10 @@ export default function useBackgroundProcess({
     socketStore.socket?.removeEventListener("message", watchInbox);
     socketStore.socket?.removeEventListener("message", watchForCalls);
     socketStore.socket?.removeEventListener("message", watchAttachments);
+    socketStore.socket?.removeEventListener(
+      "message",
+      watchDirectMessageNotifications
+    );
   });
 
   return undefined;

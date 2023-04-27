@@ -24,7 +24,7 @@ const usethis = defineStore("attachments", {
       visibleAttachments: [],
       disappearedAttachments: [],
     } as thisState),
-    
+
   getters: {
     getAttachment(state) {
       return (id: string) => state.attachments.find((a) => a.ID === id);
@@ -33,20 +33,14 @@ const usethis = defineStore("attachments", {
 
   actions: {
     async cacheAttachment(id: string, force?: boolean) {
-      if (
-        this.$state.attachments.findIndex((a) => a.ID === id) !== -1 &&
-        !force
-      )
+      if (this.attachments.findIndex((a) => a.ID === id) !== -1 && !force)
         return;
       try {
         const a: IAttachmentMetadata = await makeRequest(
           `${baseURL}/api/attachment/${id}`
         );
         // spread operator to make sure DOM updates, not sure if necessary
-        this.$state.attachments = [
-          ...this.$state.attachments.filter((a) => a.ID !== id),
-          a,
-        ];
+        this.attachments = [...this.attachments.filter((a) => a.ID !== id), a];
       } catch (e) {
         console.warn("Failed to cache attachment data for", id);
       }
@@ -97,20 +91,16 @@ const usethis = defineStore("attachments", {
 
     attachmentEnteredView(id: string) {
       this.cacheAttachment(id);
-      this.$state.visibleAttachments = [...this.$state.visibleAttachments, id];
-      const i = this.$state.disappearedAttachments.findIndex(
-        (a) => a.id === id
-      );
-      if (i !== -1) this.$state.disappearedAttachments.splice(i, 1);
+      this.visibleAttachments = [...this.visibleAttachments, id];
+      const i = this.disappearedAttachments.findIndex((a) => a.id === id);
+      if (i !== -1) this.disappearedAttachments.splice(i, 1);
     },
     attachmentLeftView(id: string) {
-      const i = this.$state.visibleAttachments.findIndex((a) => a === id);
-      if (i !== -1) this.$state.visibleAttachments.splice(i, 1);
-      if (
-        this.$state.disappearedAttachments.findIndex((a) => a.id === id) === -1
-      )
-        this.$state.disappearedAttachments = [
-          ...this.$state.disappearedAttachments,
+      const i = this.visibleAttachments.findIndex((a) => a === id);
+      if (i !== -1) this.visibleAttachments.splice(i, 1);
+      if (this.disappearedAttachments.findIndex((a) => a.id === id) === -1)
+        this.disappearedAttachments = [
+          ...this.disappearedAttachments,
           {
             id,
             disappearedAt: Date.now(),

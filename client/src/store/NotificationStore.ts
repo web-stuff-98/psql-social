@@ -1,5 +1,10 @@
 import { defineStore } from "pinia";
 import { getNotifications } from "../services/account";
+import notify from "../assets/notify.wav";
+import {
+  isDirectMessageNotifyData,
+  isDirectMessageNotifyDeleteData,
+} from "../socketHandling/InterpretEvent";
 
 type NotificationStoreState = {
   // sender id -> num notifications
@@ -53,10 +58,9 @@ const useNotificationStore = defineStore("notifications", {
       else this.directMessages = {};
       if (ns.rm_ns)
         ns.rm_ns.forEach((n) => {
-          if (!this.roomMessages[n.room_id]) {
-            this.roomMessages[n.room_id] = {};
+          if (!this.roomMessages[n.room_id])
             this.roomMessages[n.room_id][n.channel_id] = 1;
-          } else
+          else
             this.roomMessages[n.room_id][n.channel_id] =
               this.roomMessages[n.room_id][n.channel_id] === undefined
                 ? this.roomMessages[n.room_id][n.channel_id] + 1
@@ -69,6 +73,42 @@ const useNotificationStore = defineStore("notifications", {
     },
     clearUserNotifications(uid: string) {
       this.directMessages[uid] = 0;
+    },
+    clearAllNotifications() {
+      this.directMessages = {};
+      this.roomMessages = {};
+    },
+    directMessageNotify(uid: string) {
+      const audio = new Audio(notify);
+      audio.play();
+      this.directMessages[uid] = this.directMessages[uid]
+        ? this.directMessages[uid] + 1
+        : 1;
+    },
+    directMessageNotifyDelete(uid: string) {
+      this.directMessages[uid] = this.directMessages[uid]
+        ? Math.max(0, this.directMessages[uid] - 1)
+        : 0;
+    },
+    roomMessageNotify(roomId: string, channelId: string) {
+      const audio = new Audio(notify);
+      audio.play();
+      if (this.roomMessages[roomId]) {
+        this.roomMessages[roomId][channelId] = this.roomMessages[roomId][
+          channelId
+        ]
+          ? this.roomMessages[roomId][channelId] + 1
+          : 1;
+      }
+    },
+
+    watchDirectMessageNotifications(e: MessageEvent) {
+      const msg = JSON.parse(e.data);
+      if (!msg) return;
+      if (isDirectMessageNotifyData(msg))
+        this.directMessageNotify(msg.data.uid);
+      if (isDirectMessageNotifyDeleteData(msg))
+        this.directMessageNotifyDelete(msg.data.uid);
     },
   },
 });

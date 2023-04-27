@@ -60,6 +60,10 @@ func handleSocketEvent(data map[string]interface{}, event string, h handler, uid
 		err = directMessageUpdate(data, h, uid, c)
 	case "DIRECT_MESSAGE_DELETE":
 		err = directMessageDelete(data, h, uid, c)
+	case "CONV_OPENED":
+		err = convOpened(data, h, uid, c)
+	case "CONV_CLOSED":
+		err = convClosed(data, h, uid, c)
 
 	case "FRIEND_REQUEST":
 		err = friendRequest(data, h, uid, c)
@@ -665,6 +669,12 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 		return fmt.Errorf("Internal error")
 	}
 
+	if _, err = h.DB.Exec(ctx, `
+	INSERT INTO direct_message_notifications (user_id, sender_id, message_id) VALUES($1,$2,$3);
+	`, data.Uid, uid, id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: []string{uid, data.Uid},
 		Data: socketMessages.DirectMessage{
@@ -685,6 +695,25 @@ func directMessage(inData map[string]interface{}, h handler, uid string, c *webs
 				ID: id,
 			},
 			MessageType: "REQUEST_ATTACHMENT",
+		}
+	}
+
+	recvChan := make(chan *websocket.Conn, 1)
+	h.SocketServer.GetConnection <- socketServer.GetConnection{
+		RecvChan: recvChan,
+		Uid:      data.Uid,
+	}
+	oc := <-recvChan
+	close(recvChan)
+	if oc != nil {
+		if _, ok := oc.Locals("open_convs").(map[string]struct{})[data.Uid]; !ok {
+			h.SocketServer.SendDataToUser <- socketServer.UserMessageData{
+				Uid:         data.Uid,
+				MessageType: "DIRECT_MESSAGE_NOTIFY",
+				Data: socketMessages.DirectMessageNotify{
+					Uid: uid,
+				},
+			}
 		}
 	}
 
@@ -794,6 +823,73 @@ func directMessageDelete(inData map[string]interface{}, h handler, uid string, c
 		},
 		MessageType: "DIRECT_MESSAGE_DELETE",
 	}
+
+	recvChan := make(chan *websocket.Conn, 1)
+	h.SocketServer.GetConnection <- socketServer.GetConnection{
+		RecvChan: recvChan,
+		Uid:      recipient_id,
+	}
+	oc := <-recvChan
+	close(recvChan)
+	if oc != nil {
+		if _, ok := oc.Locals("open_convs").(map[string]struct{})[recipient_id]; !ok {
+			h.SocketServer.SendDataToUser <- socketServer.UserMessageData{
+				Uid:         recipient_id,
+				MessageType: "DIRECT_MESSAGE_NOTIFY_DELETE",
+				Data: socketMessages.DirectMessageNotify{
+					Uid: uid,
+				},
+			}
+		}
+	}
+
+	return nil
+}
+
+func convOpened(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketValidation.ConvOpenedClosed{}
+	if err := UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	if deleteStmt, err := conn.Conn().Prepare(ctx, "conv_opened_delete_notifications_stmt", "DELETE FROM direct_message_notifications WHERE user_id = $1 AND sender_id = $2;"); err != nil {
+		return fmt.Errorf("Internal error")
+	} else {
+		if _, err = conn.Conn().Exec(ctx, deleteStmt.Name, uid, data.Uid); err != nil {
+			return fmt.Errorf("Internal error")
+		}
+	}
+
+	c.Locals("open_convs").(map[string]struct{})[data.Uid] = struct{}{}
+
+	return nil
+}
+
+func convClosed(inData map[string]interface{}, h handler, uid string, c *websocket.Conn) error {
+	data := &socketValidation.ConvOpenedClosed{}
+	if err := UnmarshalMap(inData, data); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+	defer cancel()
+
+	conn, err := h.DB.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	defer conn.Release()
+
+	delete(c.Locals("open_convs").(map[string]struct{}), data.Uid)
 
 	return nil
 }

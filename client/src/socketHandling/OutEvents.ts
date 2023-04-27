@@ -71,6 +71,18 @@ export type CallResponse = {
     accept: boolean;
   };
 };
+export type ConvOpened = {
+  event_type: "CONV_OPENED";
+  data: {
+    uid: string;
+  };
+};
+export type ConvClosed = {
+  event_type: "CONV_CLOSED";
+  data: {
+    uid: string;
+  };
+};
 
 /* Room events */
 export type RoomMessage = {

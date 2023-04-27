@@ -33,6 +33,13 @@ type MessageUpdateData = {
   };
 };
 
+type DirectMessageNotifyData = {
+  data: {
+    uid: string;
+  };
+};
+type DirectMessageNotifyDeleteData = DirectMessageNotifyData;
+
 type RoomMessageData = MessageData;
 type RoomMessageDeleteData = MessageDeleteData;
 type RoomMessageUpdateData = MessageUpdateData;
@@ -236,6 +243,16 @@ export function isDirectMsgUpdate(
   object: any
 ): object is DirectMessageUpdateData {
   return object.event_type === "DIRECT_MESSAGE_UPDATE";
+}
+export function isDirectMessageNotifyData(
+  object: any
+): object is DirectMessageNotifyData {
+  return object.event_type === "DIRECT_MESSAGE_NOTIFY";
+}
+export function isDirectMessageNotifyDeleteData(
+  object: any
+): object is DirectMessageNotifyDeleteData {
+  return object.event_type === "DIRECT_MESSAGE_NOTIFY_DELETE";
 }
 export function isBlock(object: any): object is BlockData {
   return object.event_type === "BLOCK";

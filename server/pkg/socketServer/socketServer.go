@@ -48,6 +48,8 @@ type SocketServer struct {
 	SendDataToSubs chan SubscriptionsMessageData
 
 	GetSubscriptionUids chan GetSubscriptionUids
+
+	GetConnection chan GetConnection
 }
 
 /* ------ INTERNAL MUTEX PROTECTED MAPS ------ */
@@ -77,6 +79,11 @@ type GetSubscriptionUids struct {
 
 type IsUserOnline struct {
 	RecvChan chan bool
+	Uid      string
+}
+
+type GetConnection struct {
+	RecvChan chan *websocket.Conn
 	Uid      string
 }
 
@@ -158,6 +165,8 @@ func Init(csdc chan string, cRTCsdc chan string, udlcdc chan string, udludc chan
 		SendDataToSubs: make(chan SubscriptionsMessageData),
 
 		GetSubscriptionUids: make(chan GetSubscriptionUids),
+
+		GetConnection: make(chan GetConnection),
 	}
 	go runServer(ss, csdc, cRTCsdc, udlcdc, udludc)
 	return ss
@@ -177,6 +186,23 @@ func runServer(ss *SocketServer, csdc chan string, cRTCsdc chan string, udlcdc c
 	go sendSubsData(ss)
 	go getConnSubscriptions(ss)
 	go getSubscriptionUids(ss)
+	go getConnection(ss)
+}
+
+func getConnection(ss *SocketServer) {
+	for {
+		data := <-ss.GetConnection
+
+		ss.Server.mutex.RLock()
+
+		if c, ok := ss.Server.data.ConnectionsByID[data.Uid]; ok {
+			data.RecvChan <- c
+		} else {
+			data.RecvChan <- nil
+		}
+
+		ss.Server.mutex.RUnlock()
+	}
 }
 
 func closeConn(ss *SocketServer) {

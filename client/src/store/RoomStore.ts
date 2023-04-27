@@ -31,8 +31,8 @@ const useRoomStore = defineStore("rooms", {
   },
   actions: {
     addRoomsData(rooms: IRoom[]) {
-      this.$state.rooms = [
-        ...this.$state.rooms.filter((r) => !rooms.find((or) => or.ID === r.ID)),
+      this.rooms = [
+        ...this.rooms.filter((r) => !rooms.find((or) => or.ID === r.ID)),
         ...rooms,
       ];
     },
@@ -118,8 +118,7 @@ const useRoomStore = defineStore("rooms", {
     },
 
     async cacheRoom(id: string, force?: boolean) {
-      if (this.$state.rooms.findIndex((r) => r.ID === id) !== -1 && !force)
-        return;
+      if (this.rooms.findIndex((r) => r.ID === id) !== -1 && !force) return;
       try {
         const r = await getRoom(id);
         const img: BlobPart | undefined = await new Promise((resolve) =>
@@ -130,10 +129,7 @@ const useRoomStore = defineStore("rooms", {
         if (img)
           r.img = URL.createObjectURL(new Blob([img], { type: "image/jpeg" }));
         // spread operator to make sure DOM updates, not sure if necessary
-        this.$state.rooms = [
-          ...this.$state.rooms.filter((r) => r.ID !== id),
-          r,
-        ];
+        this.rooms = [...this.rooms.filter((r) => r.ID !== id), r];
       } catch (e) {
         console.warn("Failed to cache room data for", id);
       }
@@ -147,15 +143,12 @@ const useRoomStore = defineStore("rooms", {
             .then((img) => resolve(img))
         );
         if (img) {
-          const r = this.$state.rooms.find((r) => r.ID === id);
+          const r = this.rooms.find((r) => r.ID === id);
           if (img && r) {
             r.img = URL.createObjectURL(
               new Blob([img], { type: "image/jpeg" })
             );
-            this.$state.rooms = [
-              ...this.$state.rooms.filter((r) => r.ID !== id),
-              r,
-            ];
+            this.rooms = [...this.rooms.filter((r) => r.ID !== id), r];
           }
         }
       } catch (e) {
@@ -168,16 +161,16 @@ const useRoomStore = defineStore("rooms", {
     },
 
     roomEnteredView(id: string) {
-      this.$state.visibleRooms = [...this.$state.visibleRooms, id];
-      const i = this.$state.disappearedRooms.findIndex((r) => r.id === id);
-      if (i !== -1) this.$state.disappearedRooms.splice(i, 1);
+      this.visibleRooms = [...this.visibleRooms, id];
+      const i = this.disappearedRooms.findIndex((r) => r.id === id);
+      if (i !== -1) this.disappearedRooms.splice(i, 1);
     },
     roomLeftView(id: string) {
-      const i = this.$state.visibleRooms.findIndex((r) => r === id);
-      if (i !== -1) this.$state.visibleRooms.splice(i, 1);
-      if (this.$state.disappearedRooms.findIndex((r) => r.id === id) === -1)
-        this.$state.disappearedRooms = [
-          ...this.$state.disappearedRooms,
+      const i = this.visibleRooms.findIndex((r) => r === id);
+      if (i !== -1) this.visibleRooms.splice(i, 1);
+      if (this.disappearedRooms.findIndex((r) => r.id === id) === -1)
+        this.disappearedRooms = [
+          ...this.disappearedRooms,
           {
             id,
             disappearedAt: Date.now(),

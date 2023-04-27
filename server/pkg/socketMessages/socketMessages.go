@@ -59,6 +59,11 @@ type DirectMessageDelete struct {
 	RecipientID string `json:"recipient_id"`
 }
 
+// TYPE: DIRECT_MESSAGE_NOTIFY/DIRECT_MESSAGE_NOTIFY_DELETE
+type DirectMessageNotify struct {
+	Uid string `json:"uid"`
+}
+
 // TYPE: FRIEND_REQUEST
 type FriendRequest struct {
 	Friender  string `json:"friender"`

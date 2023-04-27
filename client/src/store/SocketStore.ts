@@ -9,7 +9,7 @@ const useSocketStore = defineStore("socket", {
   state: () =>
     ({
       socket: undefined,
-      // currentlyWatching keeps IDs of things that the client is already "watching" so that the 
+      // currentlyWatching keeps IDs of things that the client is already "watching" so that the
       // client doesn't resend START_WATCHING events for things it's already watching
       currentlyWatching: [],
     } as SocketStoreState),
@@ -31,7 +31,7 @@ const useSocketStore = defineStore("socket", {
             : `wss://psql-social.herokuapp.com/api/ws`
         );
         socket.onopen = () => {
-          this.$state.socket = socket;
+          this.socket = socket;
           resolve(socket);
         };
         socket.onerror = (e) => reject(e);

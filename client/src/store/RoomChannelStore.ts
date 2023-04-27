@@ -20,10 +20,10 @@ const useRoomChannelStore = defineStore("channels", {
     // this is called "get" but doesn't return anything. It modifies the store state. So it's not in getters.
     async getRoomChannels(id: string): Promise<string> {
       const channels = await getRoomChannels(id);
-      this.$state.channels = channels || [];
+      this.channels = channels || [];
       if (channels) {
         const main = channels.find((c) => c.main)?.ID!;
-        this.$state.current = main;
+        this.current = main;
         return main;
       }
       return "";
