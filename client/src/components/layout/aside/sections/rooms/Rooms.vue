@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
       gap: 1.5px;
       padding-right: 2px;
       font-size: var(--md);
-      border: 1px solid var(--border-light);
+      border: none;
       svg {
         width: 1.25rem;
         height: 1.25rem;

@@ -3,7 +3,6 @@ import {
   isCallAcknowledge,
   isCallResponse,
 } from "../socketHandling/InterpretEvent";
-import { useRouter } from "vue-router";
 import useAuthStore from "./AuthStore";
 
 type CallStoreState = { calls: { caller: string; called: string }[] };
@@ -13,7 +12,6 @@ const useCallStore = defineStore("calls", {
 
   actions: {
     watchCalls(e: MessageEvent) {
-      const router = useRouter();
       const authStore = useAuthStore();
 
       const msg = JSON.parse(e.data);
@@ -27,7 +25,8 @@ const useCallStore = defineStore("calls", {
         );
         if (i !== -1) this.calls.splice(i, 1);
         if (msg.data.accept)
-          router.push(
+          //@ts-ignore
+          this.router.push(
             `/call/${
               msg.data.called === authStore.uid
                 ? msg.data.caller

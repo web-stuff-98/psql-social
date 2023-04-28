@@ -242,8 +242,6 @@ func (h handler) GetUserBio(ctx *fiber.Ctx) error {
 	if err := conn.QueryRow(rctx, selectStmt.Name, user_id).Scan(&content); err != nil {
 		if err != pgx.ErrNoRows {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
-		} else {
-			return fiber.NewError(fiber.StatusNotFound, "Bio not found")
 		}
 	}
 

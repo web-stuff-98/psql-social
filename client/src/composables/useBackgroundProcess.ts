@@ -60,8 +60,8 @@ export default function useBackgroundProcess({
   const watchForCalls = (e: MessageEvent) => callStore.watchCalls(e);
   const watchAttachments = (e: MessageEvent) =>
     attachmentStore.watchAttachments(e);
-  const watchDirectMessageNotifications = (e: MessageEvent) =>
-    notificationsStore.watchDirectMessageNotifications(e);
+  const watchNotifications = (e: MessageEvent) =>
+    notificationsStore.watchNotifications(e);
 
   onMounted(() => {
     /* Refresh the token */
@@ -132,10 +132,7 @@ export default function useBackgroundProcess({
     socketStore.socket?.addEventListener("message", watchInbox);
     socketStore.socket?.addEventListener("message", watchForCalls);
     socketStore.socket?.addEventListener("message", watchAttachments);
-    socketStore.socket?.addEventListener(
-      "message",
-      watchDirectMessageNotifications
-    );
+    socketStore.socket?.addEventListener("message", watchNotifications);
   });
 
   onBeforeUnmount(() => {
@@ -149,10 +146,7 @@ export default function useBackgroundProcess({
     socketStore.socket?.removeEventListener("message", watchInbox);
     socketStore.socket?.removeEventListener("message", watchForCalls);
     socketStore.socket?.removeEventListener("message", watchAttachments);
-    socketStore.socket?.removeEventListener(
-      "message",
-      watchDirectMessageNotifications
-    );
+    socketStore.socket?.removeEventListener("message", watchNotifications);
   });
 
   return undefined;

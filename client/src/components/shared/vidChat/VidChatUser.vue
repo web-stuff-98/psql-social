@@ -160,8 +160,8 @@ onBeforeUnmount(() => userStore.userLeftView(uid?.value as string));
 
   .pfp {
     box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.166);
-    width: 6vh;
-    height: 6vh;
+    width: 9vh;
+    height: 9vh;
     border: 3px solid var(--border-heavy);
     border-radius: 50%;
     display: flex;

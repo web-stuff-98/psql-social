@@ -37,10 +37,14 @@ const useAuthStore = defineStore("auth", {
       notificationsStore.clearAllNotifications();
     },
     async logout() {
+      const notificationsStore = useNotificationStore();
+
       await makeRequest("/api/acc/logout", {
         method: "POST",
       });
       this.uid = undefined;
+
+      notificationsStore.clearAllNotifications();
     },
   },
 });

@@ -1,10 +1,12 @@
 import { defineStore } from "pinia";
 import { getNotifications } from "../services/account";
-import notify from "../assets/notify.wav";
 import {
   isDirectMessageNotifyData,
   isDirectMessageNotifyDeleteData,
+  isRoomMsgNotify,
+  isRoomMsgNotifyDelete,
 } from "../socketHandling/InterpretEvent";
+import notify from "../assets/notify.wav";
 
 type NotificationStoreState = {
   // sender id -> num notifications
@@ -37,6 +39,14 @@ const useNotificationStore = defineStore("notifications", {
               0
             )
           : 0;
+    },
+    getAllRoomNotifications(state) {
+      return () =>
+        Object.values(state.roomMessages).reduce(
+          (acc, val) =>
+            acc + Object.values(val).reduce((acc, val) => acc + val, 0),
+          0
+        );
     },
     getUserNotifications(state) {
       return (uid: string) =>
@@ -73,7 +83,8 @@ const useNotificationStore = defineStore("notifications", {
       else this.roomMessages = {};
     },
     clearChannelNotifications(roomId: string, id: string) {
-      this.roomMessages[roomId][id] = 0;
+      if (this.roomMessages[roomId])
+        if (this.roomMessages[roomId][id]) this.roomMessages[roomId][id] = 0;
     },
     clearUserNotifications(uid: string) {
       this.directMessages[uid] = 0;
@@ -103,16 +114,32 @@ const useNotificationStore = defineStore("notifications", {
         ]
           ? this.roomMessages[roomId][channelId] + 1
           : 1;
+      } else {
+        this.roomMessages[roomId] = {};
+        this.roomMessages[roomId][channelId] = 1;
+      }
+    },
+    roomMessageNotifyDelete(roomId: string, channelId: string) {
+      if (this.roomMessages[roomId]) {
+        this.roomMessages[roomId][channelId] = this.roomMessages[roomId][
+          channelId
+        ]
+          ? this.roomMessages[roomId][channelId] - 1
+          : 0;
       }
     },
 
-    watchDirectMessageNotifications(e: MessageEvent) {
+    watchNotifications(e: MessageEvent) {
       const msg = JSON.parse(e.data);
       if (!msg) return;
       if (isDirectMessageNotifyData(msg))
         this.directMessageNotify(msg.data.uid);
       if (isDirectMessageNotifyDeleteData(msg))
         this.directMessageNotifyDelete(msg.data.uid);
+      if (isRoomMsgNotify(msg))
+        this.roomMessageNotify(msg.data.room_id, msg.data.channel_id);
+      if (isRoomMsgNotifyDelete(msg))
+        this.roomMessageNotifyDelete(msg.data.room_id, msg.data.channel_id);
     },
   },
 });

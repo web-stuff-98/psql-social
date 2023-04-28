@@ -51,6 +51,8 @@ type RoomMessageNotifyData = {
   };
 };
 
+type RoomMessageNotifyDeleteData = RoomMessageNotifyData;
+
 type BanData = {
   data: {
     user_id: string;
@@ -354,4 +356,9 @@ export function isAttachmentMetadataCreated(
 
 export function isRoomMsgNotify(object: any): object is RoomMessageNotifyData {
   return object.event_type === "ROOM_MESSAGE_NOTIFY";
+}
+export function isRoomMsgNotifyDelete(
+  object: any
+): object is RoomMessageNotifyDeleteData {
+  return object.event_type === "ROOM_MESSAGE_NOTIFY_DELETE";
 }

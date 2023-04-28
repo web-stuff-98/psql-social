@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { IResMsg } from "../../../../../interfaces/GeneralInterfaces";
 import useInboxStore from "../../../../../store/InboxStore";
 import useUserStore from "../../../../../store/UserStore";
@@ -159,14 +159,12 @@ function handleSubmit(values: any, file?: File) {
   pendingAttachmentFile.value = file;
 }
 
-watch(inboxStore.convs, async (oldVal, newVal) => {
+watch(inboxStore.convs, (oldVal, newVal) => {
   const oldConv = oldVal[currentUid.value];
   const newConv = newVal[currentUid.value];
-  if (newConv.length > oldConv.length) {
-    await nextTick(() => {
+  if (newConv && oldConv)
+    if (newConv.length > oldConv.length)
       messagesBottomRef.value?.scrollIntoView({ behavior: "auto" });
-    });
-  }
 });
 </script>
 

@@ -6,7 +6,7 @@ import messageModalStore from "../../store/MessageModalStore";
 <template>
   <div v-if="messageModalStore.show" class="modal-backdrop" />
   <div v-if="messageModalStore.show" class="modal-container">
-    <div class="modal">
+    <div :style="{ paddingTop: 'var(--gap-md)' }" class="modal">
       <ResMsg :resMsg="messageModalStore.msg" />
       <div v-if="!messageModalStore.msg.pen" class="buttons">
         <button
@@ -38,6 +38,6 @@ import messageModalStore from "../../store/MessageModalStore";
 * {
   margin: 0;
   text-align: center;
-  font-size: var(--lg);
+  font-size: var(--md);
 }
 </style>

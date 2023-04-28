@@ -74,7 +74,7 @@ const addEmoji = (emoji: string) => {
     </button>
     <button @click="toggleEmojiMenu" class="emoji-button" type="button">
       🙂
-      <div ref="emojiMenu" v-show="emojiMenuOpen" class="emoji-menu">
+      <div ref="emojiMenu" v-if="emojiMenuOpen" class="emoji-menu">
         <button
           @click="() => addEmoji(emoji)"
           type="button"
@@ -124,7 +124,7 @@ form {
       right: 0;
       background: var(--base-colour);
       box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.166);
-      border: 1px solid var(--border-light);
+      border: 1px solid var(--border-medium);
       border-radius: var(--border-radius-md);
       gap: var(--gap-sm);
       padding: var(--gap-sm);

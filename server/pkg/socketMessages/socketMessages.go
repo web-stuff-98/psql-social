@@ -2,12 +2,6 @@ package socketmessages
 
 /* This is for Outbound messages, not well organized */
 
-// TYPE: ROOM_MESSAGE_NOTIFY (unused, cba)
-type RoomMessageNotify struct {
-	RoomID    string `json:"room_id"`
-	ChannelID string `json:"channel_id"`
-}
-
 // TYPE: ROOM_MESSAGE
 type RoomMessage struct {
 	ID            string `json:"ID"`
@@ -26,6 +20,12 @@ type RoomMessageUpdate struct {
 // TYPE: ROOM_MESSAGE_DELETE
 type RoomMessageDelete struct {
 	ID string `json:"ID"`
+}
+
+// TYPE: ROOM_MESSAGE_NOTIFY/ROOM_MESSAGE_NOTIFY_DELETE
+type RoomMessageNotify struct {
+	RoomID    string `json:"room_id"`
+	ChannelID string `json:"channel_id"`
 }
 
 // TYPE: BAN

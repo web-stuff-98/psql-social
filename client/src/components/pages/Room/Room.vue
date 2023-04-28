@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { IResMsg, IRoomChannel } from "../../../interfaces/GeneralInterfaces";
-import { onBeforeUnmount, onMounted, toRef, ref, nextTick, watch, computed } from "vue";
+import { onBeforeUnmount, onMounted, toRef, ref, watch, computed } from "vue";
 import { useRoute } from "vue-router";
 import {
   JoinRoom,
@@ -26,6 +26,8 @@ import useSocketStore from "../../../store/SocketStore";
 import useRoomStore from "../../../store/RoomStore";
 import useUserStore from "../../../store/UserStore";
 import useRoomChannelStore from "../../../store/RoomChannelStore";
+import useAttachmentStore from "../../../store/AttachmentStore";
+import useNotificationStore from "../../../store/NotificationStore";
 import ResMsg from "../../../components/shared/ResMsg.vue";
 import RoomMessage from "../../../components/shared/Message.vue";
 import Channel from "./Channel.vue";
@@ -34,7 +36,6 @@ import router from "../../../router";
 import EditRoomChannel from "./EditRoomChannel.vue";
 import CreateRoomChannel from "./CreateRoomChannel.vue";
 import RoomVidChat from "./RoomVidChat.vue";
-import useAttachmentStore from "../../../store/AttachmentStore";
 import User from "../../shared/User.vue";
 
 const roomChannelStore = useRoomChannelStore();
@@ -43,6 +44,7 @@ const socketStore = useSocketStore();
 const userStore = useUserStore();
 const authStore = useAuthStore();
 const attachmentStore = useAttachmentStore();
+const notificationStore = useNotificationStore();
 
 const route = useRoute();
 const roomId = toRef(route.params, "id");
@@ -83,6 +85,7 @@ onMounted(async () => {
     resMsg.value = { msg: "", err: false, pen: true };
     const main = await roomChannelStore.getRoomChannels(roomId.value as string);
     const { messages: msgs, users_in_webrtc } = await getRoomChannel(main);
+    notificationStore.clearChannelNotifications(roomId.value as string, main);
     if (msgs) msgs.forEach((m) => userStore.cacheUser(m.author_id));
     messages.value = msgs || [];
     if (users_in_webrtc)
@@ -123,6 +126,11 @@ async function joinChannel(channelId: string) {
     event_type: "JOIN_CHANNEL",
     data: { channel_id: channelId },
   } as JoinChannel);
+
+  notificationStore.clearChannelNotifications(
+    roomId.value as string,
+    channelId
+  );
 
   try {
     resMsg.value = { msg: "", err: false, pen: true };
@@ -274,12 +282,10 @@ function handleSubmit(values: any, file?: File) {
   pendingAttachmentFile.value = file;
 }
 
-watch(messages, async (oldVal, newVal) => {
-  if (newVal.length > oldVal.length) {
-    await nextTick(() => {
+watch(messages, (oldVal, newVal) => {
+  if (newVal && oldVal)
+    if (newVal.length > oldVal.length)
       messagesBottomRef.value?.scrollIntoView({ behavior: "auto" });
-    });
-  }
 });
 </script>
 
@@ -291,6 +297,7 @@ watch(messages, async (oldVal, newVal) => {
           <div class="list">
             <!-- Main channel -->
             <Channel
+              :notificationCount="notificationStore.getChannelNotifications(roomId as string,roomChannelStore.channels.find((c) => c.main)?.ID as string)"
               :joinChannel="joinChannel"
               :deleteClicked="deleteChannelClicked"
               :editClicked="editChannelClicked"
@@ -300,6 +307,7 @@ watch(messages, async (oldVal, newVal) => {
             />
             <!-- Secondary channels -->
             <Channel
+              :notificationCount="notificationStore.getChannelNotifications(roomId as string, channel.ID)"
               :joinChannel="joinChannel"
               :deleteClicked="deleteChannelClicked"
               :editClicked="editChannelClicked"

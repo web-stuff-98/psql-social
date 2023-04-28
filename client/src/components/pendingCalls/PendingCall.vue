@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, toRefs, ref, onBeforeUnmount } from "vue";
+import { onMounted, toRefs, ref, onBeforeUnmount, computed } from "vue";
 import useUserStore from "../../store/UserStore";
 import ring from "../../assets/ring.wav";
 
@@ -13,7 +13,7 @@ const props = defineProps<{
   showAcceptDevice: boolean;
 }>();
 const { uid } = toRefs(props);
-const user = userStore.getUser(uid.value);
+const user = computed(() => userStore.getUser(uid.value));
 
 const sound = ref();
 
@@ -65,8 +65,6 @@ onBeforeUnmount(() => {
   min-height: 4rem;
   border-radius: 50%;
   border: 2px solid var(--border-medium);
-  background-size: cover;
-  background-position: center;
   font-weight: 600;
   font-size: var(--xs);
   display: flex;
@@ -74,6 +72,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   position: relative;
   background: var(--base-colour);
+  background-size: cover;
+  background-position: center;
   filter: drop-shadow(0px, 2px, 2px rgba(0, 0, 0.5));
   button {
     border: none;

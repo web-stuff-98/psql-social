@@ -472,6 +472,14 @@ func roomMessage(inData map[string]interface{}, h handler, uid string, c *websoc
 		}
 	}
 
+	for _, v := range receiveNotifications {
+		if _, err = h.DB.Exec(ctx, `
+		INSERT INTO room_message_notifications (user_id,channel_id,message_id,room_id) VALUES($1,$2,$3,$4);
+		`, v, data.ChannelID, id, room_id); err != nil {
+			return fmt.Errorf("Internal error")
+		}
+	}
+
 	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
 		Uids: receiveNotifications,
 		Data: socketMessages.RoomMessageNotify{
@@ -599,14 +607,14 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 		}
 	}
 
-	recvChan := make(chan map[string]struct{}, 1)
+	subsRecvChan := make(chan map[string]struct{}, 1)
 	h.SocketServer.GetConnectionSubscriptions <- socketServer.GetConnectionSubscriptions{
-		RecvChan: recvChan,
+		RecvChan: subsRecvChan,
 		Conn:     c,
 	}
-	subs := <-recvChan
+	subs := <-subsRecvChan
 
-	close(recvChan)
+	close(subsRecvChan)
 
 	channelName := ""
 	for k := range subs {
@@ -622,6 +630,73 @@ func roomMessageDelete(inData map[string]interface{}, h handler, uid string, c *
 			ID: data.MsgID,
 		},
 		SubName: channelName,
+	}
+
+	var channel_id string
+	if err = h.DB.QueryRow(ctx, `
+	SELECT room_channel_id FROM room_messages WHERE id = $1;
+	`, data.MsgID).Scan(&channel_id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+	var room_id string
+	if err = h.DB.QueryRow(ctx, `
+	SELECT room_id FROM room_channels WHERE id = $1;
+	`, channel_id).Scan(&room_id); err != nil {
+		return fmt.Errorf("Internal error")
+	}
+
+	// get uids of users in the channel, needed for excluding users already in the channel from notifications
+	recvChan := make(chan map[string]struct{})
+	h.SocketServer.GetSubscriptionUids <- socketServer.GetSubscriptionUids{
+		SubName:  channelName,
+		RecvChan: recvChan,
+	}
+	uidsMap := <-recvChan
+	var receiveNotifications []string
+	if rows, err := h.DB.Query(ctx, `
+	SELECT user_id FROM members WHERE room_id = $1;
+	`, room_id); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("Internal error")
+		}
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var uid string
+			if err = rows.Scan(&uid); err != nil {
+				return fmt.Errorf("Internal error")
+			}
+			if _, ok := uidsMap[uid]; !ok {
+				receiveNotifications = append(receiveNotifications, uid)
+			}
+		}
+	}
+	var owner_id string
+	if err = h.DB.QueryRow(ctx, `
+	SELECT author_id FROM rooms WHERE id = $1;
+	`, room_id).Scan(&owner_id); err != nil {
+		return fmt.Errorf("Internal error")
+	} else {
+		if _, ok := uidsMap[owner_id]; !ok {
+			receiveNotifications = append(receiveNotifications, owner_id)
+		}
+	}
+
+	for _, v := range receiveNotifications {
+		if _, err = h.DB.Exec(ctx, `
+		DELETE FROM room_message_notifications WHERE message_id = $1 AND user_id = $2;
+		`, data.MsgID, v); err != nil {
+			return fmt.Errorf("Internal error")
+		}
+	}
+
+	h.SocketServer.SendDataToUsers <- socketServer.UsersMessageData{
+		Uids: receiveNotifications,
+		Data: socketMessages.RoomMessageNotify{
+			RoomID:    room_id,
+			ChannelID: channel_id,
+		},
+		MessageType: "ROOM_MESSAGE_NOTIFY_DELETE",
 	}
 
 	return nil
@@ -960,7 +1035,7 @@ func friendRequest(inData map[string]interface{}, h handler, uid string, c *webs
 	if err = conn.QueryRow(ctx, selectFriendsExistsStmt.Name, uid, data.Uid).Scan(&friendsExists); err != nil {
 		return fmt.Errorf("Internal error")
 	}
-	if friendRequestExists {
+	if friendsExists {
 		return fmt.Errorf("You are already friends with this user")
 	}
 

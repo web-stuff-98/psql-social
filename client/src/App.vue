@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch, onUnmounted } from "vue";
 import { IResMsg } from "./interfaces/GeneralInterfaces";
+import { bioUid } from "./store/ViewBioStore";
 import useBackgroundProcess from "./composables/useBackgroundProcess";
 import useAuthStore from "./store/AuthStore";
 import useInterfaceStore from "./store/InterfaceStore";
@@ -130,7 +131,7 @@ function animate() {
     </Modal>
     <UserDropdown />
     <PendingCalls />
-    <Bio />
+    <Bio v-if="bioUid" />
     <MessageModal />
     <VidFullscreenModal />
   </div>

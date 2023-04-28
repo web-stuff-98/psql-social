@@ -284,11 +284,12 @@ function submitDirectMessage(values: any) {
     }
   }
   button {
-    padding: var(--gap-md);
+    padding: 4px;
     text-align: left;
     box-shadow: none;
     flex-grow: 1;
     width: 100%;
+    font-size: var(--sm);
   }
   .close-button {
     width: fit-content;

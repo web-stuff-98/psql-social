@@ -96,6 +96,7 @@ func generateRoom(index int, uid string, db *pgxpool.Pool) string {
 
 func generateUser(index int, db *pgxpool.Pool) string {
 	var id string
+	// password hash is Test1234!
 	if err := db.QueryRow(context.Background(), `
 	INSERT INTO users (
 		username,

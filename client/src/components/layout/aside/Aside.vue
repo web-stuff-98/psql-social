@@ -53,12 +53,23 @@ watch(show, (_, newShow) =>
       >
         {{ section }}
         <NotificationsIndicator
-          :style="{ position: 'absolute', zIndex: '99', right: '-0.5rem', top: '-0.5rem' }"
+          :style="{
+            position: 'absolute',
+            zIndex: '99',
+            right: '-0.5rem',
+            top: '-0.5rem',
+          }"
           v-if="
-            notificationStore.getAllUserNotifications() &&
-            section === EAsideSection.MESSAGES
+            (notificationStore.getAllUserNotifications() &&
+              section === EAsideSection.MESSAGES) ||
+            (notificationStore.getAllRoomNotifications() &&
+              section === EAsideSection.ROOMS)
           "
-          :count="notificationStore.getAllUserNotifications()"
+          :count="
+            section === EAsideSection.MESSAGES
+              ? notificationStore.getAllUserNotifications()
+              : notificationStore.getAllRoomNotifications()
+          "
         />
       </button>
     </div>

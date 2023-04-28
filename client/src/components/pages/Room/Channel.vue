@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { IRoomChannel } from "../../../interfaces/GeneralInterfaces";
 import useRoomChannelStore from "../../../store/RoomChannelStore";
+import NotificationsIndicator from "../../shared/NotificationsIndicator.vue";
 
 const roomChannelStore = useRoomChannelStore();
 
@@ -10,6 +11,7 @@ defineProps<{
   joinChannel: (channelId: string) => void;
   editClicked: (channelId: string) => void;
   deleteClicked: (channelId: string) => void;
+  notificationCount: number;
 }>();
 </script>
 
@@ -20,6 +22,11 @@ defineProps<{
     "
     class="channel"
   >
+    <NotificationsIndicator
+      :style="{ position: 'absolute', left: '-0.5rem', top: '-0.5rem' }"
+      v-show="notificationCount"
+      :count="notificationCount"
+    />
     <div class="name"># {{ channel.name }}</div>
     <div
       v-if="roomChannelStore.current !== channel.ID || isAuthor"
@@ -68,6 +75,7 @@ defineProps<{
   align-items: center;
   justify-content: space-between;
   border-radius: var(--border-radius-sm);
+  position: relative;
   .name {
     text-align: left;
     padding: 4px 7px;

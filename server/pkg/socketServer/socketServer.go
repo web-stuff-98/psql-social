@@ -17,10 +17,7 @@ It can only send JSON messages, in this form:
 
 I ended up using only 1 mutex lock for all
 data since I thought I was getting deadlocks
-but it turned out to be something else. I
-should revert it back to it's old state with
-seperate RWMutex locks but I can't be asked,
-it's also easier to find bugs
+but it turned out to be something else
 */
 
 type SocketServer struct {
@@ -315,17 +312,16 @@ func checkUserOnline(ss *SocketServer) {
 }
 
 func messageLoop(ss *SocketServer) {
-	var wg sync.WaitGroup
+	var m sync.Mutex
 
 	for {
 		msg := <-ss.MessageLoop
 
-		wg.Wait()
-		wg.Add(1)
+		m.Lock()
 
 		msg.Conn.WriteMessage(1, msg.Data)
 
-		wg.Done()
+		m.Unlock()
 	}
 }
 

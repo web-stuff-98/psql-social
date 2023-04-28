@@ -26,7 +26,7 @@ function watchBio(e: MessageEvent) {
         msg.data.change_type === "INSERT"
       )
         bio.value = (msg.data.data as any)["content"];
-      if (msg.data.change_type === "DELETE") bio.value = "";
+      else if (msg.data.change_type === "DELETE") bio.value = "";
     }
   }
 }
@@ -66,7 +66,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Modal v-if="bioUid">
+  <Modal>
     <ModalCloseButton @click="bioUid = ''" />
     <div class="bio-container">
       <User :uid="bioUid" />
