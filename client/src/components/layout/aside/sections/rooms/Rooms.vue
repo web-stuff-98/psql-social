@@ -12,6 +12,7 @@ import CreateRoom from "./CreateRoom.vue";
 import Room from "./Room.vue";
 import { isChangeEvent } from "../../../../../socketHandling/InterpretEvent";
 import useSocketStore from "../../../../../store/SocketStore";
+import useNotificationStore from "../../../../../store/NotificationStore";
 
 // OWN_AND_MEMBERS mode is rooms the user is a member of and rooms the user owns (no pagination) (using getRooms())
 // ALL mode is rooms that are public, rooms the user is a member of, the users own rooms (using pagination) (using getRoomsPage())
@@ -24,6 +25,7 @@ enum EMode {
 
 const roomStore = useRoomStore();
 const socketStore = useSocketStore();
+const notificationStore = useNotificationStore();
 
 const showCreate = ref(false);
 const rooms = ref<string[]>([]);
@@ -151,7 +153,11 @@ onBeforeUnmount(() => {
     </div>
     <div class="results-container">
       <div class="results">
-        <Room :rid="rid" v-for="rid in rooms" />
+        <Room
+          :notificationCount="notificationStore.getRoomNotifications(rid)"
+          :rid="rid"
+          v-for="rid in rooms"
+        />
       </div>
       <ResMsg :style="{ minWidth: '100%' }" :resMsg="resMsg" />
     </div>

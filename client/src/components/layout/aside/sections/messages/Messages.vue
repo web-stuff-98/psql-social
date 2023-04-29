@@ -67,6 +67,9 @@ onMounted(async () => {
   try {
     resMsg.value = { msg: "", pen: true, err: false };
     let uids: string[] | null = await getConversationUids();
+    // remove duplicates that somehow magically end up in the array
+    if (uids)
+      uids = uids?.filter((item, index) => uids?.indexOf(item) === index) || [];
     uids?.forEach((uid) => {
       inboxStore.convs[uid] = [];
       userStore.cacheUser(uid);

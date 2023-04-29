@@ -43,8 +43,8 @@ func main() {
 	cs := callServer.Init(ss, csdc)
 	sl := socketLimiter.Init(rdb)
 
-	// wipe the db and redo the schema, because there may have been changes and I don't know really
-	// how to alter tables and definitely don't know how to do migrations. Also it saves space.
+	// wipe the db and redo the schema, because there may have been changes and I cannot connect
+	// to the database from pgadmin for some reason.
 	/*sqlBytes, err := ioutil.ReadFile("./schema.sql")
 	if err != nil {
 		log.Fatalf("Unable to read SQL file: %v\n", err)

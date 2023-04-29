@@ -211,7 +211,9 @@ func (h handler) GetNotifications(ctx *fiber.Ctx) error {
 	}
 
 	directMessageNotifications := []responses.DirectMessageNotification{}
-	if rows, err := h.DB.Query(rctx, "SELECT sender_id FROM direct_message_notifications WHERE user_id = $1;", uid); err != nil {
+	if rows, err := h.DB.Query(rctx, `
+	SELECT sender_id FROM direct_message_notifications WHERE user_id = $1;
+	`, uid); err != nil {
 		if err != pgx.ErrNoRows {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}
@@ -229,7 +231,9 @@ func (h handler) GetNotifications(ctx *fiber.Ctx) error {
 	}
 
 	roomMessageNotifications := []responses.RoomMessageNotification{}
-	if rows, err := h.DB.Query(rctx, "SELECT channel_id,room_id FROM room_message_notifications WHERE user_id = $1;", uid); err != nil {
+	if rows, err := h.DB.Query(rctx, `
+	SELECT channel_id,room_id FROM room_message_notifications WHERE user_id = $1;
+	`, uid); err != nil {
 		if err != pgx.ErrNoRows {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		}

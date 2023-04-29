@@ -23,7 +23,7 @@ defineProps<{
     class="channel"
   >
     <NotificationsIndicator
-      :style="{ position: 'absolute', left: '-0.5rem', top: '-0.5rem' }"
+      :style="{ position: 'absolute', right: '0.5rem', top: '-0.5rem' }"
       v-show="notificationCount"
       :count="notificationCount"
     />

@@ -479,13 +479,14 @@ func (h handler) CreateRoomChannel(ctx *fiber.Ctx) error {
 	}
 
 	selectRoomStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_room_stmt", `
-	SELECT author_id FROM rooms WHERE id = $1;
+	SELECT author_id,seeded FROM rooms WHERE id = $1;
 	`)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 	}
 	var author_id string
-	if err = conn.Conn().QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&author_id); err != nil {
+	var seeded bool
+	if err = conn.Conn().QueryRow(rctx, selectRoomStmt.Name, room_id).Scan(&author_id, &seeded); err != nil {
 		if err != pgx.ErrNoRows {
 			return fiber.NewError(fiber.StatusInternalServerError, "Internal error")
 		} else {
@@ -494,6 +495,10 @@ func (h handler) CreateRoomChannel(ctx *fiber.Ctx) error {
 	}
 	if author_id != uid {
 		return fiber.NewError(fiber.StatusUnauthorized, "Unauthorized")
+	}
+
+	if seeded {
+		return fiber.NewError(fiber.StatusUnauthorized, "You cannot modify the example rooms")
 	}
 
 	channelExistsStmt, err := conn.Conn().Prepare(rctx, "create_channel_select_channel_exists_stmt", `

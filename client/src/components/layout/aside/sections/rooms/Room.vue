@@ -5,8 +5,9 @@ import useRoomStore from "../../../../../store/RoomStore";
 import useAuthStore from "../../../../../store/AuthStore";
 import EditRoom from "./EditRoom.vue";
 import messageModalStore from "../../../../../store/MessageModalStore";
+import NotificationsIndicator from "../../../../shared/NotificationsIndicator.vue";
 
-const props = defineProps<{ rid: string }>();
+const props = defineProps<{ rid: string; notificationCount: number }>();
 
 const { rid } = toRefs(props);
 
@@ -79,6 +80,11 @@ function deleteRoomClicked() {
     ref="container"
     class="room"
   >
+    <NotificationsIndicator
+      :style="{ position: 'absolute', right: '0.5rem', top: '-0.5rem' }"
+      v-show="notificationCount"
+      :count="notificationCount"
+    />
     {{ room?.name }}
     <div class="buttons">
       <button
