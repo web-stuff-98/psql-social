@@ -73,7 +73,6 @@ async function download() {
         @click.prevent="download"
         :style="{ flexDirection: 'row-reverse' }"
         type="button"
-        v-else
       >
         <v-icon name="fa-download" />
         {{
