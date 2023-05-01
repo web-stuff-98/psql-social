@@ -58,6 +58,7 @@ type Server struct {
 
 type ServerData struct {
 	ConnectionsByID map[string]*websocket.Conn
+	ConnectionsByWs map[*websocket.Conn]string
 	// outer map is subscription name, inner map is uids
 	Subscriptions map[string]map[string]struct{}
 }
@@ -136,6 +137,7 @@ func Init(csdc chan string, cRTCsdc chan string, udlcdc chan string, udludc chan
 		Server: Server{
 			data: ServerData{
 				ConnectionsByID: make(map[string]*websocket.Conn),
+				ConnectionsByWs: make(map[*websocket.Conn]string),
 				Subscriptions:   make(map[string]map[string]struct{}),
 			},
 		},
@@ -210,11 +212,9 @@ func closeConn(ss *SocketServer) {
 
 		if conn, ok := ss.Server.data.ConnectionsByID[uid]; ok {
 			ss.UnregisterConn <- conn
-
-			ss.Server.mutex.Unlock()
-		} else {
-			ss.Server.mutex.Unlock()
 		}
+
+		ss.Server.mutex.Unlock()
 	}
 }
 
@@ -237,6 +237,7 @@ func connection(ss *SocketServer, udlcdc chan string) {
 		ss.Server.mutex.Lock()
 
 		ss.Server.data.ConnectionsByID[data.Uid] = data.Conn
+		ss.Server.data.ConnectionsByWs[data.Conn] = data.Uid
 
 		ss.Server.mutex.Unlock()
 
@@ -262,15 +263,10 @@ func disconnect(ss *SocketServer, csdc chan string, cRTCsdc chan string, udludc 
 
 		ss.Server.mutex.Lock()
 
-		var uid string
-		for k, c := range ss.Server.data.ConnectionsByID {
-			if c == conn {
-				uid = k
-				break
-			}
-		}
+		uid := ss.Server.data.ConnectionsByWs[conn]
 
 		delete(ss.Server.data.ConnectionsByID, uid)
+		delete(ss.Server.data.ConnectionsByWs, conn)
 
 		ss.Server.mutex.Unlock()
 
@@ -345,18 +341,8 @@ func sendUsersData(ss *SocketServer) {
 
 		ss.Server.mutex.Lock()
 
-		conns := []*websocket.Conn{}
-
-		for k, c := range ss.Server.data.ConnectionsByID {
-			for _, v := range data.Uids {
-				if v == k {
-					conns = append(conns, c)
-				}
-			}
-		}
-
-		for _, c := range conns {
-			WriteMessage(data.MessageType, data.Data, c, ss)
+		for _, v := range data.Uids {
+			WriteMessage(data.MessageType, data.Data, ss.Server.data.ConnectionsByID[v], ss)
 		}
 
 		ss.Server.mutex.Unlock()
@@ -369,21 +355,14 @@ func joinSubsByWs(ss *SocketServer) {
 
 		ss.Server.mutex.Lock()
 
-		var uid string
-
-		for k, c := range ss.Server.data.ConnectionsByID {
-			if c == data.Conn {
-				uid = k
-				break
+		if uid, ok := ss.Server.data.ConnectionsByWs[data.Conn]; ok {
+			if _, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
+				ss.Server.data.Subscriptions[data.SubName][uid] = struct{}{}
+			} else {
+				uids := make(map[string]struct{})
+				uids[uid] = struct{}{}
+				ss.Server.data.Subscriptions[data.SubName] = uids
 			}
-		}
-
-		if _, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
-			ss.Server.data.Subscriptions[data.SubName][uid] = struct{}{}
-		} else {
-			uids := make(map[string]struct{})
-			uids[uid] = struct{}{}
-			ss.Server.data.Subscriptions[data.SubName] = uids
 		}
 
 		ss.Server.mutex.Unlock()
@@ -396,19 +375,12 @@ func leaveSubByWs(ss *SocketServer) {
 
 		ss.Server.mutex.Lock()
 
-		var uid string
-
-		for k, c := range ss.Server.data.ConnectionsByID {
-			if c == data.Conn {
-				uid = k
-				break
-			}
-		}
-
-		if _, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
-			delete(ss.Server.data.Subscriptions[data.SubName], uid)
-			if len(ss.Server.data.Subscriptions[data.SubName]) == 0 {
-				delete(ss.Server.data.Subscriptions, data.SubName)
+		if uid, ok := ss.Server.data.ConnectionsByWs[data.Conn]; ok {
+			if _, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
+				delete(ss.Server.data.Subscriptions[data.SubName], uid)
+				if len(ss.Server.data.Subscriptions[data.SubName]) == 0 {
+					delete(ss.Server.data.Subscriptions, data.SubName)
+				}
 			}
 		}
 
@@ -424,11 +396,7 @@ func sendSubData(ss *SocketServer) {
 
 		if uids, ok := ss.Server.data.Subscriptions[data.SubName]; ok {
 			for uid := range uids {
-				for k, c := range ss.Server.data.ConnectionsByID {
-					if k == uid {
-						WriteMessage(data.MessageType, data.Data, c, ss)
-					}
-				}
+				WriteMessage(data.MessageType, data.Data, ss.Server.data.ConnectionsByID[uid], ss)
 			}
 		}
 
@@ -445,11 +413,7 @@ func sendSubsData(ss *SocketServer) {
 		for _, subName := range data.SubNames {
 			if uids, ok := ss.Server.data.Subscriptions[subName]; ok {
 				for uid := range uids {
-					for k, c := range ss.Server.data.ConnectionsByID {
-						if k == uid {
-							WriteMessage(data.MessageType, data.Data, c, ss)
-						}
-					}
+					WriteMessage(data.MessageType, data.Data, ss.Server.data.ConnectionsByID[uid], ss)
 				}
 			}
 		}
@@ -464,26 +428,19 @@ func getConnSubscriptions(ss *SocketServer) {
 
 		ss.Server.mutex.RLock()
 
-		var uid string
+		if uid, ok := ss.Server.data.ConnectionsByWs[data.Conn]; ok {
+			subs := make(map[string]struct{})
 
-		for k, c := range ss.Server.data.ConnectionsByID {
-			if c == data.Conn {
-				uid = k
-				break
-			}
-		}
-
-		subs := make(map[string]struct{})
-
-		for subName, uids := range ss.Server.data.Subscriptions {
-			for k := range uids {
-				if k == uid {
-					subs[subName] = struct{}{}
+			for subName, uids := range ss.Server.data.Subscriptions {
+				for k := range uids {
+					if k == uid {
+						subs[subName] = struct{}{}
+					}
 				}
 			}
-		}
 
-		data.RecvChan <- subs
+			data.RecvChan <- subs
+		}
 
 		ss.Server.mutex.RUnlock()
 	}
