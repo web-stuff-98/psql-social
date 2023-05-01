@@ -20,6 +20,21 @@ type handler struct {
 	SocketLimiter    *socketLimiter.SocketLimiter
 }
 
-func New(db *pgxpool.Pool, rdb *redis.Client, ss *socketServer.SocketServer, cs *callServer.CallServer, cRTCs *channelRTCserver.ChannelRTCServer, as *attachmentServer.AttachmentServer, sl *socketLimiter.SocketLimiter) handler {
-	return handler{db, rdb, ss, cs, cRTCs, as, sl}
+func New(
+	db *pgxpool.Pool,
+	rdb *redis.Client,
+	ss *socketServer.SocketServer,
+	cs *callServer.CallServer,
+	cRTCs *channelRTCserver.ChannelRTCServer,
+	as *attachmentServer.AttachmentServer,
+	sl *socketLimiter.SocketLimiter) handler {
+	return handler{
+		db,
+		rdb,
+		ss,
+		cs,
+		cRTCs,
+		as,
+		sl,
+	}
 }

@@ -319,13 +319,11 @@ func retrieveChannelUids(ss *socketServer.SocketServer, cRTCs *ChannelRTCServer)
 				channelUids[oi] = struct{}{}
 			}
 			data.RecvChan <- channelUids
-
-			cRTCs.ChannelConnections.mutex.RUnlock()
 		} else {
 			data.RecvChan <- make(map[string]struct{})
-
-			cRTCs.ChannelConnections.mutex.RUnlock()
 		}
+
+		cRTCs.ChannelConnections.mutex.RUnlock()
 	}
 }
 
