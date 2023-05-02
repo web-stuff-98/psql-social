@@ -222,6 +222,11 @@ func WriteMessage(t string, m interface{}, c *websocket.Conn, ss *SocketServer) 
 	withType := make(map[string]interface{})
 	withType["event_type"] = t
 	withType["data"] = m
+
+	if c == nil {
+		return
+	}
+
 	if b, err := json.Marshal(withType); err == nil {
 		ss.MessageLoop <- Message{
 			Conn: c,
