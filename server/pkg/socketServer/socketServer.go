@@ -313,16 +313,20 @@ func checkUserOnline(ss *SocketServer) {
 }
 
 func messageLoop(ss *SocketServer) {
-	var m sync.Mutex
-
 	for {
 		msg := <-ss.MessageLoop
 
-		m.Lock()
+		// stupid way of avoiding datarace
 
-		msg.Conn.WriteMessage(1, msg.Data)
+		ss.Server.mutex.Lock()
 
-		m.Unlock()
+		if key, ok := ss.Server.data.ConnectionsByWs[msg.Conn]; ok {
+			if conn, ok := ss.Server.data.ConnectionsByID[key]; ok {
+				conn.WriteMessage(1, msg.Data)
+			}
+		}
+
+		ss.Server.mutex.Unlock()
 	}
 }
 
