@@ -18,10 +18,12 @@ const resMsg = ref<IResMsg>({ msg: "", err: false, pen: false });
 
 async function getDeviceList() {
   const devices = await navigator.mediaDevices.enumerateDevices();
+
   devices.forEach((device) => {
     if (device.kind === "audioinput") audioInputDevices.value.push(device);
     if (device.kind === "videoinput") videoInputDevices.value.push(device);
   });
+
   if (
     !audioInputDevices.value.find(
       (d) => d.deviceId === selectedAudioInputDevice.value
@@ -36,28 +38,25 @@ async function getDeviceList() {
     selectedVideoInputDevice.value = "";
 }
 
-function handleAudioInputDeviceChange(e: Event) {
-  const target = e.target as HTMLSelectElement;
-  selectedAudioInputDevice.value = target.value;
-}
+const handleAudioInputDeviceChange = (e: Event) =>
+  (selectedAudioInputDevice.value = (e.target as HTMLSelectElement).value);
 
-function handleVideoInputDeviceChange(e:Event) {
-  const target = e.target as HTMLSelectElement;
-  selectedVideoInputDevice.value = target.value;
-}
+const handleVideoInputDeviceChange = (e: Event) =>
+  (selectedVideoInputDevice.value = (e.target as HTMLSelectElement).value);
 
 onMounted(async () => {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
     await getDeviceList();
     navigator.mediaDevices.ondevicechange = () =>
-      getDeviceList().catch((e) => {
-        resMsg.value = {
-          msg: `${e}`,
-          err: true,
-          pen: false,
-        };
-      });
+      getDeviceList().catch(
+        (e) =>
+          (resMsg.value = {
+            msg: `${e}`,
+            err: true,
+            pen: false,
+          })
+      );
     resMsg.value = { msg: "", err: false, pen: false };
   } catch (e) {
     resMsg.value = { msg: `${e}`, err: true, pen: false };
@@ -108,7 +107,11 @@ const removeParenthesis = (str?: string) =>
       </div>
       <div class="select-container">
         <label for="video">Video input device</label>
-        <select @change="handleVideoInputDeviceChange" v-model="selectedVideoInputDevice" id="video">
+        <select
+          @change="handleVideoInputDeviceChange"
+          v-model="selectedVideoInputDevice"
+          id="video"
+        >
           <option
             :value="selectedVideoInputDevice"
             v-if="selectedVideoInputDevice"

@@ -21,7 +21,6 @@ const imgInput = ref<HTMLInputElement>();
 async function handleSubmit(values: any) {
   try {
     resMsg.value = { msg: "", err: false, pen: true };
-    console.log(values);
     const id = await createRoom(values.name, values.isPrivate);
     if (imgFile.value) uploadRoomImage(id, imgFile.value);
     resMsg.value = { msg: "", err: false, pen: false };

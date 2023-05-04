@@ -44,7 +44,7 @@ onBeforeUnmount(() => userStore.userLeftView(uid?.value as string));
         <v-icon v-if="!user?.pfp" name="fa-user-alt" />
         <v-icon
           v-if="userMediaStreamID === 'FAILED'"
-          name="md-error-round"
+          name="md-error-twotone"
           class="error-icon"
         />
       </div>
@@ -160,8 +160,8 @@ onBeforeUnmount(() => userStore.userLeftView(uid?.value as string));
 
   .pfp {
     box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.166);
-    width: 9vh;
-    height: 9vh;
+    width: 3.5rem;
+    height: 3.5rem;
     border: 3px solid var(--border-heavy);
     border-radius: 50%;
     display: flex;
@@ -173,15 +173,15 @@ onBeforeUnmount(() => userStore.userLeftView(uid?.value as string));
     background-position: center;
     position: relative;
     svg {
-      width: 60%;
-      height: 60%;
+      width: 50%;
+      height: 50%;
     }
     .error-icon {
       position: absolute;
       top: -15%;
       right: -15%;
-      width: 45%;
-      height: 45%;
+      width: 55%;
+      height: 55%;
       fill: red;
       color: red;
     }

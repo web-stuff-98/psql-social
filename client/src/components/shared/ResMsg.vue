@@ -6,7 +6,7 @@ defineProps<{ resMsg?: IResMsg }>();
 <template>
   <div v-if="resMsg?.msg || resMsg?.err || resMsg?.pen" class="res-msg">
     <v-icon v-if="resMsg?.pen" class="spinner spin" name="pr-spinner" />
-    <v-icon v-if="resMsg?.err" class="error" name="md-error-round" />
+    <v-icon v-if="resMsg?.err" class="error" name="md-error-twotone" />
     <div
       v-if="resMsg?.msg"
       :style="resMsg?.err ? { color: 'red' } : {}"

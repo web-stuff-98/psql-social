@@ -7,7 +7,7 @@ import { OhVueIcon, addIcons } from "oh-vue-icons";
 import {
   IoClose,
   PrSpinner,
-  MdErrorRound,
+  MdErrorTwotone,
   HiSolidMenu,
   FaUserAlt,
   IoSend,
@@ -36,7 +36,7 @@ import {
 addIcons(
   IoClose,
   PrSpinner,
-  MdErrorRound,
+  MdErrorTwotone,
   HiSolidMenu,
   FaUserAlt,
   IoSend,

@@ -76,10 +76,11 @@ export const useChatMedia = (
     );
   };
 
-  // retrieveMedia is only called when media devices change, and onMounted
   async function retrieveMedia() {
     let userMediaStream: MediaStream | undefined;
     let displayMediaStream: MediaStream | undefined;
+    let complete = false;
+
     try {
       userMediaStream = await navigator.mediaDevices.getUserMedia({
         audio: mediaOptions.value.userMedia.audio
@@ -95,22 +96,24 @@ export const useChatMedia = (
           ? { deviceId: { exact: selectedVideoInputDevice.value } }
           : true,
       });
+
       const vidTrack = userMediaStream.getVideoTracks()[0];
       const sndTrack = userMediaStream.getAudioTracks()[0];
+
       if (!mediaOptions.value.userMedia.video) {
         if (vidTrack !== undefined) {
           vidTrack.enabled = false;
+          userMediaStreamID.value = userMediaStream?.id || "";
         }
       } else {
         vidTrack.contentHint = "motion";
         userMediaStreamID.value = userMediaStream.id;
       }
-      if (sndTrack) {
-        sndTrack.contentHint = "speech";
-      }
+      if (sndTrack) sndTrack.contentHint = "speech";
     } catch (e) {
       userMediaStreamID.value = "FAILED";
     }
+
     if (mediaOptions.value.displayMedia.video) {
       try {
         displayMediaStream = await navigator.mediaDevices.getDisplayMedia({
@@ -119,36 +122,32 @@ export const useChatMedia = (
           video: true,
         });
         const vidTrack = displayMediaStream.getVideoTracks()[0];
-        if (vidTrack) {
-          vidTrack.contentHint = "detail";
-        }
         const sndTrack = displayMediaStream.getAudioTracks()[0];
-        if (sndTrack) {
-          sndTrack.contentHint = "music";
-        }
+        if (vidTrack) vidTrack.contentHint = "detail";
+        if (sndTrack) sndTrack.contentHint = "music";
       } catch (e) {
         console.warn(e);
       }
     }
     userStream.value = userMediaStream;
     displayStream.value = displayMediaStream;
-    userMediaStreamID.value = userMediaStream?.id as string;
+
+    complete = true;
+
     await nextTick(() => negotiateConnection());
   }
 
   onMounted(retrieveMedia);
 
   onBeforeUnmount(() => {
-    if (userStream.value) {
+    if (userStream.value)
       userStream.value
         .getTracks()
         .forEach((track) => userStream.value?.removeTrack(track));
-    }
-    if (displayStream.value) {
+    if (displayStream.value)
       displayStream.value
         .getTracks()
         .forEach((track) => displayStream.value?.removeTrack(track));
-    }
     mediaOptions.value = {
       userMedia: { video: false, audio: true },
       displayMedia: { video: false },

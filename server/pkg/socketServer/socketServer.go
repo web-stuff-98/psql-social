@@ -201,12 +201,14 @@ func getConnection(ss *SocketServer) {
 		ss.ConnectionsByID.mutex.RLock()
 
 		if c, ok := ss.ConnectionsByID.data[data.Uid]; ok {
+			ss.ConnectionsByID.mutex.RUnlock()
+
 			data.RecvChan <- c
 		} else {
+			ss.ConnectionsByID.mutex.RUnlock()
+
 			data.RecvChan <- nil
 		}
-
-		ss.ConnectionsByID.mutex.RUnlock()
 	}
 }
 
@@ -217,10 +219,12 @@ func closeConn(ss *SocketServer) {
 		ss.ConnectionsByID.mutex.RLock()
 
 		if conn, ok := ss.ConnectionsByID.data[uid]; ok {
-			ss.UnregisterConn <- conn
-		}
+			ss.ConnectionsByID.mutex.RUnlock()
 
-		ss.ConnectionsByID.mutex.RUnlock()
+			ss.UnregisterConn <- conn
+		} else {
+			ss.ConnectionsByID.mutex.RUnlock()
+		}
 	}
 }
 
@@ -316,9 +320,9 @@ func checkUserOnline(ss *SocketServer) {
 
 		_, ok := ss.ConnectionsByID.data[data.Uid]
 
-		data.RecvChan <- ok
-
 		ss.ConnectionsByID.mutex.RUnlock()
+
+		data.RecvChan <- ok
 	}
 }
 
@@ -328,7 +332,8 @@ func messageLoop(ss *SocketServer) {
 
 		// stupid way of avoiding datarace
 
-		ss.ConnectionsByWs.mutex.RLock()
+		ss.ConnectionsByWs.mutex.Lock()
+		ss.ConnectionsByID.mutex.Lock()
 
 		if key, ok := ss.ConnectionsByWs.data[msg.Conn]; ok {
 			if conn, ok := ss.ConnectionsByID.data[key]; ok {
@@ -336,7 +341,8 @@ func messageLoop(ss *SocketServer) {
 			}
 		}
 
-		ss.ConnectionsByWs.mutex.RUnlock()
+		ss.ConnectionsByID.mutex.Unlock()
+		ss.ConnectionsByWs.mutex.Unlock()
 	}
 }
 
@@ -347,10 +353,12 @@ func sendUserData(ss *SocketServer) {
 		ss.ConnectionsByID.mutex.RLock()
 
 		if c, ok := ss.ConnectionsByID.data[data.Uid]; ok {
-			WriteMessage(data.MessageType, data.Data, c, ss)
-		}
+			ss.ConnectionsByID.mutex.RUnlock()
 
-		ss.ConnectionsByID.mutex.RUnlock()
+			WriteMessage(data.MessageType, data.Data, c, ss)
+		} else {
+			ss.ConnectionsByID.mutex.RUnlock()
+		}
 	}
 }
 
@@ -396,7 +404,7 @@ func leaveSubByWs(ss *SocketServer) {
 	for {
 		data := <-ss.LeaveSubscriptionByWs
 
-		ss.ConnectionsByID.mutex.RLock()
+		ss.ConnectionsByWs.mutex.RLock()
 
 		if uid, ok := ss.ConnectionsByWs.data[data.Conn]; ok {
 			ss.Subscriptions.mutex.Lock()
@@ -411,7 +419,7 @@ func leaveSubByWs(ss *SocketServer) {
 			ss.Subscriptions.mutex.Unlock()
 		}
 
-		ss.ConnectionsByID.mutex.RUnlock()
+		ss.ConnectionsByWs.mutex.RUnlock()
 	}
 }
 
@@ -422,9 +430,13 @@ func sendSubData(ss *SocketServer) {
 		ss.Subscriptions.mutex.RLock()
 
 		if uids, ok := ss.Subscriptions.data[data.SubName]; ok {
+			ss.ConnectionsByID.mutex.RLock()
+
 			for uid := range uids {
 				WriteMessage(data.MessageType, data.Data, ss.ConnectionsByID.data[uid], ss)
 			}
+
+			ss.ConnectionsByID.mutex.RUnlock()
 		}
 
 		ss.Subscriptions.mutex.RUnlock()
@@ -493,8 +505,8 @@ func getSubscriptionUids(ss *SocketServer) {
 			out = uids
 		}
 
-		data.RecvChan <- out
-
 		ss.Subscriptions.mutex.RUnlock()
+
+		data.RecvChan <- out
 	}
 }

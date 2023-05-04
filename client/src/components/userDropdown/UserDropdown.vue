@@ -62,13 +62,12 @@ watch(userdropdownStore, async () => {
   menuPos.value = mousePos.value;
   section.value = EUserdropdownMenuSection.MENU;
   getOwnRoomIDsResMsg.value = { msg: "", err: false, pen: false };
-  console.log(menuPos.value);
-  await nextTick(() => {
-    adjust();
-  });
+  await nextTick(() => adjust());
 });
 
-watch(section, adjust);
+watch(section, async () => {
+  await nextTick(() => adjust());
+});
 
 onMounted(() => {
   window.addEventListener("mousemove", handleMouseMove);
