@@ -43,6 +43,19 @@ func main() {
 	cs := callServer.Init(ss, csdc)
 	sl := socketLimiter.Init(rdb)
 
+	if _, err = db.Exec(context.Background(), `
+	DELETE FROM direct_messages;
+	DELETE FROM room_messages;
+	DELETE FROM invitations;
+	DELETE FROM friend_requests;
+	DELETE FROM friends;
+	DELETE FROM blocks;
+	DELETE FROM members;
+	DELETE FROM bans;
+	`); err != nil {
+		log.Fatalf("Error in delete statement:%v", err)
+	}
+
 	// wipe the db and redo the schema, because there may have been changes and I cannot connect
 	// to the database from pgadmin for some reason.
 	/*sqlBytes, err := ioutil.ReadFile("./schema.sql")

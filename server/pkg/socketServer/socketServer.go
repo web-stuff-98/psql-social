@@ -328,21 +328,9 @@ func checkUserOnline(ss *SocketServer) {
 
 func messageLoop(ss *SocketServer) {
 	for {
-		msg := <-ss.MessageLoop
+		data := <-ss.MessageLoop
 
-		// stupid way of avoiding datarace
-
-		ss.ConnectionsByWs.mutex.Lock()
-		ss.ConnectionsByID.mutex.Lock()
-
-		if key, ok := ss.ConnectionsByWs.data[msg.Conn]; ok {
-			if conn, ok := ss.ConnectionsByID.data[key]; ok {
-				conn.WriteMessage(1, msg.Data)
-			}
-		}
-
-		ss.ConnectionsByID.mutex.Unlock()
-		ss.ConnectionsByWs.mutex.Unlock()
+		data.Conn.WriteMessage(1, data.Data)
 	}
 }
 
@@ -350,14 +338,14 @@ func sendUserData(ss *SocketServer) {
 	for {
 		data := <-ss.SendDataToUser
 
-		ss.ConnectionsByID.mutex.RLock()
+		ss.ConnectionsByID.mutex.Lock()
 
 		if c, ok := ss.ConnectionsByID.data[data.Uid]; ok {
-			ss.ConnectionsByID.mutex.RUnlock()
+			ss.ConnectionsByID.mutex.Unlock()
 
 			WriteMessage(data.MessageType, data.Data, c, ss)
 		} else {
-			ss.ConnectionsByID.mutex.RUnlock()
+			ss.ConnectionsByID.mutex.Unlock()
 		}
 	}
 }
@@ -366,13 +354,13 @@ func sendUsersData(ss *SocketServer) {
 	for {
 		data := <-ss.SendDataToUsers
 
-		ss.ConnectionsByID.mutex.RLock()
-
-		for _, v := range data.Uids {
-			WriteMessage(data.MessageType, data.Data, ss.ConnectionsByID.data[v], ss)
+		for _, uid := range data.Uids {
+			ss.SendDataToUser <- UserMessageData{
+				Data:        data.Data,
+				MessageType: data.MessageType,
+				Uid:         uid,
+			}
 		}
-
-		ss.ConnectionsByID.mutex.RUnlock()
 	}
 }
 

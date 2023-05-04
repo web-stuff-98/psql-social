@@ -39,11 +39,11 @@ const useInboxStore = defineStore("inbox", {
           msg.data.author_id === authStore.uid
             ? msg.data.recipient_id
             : msg.data.author_id;
+        userStore.cacheUser(otherUser);
         this.convs[otherUser] = [
           ...(this.convs[otherUser] || []),
           msg.data as IDirectMessage,
         ];
-        userStore.cacheUser(msg.data.author_id);
       }
       if (isDirectMsgUpdate(msg)) {
         const otherUser =
@@ -80,11 +80,11 @@ const useInboxStore = defineStore("inbox", {
           msg.data.friended === authStore.uid
             ? msg.data.friender
             : msg.data.friended;
+        userStore.cacheUser(otherUser);
         this.convs[otherUser] = [
           ...(this.convs[otherUser] || []),
           msg.data as IFriendRequest,
         ];
-        userStore.cacheUser(otherUser);
       }
       if (isFriendRequestResponse(msg)) {
         const otherUser =
@@ -111,11 +111,11 @@ const useInboxStore = defineStore("inbox", {
           msg.data.inviter === authStore.uid
             ? msg.data.invited
             : msg.data.inviter;
+        userStore.cacheUser(otherUser);
         this.convs[otherUser] = [
           ...(this.convs[otherUser] || []),
           msg.data as IInvitation,
         ];
-        userStore.cacheUser(otherUser);
       }
       if (isInvitationResponse(msg)) {
         const otherUser =

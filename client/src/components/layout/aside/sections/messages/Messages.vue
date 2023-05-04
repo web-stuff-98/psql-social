@@ -70,6 +70,9 @@ onMounted(async () => {
     // remove duplicates that somehow magically end up in the array
     if (uids)
       uids = uids?.filter((item, index) => uids?.indexOf(item) === index) || [];
+    // remove the users own ID which also somehow inexplicably ends up in the response
+    // even though its also filtered out on the server
+    uids = uids?.filter((uid) => uid !== authStore.uid) || [];
     uids?.forEach((uid) => {
       inboxStore.convs[uid] = [];
       userStore.cacheUser(uid);

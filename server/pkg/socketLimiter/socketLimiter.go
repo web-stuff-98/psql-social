@@ -81,8 +81,8 @@ func configure() map[string]EventLimiterConfiguration {
 	config["DIRECT_MESSAGE"] = messageEventConfig
 	config["DIRECT_MESSAGE_UPDATE"] = messageEventConfig
 	config["DIRECT_MESSAGE_DELETE"] = messageEventConfig
-	config["OPEN_CONV"] = messageEventConfig
-	config["CLOSE_CONV"] = messageEventConfig
+	config["CONV_OPENED"] = messageEventConfig
+	config["CONV_CLOSED"] = messageEventConfig
 
 	config["START_WATCHING"] = watchEventConfig
 	config["STOP_WATCHING"] = watchEventConfig

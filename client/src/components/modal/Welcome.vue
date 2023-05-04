@@ -6,7 +6,7 @@ const cld = new Cloudinary({
     cloudName: "dr7whzm5r",
   },
 });
-const vid = cld.video("psql-social_f2yhjp");
+const vid = cld.video("psql-social_oi9gv6");
 defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
 </script>
 
