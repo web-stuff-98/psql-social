@@ -296,6 +296,27 @@ a {
   width: 50%;
 }
 
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: var(--border-light);
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 @keyframes spin {
   0% {
     transform: rotateZ(0deg);
