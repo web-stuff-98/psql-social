@@ -16,10 +16,9 @@ defineProps<{ onLoginClicked: Function; onRegisterClicked: Function }>();
     <hr />
     <AdvancedVideo controls :cld-vid="vid" />
     <p>
-      This is my new Vue & Go social app, it has all the features of Go-Vue-Chat
-      but it's written better and uses postgres. The performance and UI is
-      better. You can login and try it out, or just watch the demo video. The
-      video compression is heavy but it shows all features.
+      You can login and try it out, or just watch the demo video. The video demo
+      video is short and doesn't show every feature but does include the primary
+      ones.
     </p>
     <div class="buttons">
       <button type="button" @click="onLoginClicked()">Login</button>

@@ -30,7 +30,7 @@ type SocketServer struct {
 
 	AttachmentServerRemoveUploaderChan chan string
 
-	RegisterConn   chan ConnnectionData
+	RegisterConn   chan ConnectionData
 	UnregisterConn chan *websocket.Conn
 
 	CloseConnChan chan string
@@ -95,7 +95,7 @@ type Message struct {
 	Data []byte
 }
 
-type ConnnectionData struct {
+type ConnectionData struct {
 	Uid  string
 	Conn *websocket.Conn
 }
@@ -155,7 +155,7 @@ func Init(csdc chan string, cRTCsdc chan string, udlcdc chan string, udludc chan
 
 		AttachmentServerRemoveUploaderChan: make(chan string),
 
-		RegisterConn:   make(chan ConnnectionData),
+		RegisterConn:   make(chan ConnectionData),
 		UnregisterConn: make(chan *websocket.Conn),
 
 		CloseConnChan: make(chan string),

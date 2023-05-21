@@ -24,7 +24,7 @@ func SendSocketErrorMessage(m string, c *websocket.Conn) {
 
 func (h handler) WebSocketHandler() func(*fiber.Ctx) error {
 	return websocket.New(func(c *websocket.Conn) {
-		h.SocketServer.RegisterConn <- socketServer.ConnnectionData{
+		h.SocketServer.RegisterConn <- socketServer.ConnectionData{
 			Uid:  c.Locals("uid").(string),
 			Conn: c,
 		}
