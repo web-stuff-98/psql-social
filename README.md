@@ -1,6 +1,6 @@
 # pSQL-social (my portfolio project for Vue)
 
-# Something went wrong with hosting this. I will fix it within a week. I have no idea how to use docker, i just tried random stuff for a couple of weeks until it worked, now it doesn't
+# Something went wrong with hosting this. I have no idea how to use docker, i just tried random stuff for a couple of weeks until it worked, now it doesn't, so I will try more random crap for a few weeks until it works again
 # https://psql-social.herokuapp.com
 
 ## Summary
