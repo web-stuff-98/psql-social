@@ -1,6 +1,5 @@
 
-not all todos, just ones I plan on doing next. probably already done them
+small todos that don't really need doing:
 
-- add "explore rooms" aside section with pagination
-- add pagination to find users aside section
-- re-record demo video with new changes
+ - Replace custom middlewares with fiber middlewares (necessary???)
+ - Update packages

@@ -1,5 +1,24 @@
 # pSQL-social (my portfolio project for Vue)
 
-https://psql-social.herokuapp.com
+# Something went wrong with hosting this. I will fix it within a week. I have no idea how to use docker, i just tried random stuff for a couple of weeks until it worked, now it doesn't
+# https://psql-social.herokuapp.com
 
-This is my best filesharing/voip/video chat app. Go-Social-Media is similar except for it uses React and has a blog with nested comments. Also the WebRTC code for Go-Social-Media is crap and I can't be asked to fix it since it's an old project and debugging the socket events is annoying
+## Summary
+This is my best filesharing/voip/video chat app. Go-Social-Media is similar except for it uses React and has a public posts feed with nested comments.
+
+You just need a username and password, everything gets deleted automatically twenty minutes after you log out, and you can also manually delete your account. This is an example app for my portfolio.
+
+Also this one is meant to be more similar to Discord, it was going to be a desktop binary using Tauri but I made it a web app instead because nobody wants to run random .exes off the internet. The subscription model for watching for changes is also coded better than Go-Social-Media but there aren't many major differences in the rest of the code.
+
+I coded my own middlewares for authentication and rate limiting because I wanted to make that myself instead of using Fibers middlewares
+
+## Features
+ - WebRTC VOIP, screensharing and group video chat
+ - Rate limiters for HTTP requests and socket messages (using redis)
+ - Refresh tokens stored inside secure httpOnly cookies
+ - Filesharing with progress updates
+ - Live updates for everything through websocket events using a subscription model and intersection observers
+ - Customizable chatrooms
+ - Blocks, bans and invitations
+ - Validation for everything (inbound + outbound HTTP requests and socket events)
+ - Some other features I probably forgot I added because this is a few months old now

@@ -1,17 +1,17 @@
 @font-face {
-  font-family: "Cq Mono";
-  src: url(./assets/didact-gothic.regular.ttf);
+  font-family: "FONT";
+  src: url(./assets/UbuntuMono-R.ttf);
 }
 
 * {
-  font-family: "Cq Mono";
+  font-family: "FONT";
   color: var(--text-colour);
   line-height: 1;
   box-sizing: border-box;
 }
 
 :root {
-  font-family: "Cq Mono";
+  font-family: "FONT";
 
   color: #0f0f0f;
   background-color: #f6f6f6;
