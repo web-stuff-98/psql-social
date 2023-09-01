@@ -1,3 +1,4 @@
+# I used chatgpt to help me make this since i apparently have no idea how to use docker
 # Stage 1
 FROM golang:alpine as builder
 RUN apk update && apk add --no-cache git
